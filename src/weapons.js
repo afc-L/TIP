@@ -10,6 +10,7 @@ export const WEAPONS = {
     label: 'Longsword',
     edges: [1, -1],
     reach: 1.05,
+    offGrip: -0.09,
     tipY: 1.07,
     parts: [
       { kind: 'blunt', shape: 'ball', r: 0.032, y: -0.13, mass: 0.3 },
@@ -26,6 +27,7 @@ export const WEAPONS = {
     label: 'Bearded Axe',
     edges: [1],
     reach: 0.72,
+    offGrip: -0.12,
     tipY: 0.66,
     parts: [
       { kind: 'haft', shape: 'capsule', hh: 0.36, r: 0.019, y: 0.2, mass: 0.75 },
@@ -39,6 +41,7 @@ export const WEAPONS = {
     label: 'Flanged Mace',
     edges: [1, -1],
     reach: 0.66,
+    offGrip: -0.11,
     tipY: 0.62,
     parts: [
       { kind: 'haft', shape: 'capsule', hh: 0.3, r: 0.018, y: 0.16, mass: 0.6 },

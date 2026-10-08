@@ -69,7 +69,7 @@ export function emptyInput() {
     moveX: 0, moveZ: 0, run: false, turn: 0,
     aim: { x: 0.15, y: -0.05, reach: 0.4 },
     power: 0.4, guard: false, brace: false,
-    thrust: false, parry: false, grab: false, getUp: false, dodge: false,
+    thrust: false, parry: false, grab: false, getUp: false, dodge: false, twoHand: false,
     faceTarget: null, // THREE.Vector3 or null
   };
 }
@@ -112,6 +112,7 @@ export class Fighter {
     this.edgeSign = 1;
     this.riseFrom = 0.4;
     this.grabJoint = null; this.grabbing = 0; this.grabTarget = null;
+    this.twoHanded = false; this.twoHandJoint = null;
     this.lastHitBy = null;
     this.kills = 0;
     this.prevPower = 0;
@@ -618,8 +619,19 @@ export class Fighter {
     const armLOk = !this.severed.has('handL') && !this.severed.has('forearmL') && !this.severed.has('upperArmL');
     if (armLOk) {
       const TL = _targetL.copy(C);
-      let lPow = 0.5;
-      if (this.grabbing > 0 && this.grabTarget && upright) {
+      let lPow = 0.5, drive = upright;
+      const twoH = this.twoHanded && this.hasWeapon && upright && !this.grabJoint && this.grabbing <= 0;
+      if (twoH) {
+        // Off hand on the grip below the sword hand: reach for it, then lock on with a joint.
+        const wb = this.weapon.body;
+        TL.set(0, this.weaponDef.offGrip, 0).applyQuaternion(q4(wb.rotation(), _q3)).add(v3(wb.translation(), _v4));
+        lPow = 1;
+        if (this.twoHandJoint) {
+          // both hands push the sword: the off hand aims for its spot on the grip at the target pose
+          TL.copy(this.handTarget).addScaledVector(this.bladeTarget, this.weaponDef.offGrip);
+          lPow = clamp(inp.power, 0.4, 1.25);
+        } else if (this.parts.handL.p.distanceTo(TL) < 0.09) this.makeTwoHand();
+      } else if (this.grabbing > 0 && this.grabTarget && upright) {
         TL.copy(this.grabTarget.p);
         lPow = 1;
       } else if (this.grabJoint) {
@@ -634,7 +646,19 @@ export class Fighter {
       _v1.copy(TL).sub(shoulderL);
       if (_v1.length() > 0.62) TL.copy(shoulderL).addScaledVector(_v1.normalize(), 0.62);
       this.solveArm('L', shoulderL, TL, right, fwd, kMul, dMul, capMul * (0.35 + 0.65 * this.limb.armL), lPow);
-      if (upright) this.driveHand(this.parts.handL, TL, lPow, this.limb.armL, dt, false);
+      if (drive) this.driveHand(this.parts.handL, TL, lPow, this.limb.armL, dt, false);
+    }
+  }
+
+  makeTwoHand() {
+    const jd = RAPIER.JointData.spherical({ x: 0, y: -0.02, z: 0 }, { x: 0, y: this.weaponDef.offGrip, z: 0 });
+    this.twoHandJoint = this.physics.world.createImpulseJoint(jd, this.parts.handL.body, this.weapon.body, true);
+  }
+
+  releaseTwoHand() {
+    if (this.twoHandJoint) {
+      if (this.twoHandJoint.isValid()) this.physics.world.removeImpulseJoint(this.twoHandJoint, true);
+      this.twoHandJoint = null;
     }
   }
 
@@ -678,7 +702,7 @@ export class Fighter {
     _v1.copy(T).sub(hand.p).multiplyScalar(omega * omega);
     _v2.copy(hand.v).sub(torso.v).multiplyScalar(2 * omega * 0.9);
     const F = _v1.sub(_v2).multiplyScalar(mEff);
-    const cap = (weaponHand ? 60 + 160 * clamp(power, 0, 1.25) : 60 + 60 * power) * armStr * this.strength;
+    const cap = (weaponHand ? (60 + 160 * clamp(power, 0, 1.25)) * (this.twoHandJoint ? 1.35 : 1) : 60 + 60 * power) * armStr * this.strength;
     const mag = F.length();
     if (mag > cap) F.multiplyScalar(cap / mag);
     if (weaponHand) this.handForce = Math.min(mag, cap) / Math.max(cap, 1);
@@ -716,7 +740,7 @@ export class Fighter {
     _q2.multiply(GRIP_INV);
     const hand = this.parts.handR;
     const omegaMul = (0.7 + 0.5 * clamp(power, 0, 1.25)) * (hand.omega ? 1 : 1);
-    const capScale = (0.45 + 0.75 * clamp(power, 0, 1.25)) * armStr;
+    const capScale = (0.45 + 0.75 * clamp(power, 0, 1.25)) * armStr * (this.twoHandJoint ? 1.4 : 1);
     this.muscleJoint(hand, _q2, kMul, dMul, this.strength, omegaMul, capScale);
   }
 
@@ -742,8 +766,15 @@ export class Fighter {
         this.stamina -= 22; this.balance -= 0.12; this.dodgeCd = 0.8;
       }
     }
+    if (inp.twoHand) {
+      inp.twoHand = false;
+      this.twoHanded = !this.twoHanded;
+      if (!this.twoHanded) this.releaseTwoHand();
+    }
+    if (this.twoHandJoint && (!this.hasWeapon || this.state !== 'stand' || this.severed.has('handL') || this.severed.has('handR'))) this.releaseTwoHand();
     if (inp.grab) {
       inp.grab = false;
+      if (this.twoHanded && !this.grabJoint) { this.twoHanded = false; this.releaseTwoHand(); }
       if (this.grabJoint) this.releaseGrab();
       else if (upright && !this.hasWeapon && this.tryPickup()) { /* picked up a weapon */ }
       else if (upright && this.stamina > 10 && this.target && !this.severed.has('handL')) {
@@ -863,6 +894,7 @@ export class Fighter {
     this.state = 'down'; this.stateTime = 0; this.balance = 0;
     this.thrustT = -1; this.parryT = -1;
     this.releaseGrab();
+    this.releaseTwoHand();
     this.game.onFighterDown?.(this);
   }
 
@@ -933,6 +965,7 @@ export class Fighter {
   dropWeapon(detach = true) {
     if (!this.weapon || this.weapon.dropped) return;
     this.weapon.dropped = true;
+    this.releaseTwoHand();
     if (detach && this.weapon.joint && this.weapon.joint.isValid()) this.physics.world.removeImpulseJoint(this.weapon.joint, true);
     for (const c of this.weapon.colliders) c.setCollisionGroups(GROUP_DEBRIS);
   }

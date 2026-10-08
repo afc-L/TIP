@@ -76,6 +76,7 @@ export class PlayerInput {
     if (p.has('KeyQ')) inp.parry = true;
     if (p.has('KeyF')) inp.thrust = true;
     if (p.has('KeyE')) inp.grab = true;
+    if (p.has('KeyX')) inp.twoHand = true;
     if (p.has('Space')) {
       if (fighter.state === 'down') inp.getUp = true;
       else if (inp.moveX || inp.moveZ) inp.dodge = true;

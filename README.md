@@ -26,6 +26,7 @@ Use a desktop browser with a mouse. Click the arena to lock the cursor; Esc rele
 | Hold LMB | **Grip** — full arm strength. Wind up, then sweep the mouse hard through the target |
 | Hold V | **Guard** — blade raised across the body; the mouse moves the guard |
 | Wheel / ↑ ↓ | Reach (pull the hand in / extend it) |
+| X | Toggle a **two-handed grip** — stronger, steadier swings; no free hand for grabbing |
 | F | Thrust |
 | Q | Parry — snaps your blade across the incoming weapon |
 | W A S D | Move (relative to the opponent when locked on) · Shift: run |

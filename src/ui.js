@@ -122,7 +122,7 @@ export class UI {
     c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill();
     c.fillStyle = 'rgba(232,215,176,0.7)';
     c.font = '10px Georgia';
-    c.fillText(inp.power > 0.6 ? 'GRIP' : 'relaxed', 6, W - 6);
+    c.fillText((inp.power > 0.6 ? 'GRIP' : 'relaxed') + (p.twoHandJoint ? ' · 2H' : p.twoHanded ? ' · 2H…' : ''), 6, W - 6);
   }
 }
 

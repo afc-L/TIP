@@ -68,8 +68,8 @@ export class Gore {
     this.splatTex = bloodTexture('splat');
     this.gashTex = bloodTexture('gash');
     const sg = new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2);
-    this.splats = new THREE.InstancedMesh(sg, new THREE.MeshStandardMaterial({
-      map: this.splatTex, transparent: true, depthWrite: false, roughness: 0.15, metalness: 0.1,
+    this.splats = new THREE.InstancedMesh(sg, new THREE.MeshLambertMaterial({
+      map: this.splatTex, transparent: true, depthWrite: false, color: 0xb01818,
       polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
     }), MAX_SPLATS);
     this.splats.count = 0;
@@ -93,12 +93,12 @@ export class Gore {
     this.nSparks = 0;
 
     this.bleeders = [];
-    this.woundMat = new THREE.MeshStandardMaterial({
-      map: this.gashTex, transparent: true, depthWrite: false, roughness: 0.2,
+    this.woundMat = new THREE.MeshLambertMaterial({
+      map: this.gashTex, color: 0xffffff, transparent: true, depthWrite: false,
       polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4,
     });
-    this.splatMat = new THREE.MeshStandardMaterial({
-      map: this.splatTex, transparent: true, depthWrite: false, roughness: 0.2,
+    this.splatMat = new THREE.MeshLambertMaterial({
+      map: this.splatTex, color: 0xffffff, transparent: true, depthWrite: false,
       polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4,
     });
     this.capMat = new THREE.MeshStandardMaterial({ color: 0x6e0505, roughness: 0.4 });
