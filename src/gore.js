@@ -49,8 +49,8 @@ export class Gore {
     const scene = game.scene;
     // Blood droplets
     this.drops = new THREE.InstancedMesh(
-      new THREE.IcosahedronGeometry(1, 0),
-      new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.25, metalness: 0.1 }),
+      new THREE.SphereGeometry(1, 6, 4),
+      new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.35, metalness: 0.0 }),
       MAX_DROPS,
     );
     this.drops.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -122,8 +122,8 @@ export class Gore {
       this.dv[k * 3 + 1] = (dir.y + rand(-spread, spread)) * sp;
       this.dv[k * 3 + 2] = (dir.z + rand(-spread, spread)) * sp;
       this.dl[k] = rand(1.5, 3);
-      this.ds[k] = rand(0.006, 0.02) * size;
-      this.drops.setColorAt(k, _col.setRGB(rand(0.35, 0.55), 0, rand(0, 0.02)));
+      this.ds[k] = rand(0.005, 0.015) * size;
+      this.drops.setColorAt(k, _col.setRGB(rand(0.22, 0.4), 0, rand(0, 0.015)));
     }
     this.drops.instanceColor.needsUpdate = true;
   }
@@ -294,7 +294,7 @@ export class Gore {
       _v.set(this.dv[i3], this.dv[i3 + 1], this.dv[i3 + 2]);
       const sp = _v.length();
       _q.setFromUnitVectors(_y, sp > 1e-3 ? _v.multiplyScalar(1 / sp) : _y);
-      _s.set(s, s * (1 + Math.min(sp * 0.4, 2.5)), s);
+      _s.set(s, s * (1 + Math.min(sp * 0.3, 1.8)), s);
       _m.compose(_p, _q, _s);
       this.drops.setMatrixAt(k, _m);
     }

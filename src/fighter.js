@@ -266,7 +266,7 @@ export class Fighter {
         if (armorMat) add(new RoundedBoxGeometry(0.355, 0.12, 0.235, 2, 0.04), armorMat, [0, 0.02, 0]);
         break;
       case 'torso': {
-        add(new RoundedBoxGeometry(0.34, 0.41, 0.22, 3, 0.07), own(armor === 'gambeson' ? m.gambeson : m.cloth));
+        add(new RoundedBoxGeometry(0.34, 0.41, 0.22, 3, 0.07), own(armor === 'gambeson' ? m.gambeson : this.armorSet === ARMOR_SETS.naked ? m.skin : m.cloth));
         if (armor === 'plate') {
           add(new RoundedBoxGeometry(0.36, 0.36, 0.245, 3, 0.09), armorMat, [0, 0.02, 0.005]);
           add(new THREE.BoxGeometry(0.2, 0.24, 0.02), own(m.cloth), [0, -0.02, 0.125]); // tabard
