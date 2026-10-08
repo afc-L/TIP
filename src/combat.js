@@ -113,7 +113,7 @@ export class Combat {
         if (own < other) jar *= 1.6;
         if (parry) jar *= 0.3;
         f.jarred = Math.max(f.jarred, jar);
-        f.balance -= speed * (parry ? 0.004 : 0.012);
+        f.balance -= speed * (parry ? 0.002 : 0.006);
       }
       // A good parry punishes the attacker
       if (parryA && sb > 4) { fb.jarred = Math.max(fb.jarred, 0.6); fb.balance -= 0.18; fa.stamina += 6; g.onParry?.(fa, fb); }
@@ -185,7 +185,7 @@ export class Combat {
 
     // Balance and stagger (armor spreads, but doesn't remove, the force)
     const regionBal = { head: 1.4, torso: 1.2, pelvis: 1.0, arm: 0.35, hand: 0.2, leg: 0.9, foot: 0.6 }[part.region];
-    victim.balance -= (E / 420) * regionBal * (covered && type !== 'blunt' ? 0.7 : 1);
+    victim.balance -= (E / 650) * regionBal * (covered && type !== 'blunt' ? 0.7 : 1);
     victim.lastHitBy = attacker;
 
     // Feedback
@@ -239,14 +239,14 @@ export class Combat {
       const s = part.side === -1 ? 'R' : 'L';
       const total = pd('thigh' + s) + pd('shin' + s) + pd('foot' + s);
       victim.limb['leg' + s] = Math.min(victim.limb['leg' + s], clamp(1 - total / 80, 0.2, 1));
-      if (dmg > 15) victim.balance -= 0.25;
+      if (dmg > 15) victim.balance -= 0.15;
     } else if (part.region === 'head') {
       if (type === 'blunt' || covered) {
         if (E > 140 || (type === 'blunt' && raw > 24)) { victim.koTime = Math.max(victim.koTime, 3 + Math.random() * 3); }
         else if (E > 40) victim.dazed = Math.max(victim.dazed, 1.2 + E / 100);
       } else if (dmg > 10) victim.dazed = Math.max(victim.dazed, 1.0);
     } else if (part.region === 'torso' || part.region === 'pelvis') {
-      if (dmg > 20 || E > 150) { victim.balance -= 0.2; victim.dazed = Math.max(victim.dazed, 0.4); }
+      if (dmg > 20 || E > 150) { victim.balance -= 0.12; victim.dazed = Math.max(victim.dazed, 0.4); }
     }
     // cumulative wear: repeated hits sap fighting ability
     const hurt = 1 - victim.health / 100;

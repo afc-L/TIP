@@ -2,9 +2,9 @@ import * as THREE from 'three';
 import { UP, clamp, lerp, rand, smooth } from './util.js';
 
 export const DIFFICULTY = {
-  easy: { label: 'Easy', react: 0.48, aggression: 0.35, defense: 0.3, accuracy: 0.5, windup: 0.6, swing: 0.34, power: 0.85, parry: 0.1 },
-  normal: { label: 'Normal', react: 0.3, aggression: 0.55, defense: 0.55, accuracy: 0.72, windup: 0.45, swing: 0.26, power: 1.0, parry: 0.3 },
-  hard: { label: 'Hard', react: 0.17, aggression: 0.75, defense: 0.8, accuracy: 0.88, windup: 0.32, swing: 0.2, power: 1.15, parry: 0.55 },
+  easy: { label: 'Easy', react: 0.34, aggression: 0.5, defense: 0.5, accuracy: 0.68, windup: 0.42, swing: 0.25, power: 1.0, parry: 0.2, twoHand: false, punish: 0.3, threatGap: 0.45 },
+  normal: { label: 'Normal', react: 0.2, aggression: 0.7, defense: 0.72, accuracy: 0.84, windup: 0.3, swing: 0.2, power: 1.15, parry: 0.45, twoHand: true, punish: 0.7, threatGap: 0.35 },
+  hard: { label: 'Hard', react: 0.11, aggression: 0.85, defense: 0.9, accuracy: 0.95, windup: 0.22, swing: 0.16, power: 1.25, parry: 0.7, twoHand: false, punish: 1, threatGap: 0.25 },
 };
 
 // Attack patterns in the fighter's aim space: x = right, y = up (from chest), r = reach.
@@ -84,6 +84,8 @@ export class AIController {
       return;
     }
     if (f.state !== 'stand') return;
+    // Better fighters take a two-handed grip for stronger, steadier blows.
+    if (d.twoHand && !this.passive && f.hasWeapon && !f.twoHanded && !f.grabJoint && this.state !== 'grab') inp.twoHand = true;
 
     if (!f.target || !seen) {
       inp.faceTarget = null;
@@ -121,13 +123,20 @@ export class AIController {
     // ---------------- Threat assessment (delayed perception) ----------------
     const tipDist = seen.tip.distanceTo(torso.p);
     const threat = seen.tipSpeed > 5 && tipDist < reach + 0.9 && seen.state === 'stand';
-    if (threat && this.time - this.lastThreat > 0.5) {
+    if (threat && this.time - this.lastThreat > d.threatGap) {
       this.lastThreat = this.time;
       const committed = this.state === 'strike' && this.t > d.swing * 0.3;
       if (!committed && Math.random() < d.defense) {
         this.state = 'defend'; this.t = 0;
         if (Math.random() < d.parry) inp.parry = true;
       }
+    }
+
+    // Punish openings: a fallen or rising opponent, or one who just whiffed a big swing.
+    const opening = seen.state !== 'stand' || (seen.tipSpeed > 7 && tipDist > reach + 1.0);
+    if (opening && f.hasWeapon && (this.state === 'circle' || this.state === 'approach' || this.state === 'recover')
+      && dist < ideal + 0.6 && f.stamina > 20 && f.balance > 0.4 && Math.random() < d.punish * dt * 8) {
+      this.startAttack(dist, ideal, seen.state !== 'stand');
     }
 
     // Too tired or off-balance: back off and brace
@@ -243,12 +252,12 @@ export class AIController {
     inp.aim.x = this.aim.x; inp.aim.y = this.aim.y; inp.aim.reach = this.aim.reach;
   }
 
-  startAttack(dist, ideal) {
+  startAttack(dist, ideal, low = false) {
     const d = this.d;
     const f = this.f;
     if (!f.hasWeapon) return;
     const thrustOk = f.weaponDef.label === 'Longsword' && Math.random() < 0.18;
-    this.attack = thrustOk ? { name: 'thrust', from: [0.05, -0.05, 0.25], to: [0, 0, 0.7], thrust: true } : ATTACKS[Math.floor(Math.random() * ATTACKS.length)];
+    if (low) { this.attack = ATTACKS[2]; } else this.attack = thrustOk ? { name: 'thrust', from: [0.05, -0.05, 0.25], to: [0, 0, 0.7], thrust: true } : ATTACKS[Math.floor(Math.random() * ATTACKS.length)];
     this.state = 'windup';
     this.t = 0;
     this.windupTime = d.windup * rand(0.7, 1.3);

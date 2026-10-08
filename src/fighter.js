@@ -382,7 +382,7 @@ export class Fighter {
     const braced = upright && inp.brace && this.stamina > 2;
     if (this.state === 'stand') {
       support = 1;
-      assist = 0.05 + 0.95 * smooth((this.balance - 0.08) / 0.6);
+      assist = 0.2 + 0.8 * smooth(this.balance / 0.5);
       if (braced) heightTarget = 0.93;
     } else if (this.state === 'rising') {
       const t = this.stateTime;
@@ -428,17 +428,17 @@ export class Fighter {
     rig.setNextKinematicRotation(_r);
 
     const balF = 0.3 + 0.7 * smooth(this.balance / 0.5);
-    const hMax = 750 * support * balF * (braced ? 1.5 : 1);
+    const hMax = 1000 * support * balF * (braced ? 1.5 : 1);
     // smoothed intent: our own changes of direction shouldn't count as being shoved
     this.desiredVel.lerp(desired, Math.min(1, dt * 6));
     this.rigMotor(this.rigJoint, 0, M * 49, 2 * M * 7, hMax);
     this.rigMotor(this.rigJoint, 2, M * 49, 2 * M * 7, hMax);
     this.rigMotor(this.rigJoint, 1, M * 100, 2 * M * 10 * 0.9, support * 1.6 * M * G);
-    const tiltMax = 1100 * assist * (braced ? 1.3 : 1);
+    const tiltMax = 1500 * assist * (braced ? 1.3 : 1);
     this.rigMotor(this.rigJoint, 3, 2400, 400, tiltMax);
     this.rigMotor(this.rigJoint, 5, 2400, 400, tiltMax);
     this.rigMotor(this.rigJoint, 4, 1500, 300, tiltMax * 0.8);
-    const chestMax = 420 * assist;
+    const chestMax = 550 * assist;
     this.rigMotor(this.rigJoint2, 3, 700, 120, chestMax);
     this.rigMotor(this.rigJoint2, 5, 700, 120, chestMax);
     // gravity compensation (feed-forward) so the support spring doesn't sag
@@ -763,7 +763,7 @@ export class Fighter {
       if (upright && this.dodgeCd <= 0 && this.stamina > 20 && (inp.moveX || inp.moveZ)) {
         _v1.set(0, 0, 0).addScaledVector(this.fwd, inp.moveZ).addScaledVector(this.right, inp.moveX).normalize();
         for (const p of this.partList) if (!this.severed.has(p.name)) impulse(p.body, _v1, p.mass * 3.2);
-        this.stamina -= 22; this.balance -= 0.12; this.dodgeCd = 0.8;
+        this.stamina -= 22; this.balance -= 0.05; this.dodgeCd = 0.8;
       }
     }
     if (inp.twoHand) {
@@ -850,23 +850,23 @@ export class Fighter {
 
     if (this.state === 'stand') {
       const legF = Math.min(this.limb.legL, this.limb.legR);
-      let rec = (0.2 + (this.input.brace ? 0.35 : 0)) * (0.3 + 0.7 * legF) * (this.stamina > 10 ? 1 : 0.4);
+      let rec = (0.32 + (this.input.brace ? 0.4 : 0)) * (0.3 + 0.7 * legF) * (this.stamina > 10 ? 1 : 0.4);
       this.balance += dt * rec;
-      this.balance -= dt * Math.max(0, tilt - 0.3) * 1.6;
+      this.balance -= dt * Math.max(0, tilt - 0.4) * 1.0;
       // centre of mass outside the feet
       const fl = this.parts.footL.p, fr = this.parts.footR.p;
       const mx = (fl.x + fr.x) / 2, mz = (fl.z + fr.z) / 2;
       const off = Math.hypot(this.com.x - mx, this.com.z - mz);
-      this.balance -= dt * Math.max(0, off - 0.3) * 2.5;
+      this.balance -= dt * Math.max(0, off - 0.38) * 1.5;
       // being shoved off your intended motion
       const dvx = this.comVel.x - this.desiredVel.x, dvz = this.comVel.z - this.desiredVel.z;
-      this.balance -= dt * Math.max(0, Math.hypot(dvx, dvz) - 0.6) * 2.6 * (this.input.brace ? 0.5 : 1);
+      this.balance -= dt * Math.max(0, Math.hypot(dvx, dvz) - 0.9) * 1.5 * (this.input.brace ? 0.5 : 1);
       // a violent, uncontrolled swing pulls you around
-      if (this.handForce > 0.95 && this.swingSpeed > 9) this.balance -= dt * 0.25;
+      if (this.handForce > 0.95 && this.swingSpeed > 9) this.balance -= dt * 0.12;
       this.balance = clamp(this.balance, -1, 1);
       if (this.balance <= 0) this.goDown('balance');
-      else if (tilt > 1.15) this.goDown('tilt');
-      else if (pelvisTilt > 1.2) this.goDown('pelvisTilt');
+      else if (tilt > 1.25) this.goDown('tilt');
+      else if (pelvisTilt > 1.3) this.goDown('pelvisTilt');
       else if (pelvis.p.y < 0.55) this.goDown('height');
       else if (legsGone) this.goDown('legs');
       else if (this.koTime > 0) this.goDown('ko');
@@ -880,7 +880,7 @@ export class Fighter {
       }
     } else if (this.state === 'rising') {
       if (this.stateTime > 1.5) {
-        if (tilt < 0.6 && pelvis.p.y > 0.8) { this.state = 'stand'; this.stateTime = 0; this.balance = 0.55; }
+        if (tilt < 0.6 && pelvis.p.y > 0.8) { this.state = 'stand'; this.stateTime = 0; this.balance = 0.75; }
         else if (this.stateTime > 2.6) this.goDown('riseFail');
       }
       if (legsGone) this.goDown('legs');
