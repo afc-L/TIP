@@ -2,9 +2,9 @@ import * as THREE from 'three';
 import { UP, clamp, lerp, rand, smooth } from './util.js';
 
 export const DIFFICULTY = {
-  easy: { label: 'Easy', react: 0.34, aggression: 0.5, defense: 0.5, accuracy: 0.68, windup: 0.42, swing: 0.25, power: 1.0, parry: 0.2, twoHand: false, punish: 0.3, threatGap: 0.45 },
-  normal: { label: 'Normal', react: 0.2, aggression: 0.7, defense: 0.72, accuracy: 0.84, windup: 0.3, swing: 0.2, power: 1.15, parry: 0.45, twoHand: true, punish: 0.7, threatGap: 0.35 },
-  hard: { label: 'Hard', react: 0.11, aggression: 0.85, defense: 0.9, accuracy: 0.95, windup: 0.22, swing: 0.16, power: 1.25, parry: 0.7, twoHand: false, punish: 1, threatGap: 0.25 },
+  easy: { label: 'Easy', react: 0.32, aggression: 0.5, defense: 0.6, accuracy: 0.7, windup: 0.4, swing: 0.24, power: 1.0, parry: 0.25, twoHand: false, punish: 0.4, threatGap: 0.45 },
+  normal: { label: 'Normal', react: 0.19, aggression: 0.7, defense: 0.85, accuracy: 0.86, windup: 0.3, swing: 0.2, power: 1.15, parry: 0.5, twoHand: false, punish: 0.8, threatGap: 0.32 },
+  hard: { label: 'Hard', react: 0.1, aggression: 0.85, defense: 0.96, accuracy: 0.95, windup: 0.26, swing: 0.18, power: 1.2, parry: 0.75, twoHand: false, punish: 1, threatGap: 0.22 },
 };
 
 // Attack patterns in the fighter's aim space: x = right, y = up (from chest), r = reach.
