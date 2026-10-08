@@ -7,7 +7,7 @@ export class PlayerInput {
     this.canvas = canvas;
     this.keys = new Set();
     this.pressed = new Set();
-    this.lmb = false; this.rmb = false;
+    this.lmb = false;
     this.aim = { x: 0.2, y: 0.0, reach: 0.42 };
     this.sens = 0.0021;
     this.lockOn = true;
@@ -21,15 +21,13 @@ export class PlayerInput {
       game.onKey?.(e.code);
     });
     window.addEventListener('keyup', (e) => this.keys.delete(e.code));
-    window.addEventListener('blur', () => { this.keys.clear(); this.lmb = this.rmb = false; });
+    window.addEventListener('blur', () => { this.keys.clear(); this.lmb = false; });
     canvas.addEventListener('mousedown', (e) => {
       if (!this.locked) { game.requestLock(); return; }
       if (e.button === 0) this.lmb = true;
-      if (e.button === 2) this.rmb = true;
     });
     window.addEventListener('mouseup', (e) => {
       if (e.button === 0) this.lmb = false;
-      if (e.button === 2) this.rmb = false;
     });
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
     window.addEventListener('mousemove', (e) => {
@@ -42,7 +40,7 @@ export class PlayerInput {
     }, { passive: true });
     document.addEventListener('pointerlockchange', () => {
       this.locked = document.pointerLockElement === canvas;
-      if (!this.locked) { this.lmb = this.rmb = false; game.onUnlock?.(); }
+      if (!this.locked) { this.lmb = false; game.onUnlock?.(); }
     });
   }
 
@@ -70,7 +68,7 @@ export class PlayerInput {
     inp.moveX = (k.has('KeyD') ? 1 : 0) - (k.has('KeyA') ? 1 : 0);
     inp.run = k.has('ShiftLeft') || k.has('ShiftRight');
     inp.power = this.lmb ? 1.0 : 0.4;
-    inp.guard = this.rmb;
+    inp.guard = k.has('KeyV');
     inp.brace = k.has('Space') && !(inp.moveX || inp.moveZ);
     inp.aim.x = this.aim.x; inp.aim.y = this.aim.y; inp.aim.reach = this.aim.reach;
 

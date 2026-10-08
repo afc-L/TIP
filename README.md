@@ -24,7 +24,7 @@ Use a desktop browser with a mouse. Click the arena to lock the cursor; Esc rele
 | --- | --- |
 | Mouse | Moves your **sword hand** around in front of your body (not the camera) |
 | Hold LMB | **Grip** — full arm strength. Wind up, then sweep the mouse hard through the target |
-| Hold RMB | **Guard** — blade raised across the body; the mouse moves the guard |
+| Hold V | **Guard** — blade raised across the body; the mouse moves the guard |
 | Wheel / ↑ ↓ | Reach (pull the hand in / extend it) |
 | F | Thrust |
 | Q | Parry — snaps your blade across the incoming weapon |
