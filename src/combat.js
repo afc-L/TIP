@@ -242,7 +242,7 @@ export class Combat {
       if (dmg > 15) victim.balance -= 0.15;
     } else if (part.region === 'head') {
       if (type === 'blunt' || covered) {
-        if (E > 140 || (type === 'blunt' && raw > 24)) { victim.koTime = Math.max(victim.koTime, 3 + Math.random() * 3); }
+        if (E > 230 || (type === 'blunt' && raw > 34)) { victim.koTime = Math.max(victim.koTime, 2 + Math.random() * 2); }
         else if (E > 40) victim.dazed = Math.max(victim.dazed, 1.2 + E / 100);
       } else if (dmg > 10) victim.dazed = Math.max(victim.dazed, 1.0);
     } else if (part.region === 'torso' || part.region === 'pelvis') {
