@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Steel &amp; Blood</title>
+  <link rel="icon" href="/favicon.svg" />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <canvas id="game"></canvas>
+  <div id="vignette"></div>
+
+  <div id="hud" class="hidden">
+    <div class="panel left" id="p-panel">
+      <div class="name" id="p-name">You</div>
+      <div class="bar"><span>Blood</span><div class="track"><div class="fill blood" id="p-health"></div></div></div>
+      <div class="bar"><span>Stamina</span><div class="track"><div class="fill stamina" id="p-stamina"></div></div></div>
+      <div class="bar"><span>Balance</span><div class="track"><div class="fill balance" id="p-balance"></div></div></div>
+      <div class="status" id="p-status"></div>
+      <div class="injuries" id="p-inj"></div>
+    </div>
+    <div class="panel right" id="e-panel">
+      <div class="name" id="e-name">Opponent</div>
+      <div class="bar"><span>Blood</span><div class="track"><div class="fill blood" id="e-health"></div></div></div>
+      <div class="bar"><span>Stamina</span><div class="track"><div class="fill stamina" id="e-stamina"></div></div></div>
+      <div class="bar"><span>Balance</span><div class="track"><div class="fill balance" id="e-balance"></div></div></div>
+      <div class="status" id="e-status"></div>
+      <div class="injuries" id="e-inj"></div>
+    </div>
+    <canvas id="aim" width="130" height="130"></canvas>
+    <div id="feed"></div>
+    <div id="center-msg"><div id="cm-title"></div><div id="cm-sub"></div></div>
+    <div id="hint">LMB swing · RMB guard · F thrust · Q parry · E grab · Space brace/dodge/get up · H help · Esc pause</div>
+    <div id="sandbox-help" class="hidden">
+      <b>SANDBOX</b><br />1 spawn dummy · 2 spawn hostile · 3 spawn ally<br />4 clear others · 5 respawn yourself<br />T slow-motion · G god mode · Tab lock-on
+    </div>
+    <div id="lockhint">Click to take control</div>
+  </div>
+
+  <div id="menu" class="overlay">
+    <div class="box">
+      <h1>STEEL <span>&amp;</span> BLOOD</h1>
+      <p class="tag">A physics-driven medieval duel. Every swing has weight. Every mistake bleeds.</p>
+      <div class="row"><label>Mode</label><div class="opts" data-setting="mode">
+        <button data-v="duel">Duel</button><button data-v="sandbox">Sandbox</button></div></div>
+      <div class="row"><label>Difficulty</label><div class="opts" data-setting="difficulty">
+        <button data-v="easy">Easy</button><button data-v="normal">Normal</button><button data-v="hard">Hard</button></div></div>
+      <div class="row"><label>Your weapon</label><div class="opts" data-setting="weapon">
+        <button data-v="longsword">Longsword</button><button data-v="axe">Axe</button><button data-v="mace">Mace</button></div></div>
+      <div class="row"><label>Your armor</label><div class="opts" data-setting="armor">
+        <button data-v="knight">Plate</button><button data-v="manAtArms">Mail</button><button data-v="peasant">Gambeson</button><button data-v="naked">None</button></div></div>
+      <div class="row"><label>Gore</label><div class="opts" data-setting="gore">
+        <button data-v="true">On</button><button data-v="false">Off</button></div></div>
+      <div class="actions">
+        <button id="btn-start" class="primary">FIGHT</button>
+        <button id="btn-tutorial">How to fight</button>
+      </div>
+      <p class="small">Best with a mouse. Click the arena to lock the cursor; Esc releases it.</p>
+    </div>
+  </div>
+
+  <div id="tutorial" class="overlay hidden">
+    <div class="box tut">
+      <h2>How to fight</h2>
+      <ol>
+        <li><b>Your mouse is your sword hand.</b> Moving it moves the hand in front of your body — up, down, left, right. The blade follows physically, with real momentum. Mouse wheel / ↑↓ change how far you reach.</li>
+        <li><b>Grip — hold Left Mouse.</b> Without it your arm is relaxed and slow. Hold LMB and <i>sweep</i> the mouse: wind up high on one side, then drag hard through your opponent. A fast sweep is a powerful cut — and hard to stop.</li>
+        <li><b>Edge alignment is automatic</b> — the edge turns into the direction of motion. Hit with the edge to cut, the point (F: thrust) to stab, or the flat to bludgeon. Slow pushes do nothing.</li>
+        <li><b>Guard — hold Right Mouse.</b> Raises the blade across your body; move the mouse to cover high/low/left/right. <b>Q</b> snaps your blade into the incoming weapon (parry) — time it well and the attacker is jarred.</li>
+        <li><b>Balance matters.</b> Big swings, hits and collisions knock you off balance. Hold <b>Space</b> (standing still) to brace and recover. Space while moving = dodge step.</li>
+        <li><b>If you fall</b>, press <b>Space</b> to get back up when you have the stamina. <b>E</b> grabs the opponent with your free hand (E again to let go). Shift to run.</li>
+        <li>Armor stops cuts but not crushing blows. Injured arms grow weak, injured legs slow you, wounds bleed. Fights end when someone stops moving.</li>
+      </ol>
+      <div class="actions"><button id="btn-tut-close" class="primary">Got it</button></div>
+    </div>
+  </div>
+
+  <div id="pause" class="overlay hidden">
+    <div class="box">
+      <h2>Paused</h2>
+      <div class="actions col">
+        <button id="btn-resume" class="primary">Resume</button>
+        <button id="btn-restart">Restart (R)</button>
+        <button id="btn-help">How to fight</button>
+        <button id="btn-menu">Main menu (M)</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="loading" class="overlay"><div class="box"><h2>Forging steel…</h2></div></div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

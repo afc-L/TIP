@@ -1,0 +1,49 @@
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #111; font-family: Georgia, 'Times New Roman', serif; color: #eee; user-select: none; }
+#game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+.hidden { display: none !important; }
+#vignette { position: fixed; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(ellipse at center, rgba(0,0,0,0) 45%, rgba(120,0,0,0.85) 100%); }
+#hud { position: fixed; inset: 0; pointer-events: none; }
+.panel { position: absolute; top: 14px; width: 270px; padding: 10px 12px; background: rgba(15,10,8,0.55); border: 1px solid rgba(200,170,120,0.25); border-radius: 4px; }
+.panel.left { left: 14px; } .panel.right { right: 14px; }
+.panel .name { font-weight: bold; letter-spacing: 1px; margin-bottom: 6px; color: #e8d7b0; }
+.bar { display: flex; align-items: center; gap: 8px; margin: 3px 0; font-size: 12px; }
+.bar span { width: 56px; color: #bba; }
+.track { flex: 1; height: 9px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; }
+.fill { height: 100%; width: 100%; transition: width 0.08s linear; }
+.fill.blood { background: linear-gradient(90deg, #6d0000, #c41010); }
+.fill.stamina { background: linear-gradient(90deg, #6b6b20, #c8c040); }
+.fill.balance { background: linear-gradient(90deg, #204a6b, #50a0d8); }
+.status { margin-top: 6px; font-size: 13px; color: #ff9a6a; min-height: 16px; font-weight: bold; letter-spacing: 1px; }
+.injuries { font-size: 11px; color: #d88; min-height: 14px; }
+#aim { position: absolute; right: 18px; bottom: 18px; opacity: 0.85; }
+#feed { position: absolute; left: 50%; bottom: 70px; transform: translateX(-50%); text-align: center; font-size: 17px; text-shadow: 0 0 6px #000, 0 0 2px #000; }
+#feed div { margin: 3px 0; transition: opacity 0.5s; }
+#center-msg { position: absolute; top: 30%; width: 100%; text-align: center; text-shadow: 0 0 12px #000; }
+#cm-title { font-size: 64px; letter-spacing: 6px; color: #e8d7b0; }
+#cm-title.defeat { color: #c41010; }
+#cm-sub { font-size: 18px; color: #ccc; margin-top: 8px; }
+#hint { position: absolute; left: 16px; bottom: 14px; font-size: 12px; color: rgba(255,255,255,0.6); text-shadow: 0 0 3px #000; }
+#sandbox-help { position: absolute; left: 14px; top: 190px; font-size: 12px; line-height: 1.5; padding: 8px 10px; background: rgba(15,10,8,0.55); border: 1px solid rgba(200,170,120,0.25); border-radius: 4px; }
+#lockhint { position: absolute; top: 55%; width: 100%; text-align: center; font-size: 20px; color: #e8d7b0; text-shadow: 0 0 6px #000; }
+.overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(8,5,4,0.72); z-index: 10; }
+.box { max-width: 640px; width: calc(100% - 32px); padding: 26px 30px; background: linear-gradient(#21160f, #150e0a); border: 1px solid #6b5333; box-shadow: 0 0 40px rgba(0,0,0,0.7); border-radius: 4px; max-height: calc(100% - 32px); overflow: auto; }
+h1 { margin: 0 0 4px; font-size: 46px; letter-spacing: 6px; color: #e8d7b0; text-align: center; }
+h1 span { color: #b01010; }
+h2 { margin-top: 0; color: #e8d7b0; letter-spacing: 2px; }
+.tag { text-align: center; color: #b9a98a; font-style: italic; margin: 0 0 18px; }
+.row { display: flex; align-items: center; margin: 10px 0; gap: 12px; flex-wrap: wrap; }
+.row label { width: 110px; color: #cbb68f; }
+.opts { display: flex; gap: 6px; flex-wrap: wrap; }
+button { font-family: inherit; font-size: 14px; padding: 7px 14px; background: #2d2018; color: #e8d7b0; border: 1px solid #6b5333; border-radius: 3px; cursor: pointer; }
+button:hover { background: #3d2b1f; }
+button.sel { background: #7a1414; border-color: #c43030; color: #fff; }
+button.primary { background: #8a1515; border-color: #d04040; color: #fff; font-size: 17px; padding: 10px 26px; letter-spacing: 2px; }
+button.primary:hover { background: #a51c1c; }
+.actions { display: flex; gap: 12px; justify-content: center; margin-top: 20px; }
+.actions.col { flex-direction: column; align-items: stretch; }
+.small { font-size: 12px; color: #8d7d63; text-align: center; margin-bottom: 0; }
+.tut ol { padding-left: 20px; line-height: 1.45; color: #ddd; font-size: 15px; }
+.tut li { margin-bottom: 8px; }
+.tut b { color: #f0c890; }
+@media (max-width: 700px) { .panel { width: 46%; } #cm-title { font-size: 40px; } #hint { display: none; } }
