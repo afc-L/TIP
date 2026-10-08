@@ -43,6 +43,7 @@ class Game {
     buildArena(this);
     this.visuals = new Map();
     this.fighters = [];
+    this.weapons = [];
     this.combat = new Combat(this);
     this.gore = new Gore(this);
     this.audio = new Audio(this);
@@ -78,6 +79,36 @@ class Game {
     this.visuals.set(body.handle, e);
   }
   removeVisual(body) { this.visuals.delete(body.handle); }
+  resetVisual(body) {
+    const e = this.visuals.get(body.handle);
+    if (!e) return;
+    v3(body.translation(), e.cp); q4(body.rotation(), e.cq); e.pp.copy(e.cp); e.pq.copy(e.cq);
+  }
+
+  // ------------------------------------------------------------------ weapons
+  addWeapon(w) {
+    this.weapons.push(w);
+    this.addVisual(w.body, w.mesh);
+    this.scene.add(w.mesh);
+  }
+  removeWeapon(w) {
+    this.removeVisual(w.body);
+    this.physics.removeBody(w.body);
+    this.scene.remove(w.mesh);
+    w.mesh.traverse((o) => { if (o.isMesh) o.geometry.dispose(); });
+    this.weapons = this.weapons.filter((x) => x !== w);
+  }
+  nearestLooseWeapon(p, r) {
+    let best = null, bd = r;
+    for (const w of this.weapons) {
+      if (!w.dropped) continue;
+      const t = w.body.translation();
+      if (t.y > 1.3) continue;
+      const d = Math.hypot(t.x - p.x, t.z - p.z);
+      if (d < bd) { bd = d; best = w; }
+    }
+    return best;
+  }
   snapshot() {
     for (const e of this.visuals.values()) {
       e.pp.copy(e.cp); e.pq.copy(e.cq);
@@ -117,6 +148,7 @@ class Game {
 
   clearAll() {
     for (const f of [...this.fighters]) this.removeFighter(f);
+    for (const w of [...this.weapons]) this.removeWeapon(w);
     this.gore.clear();
     this.physics.events.clear?.();
     this.player = null;
@@ -224,7 +256,11 @@ class Game {
       }
       if (code === 'Digit2') { const pos = around(); if (!this.spawnEnemy(pos, faceYaw(pos), 1)) this.ui.feed('Too many fighters'); }
       if (code === 'Digit3') { const pos = around(); if (!this.spawnEnemy(pos, faceYaw(pos) + Math.PI, 0, true)) this.ui.feed('Too many fighters'); }
-      if (code === 'Digit4') { for (const f of [...this.fighters]) if (f !== this.player) this.removeFighter(f); this.gore.clear(); }
+      if (code === 'Digit4') {
+        for (const f of [...this.fighters]) if (f !== this.player) this.removeFighter(f);
+        for (const w of [...this.weapons]) if (!w.holder) this.removeWeapon(w);
+        this.gore.clear();
+      }
       if (code === 'Digit5') {
         if (this.player) this.removeFighter(this.player);
         this.player = this.spawn({ name: 'You', team: 0, isPlayer: true, position: around(), yaw: 0, weapon: this.settings.weapon, armor: this.settings.armor, colorIndex: 0 });
@@ -376,8 +412,8 @@ class Game {
     this.cameraYaw += dy * (1 - Math.exp(-dt * 5));
     const cy = this.cameraYaw;
     const fx = Math.sin(cy), fz = Math.cos(cy);
-    const dist = p ? 2.9 : 5, height = p ? 1.25 : 1.6;
-    const side = p ? 0.45 : 0; // over the left shoulder
+    const dist = p ? 3.0 : 5, height = p ? 1.35 : 1.6;
+    const side = p ? 0.7 : 0; // over the left shoulder, so the sword arm and the foe stay visible
     const want = new THREE.Vector3(focus.x - fx * dist + fz * side, Math.max(focus.y, 0.6) + height, focus.z - fz * dist - fx * side);
     want.x = clamp(want.x, -ARENA_HALF + 0.3, ARENA_HALF - 0.3);
     want.z = clamp(want.z, -ARENA_HALF + 0.3, ARENA_HALF - 0.3);
@@ -398,6 +434,7 @@ function localStorageSet(k, v) { try { localStorage.setItem(k, v); } catch { /* 
 
 const game = new Game();
 window.__game = game;
+window.__AIC = AIController;
 game.init().catch((e) => {
   console.error(e);
   document.querySelector('#loading h2').textContent = 'Failed to start: ' + e.message;

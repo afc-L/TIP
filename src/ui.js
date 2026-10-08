@@ -71,6 +71,7 @@ export class UI {
     $('e-panel').classList.toggle('hidden', !e);
     if (e) this.panel('e', e);
     this.drawAim();
+    this.setLockHint(!g.input.locked && g.running && !g.attract && !g.paused && !this.tutorialOpen);
     // blood vignette
     const hurt = p ? 1 - Math.max(0, p.health) / 100 : 0;
     g.hurtFlash = Math.max(0, (g.hurtFlash || 0) - dt * 1.5);

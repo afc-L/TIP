@@ -101,14 +101,14 @@ export class Combat {
       g.audio.clang(p, speed);
       g.gore.sparks(p, n, Math.min(28, Math.floor(speed * 2.2)));
     }
-    const fa = a.owner, fb = b.owner;
+    if (a.weapon.dropped || b.weapon.dropped) return;
+    const fa = a.weapon.holder, fb = b.weapon.holder;
     if (!fa || !fb) return;
     // Who was swinging harder? The weaker blade gets knocked aside and the arm jarred.
     const sa = fa.swingSpeed || 0, sb = fb.swingSpeed || 0;
     if (speed > 3) {
       const parryA = fa.parryT >= 0, parryB = fb.parryT >= 0;
       for (const [f, own, other, parry] of [[fa, sa, sb, parryA], [fb, sb, sa, parryB]]) {
-        if (f.weapon.dropped) continue;
         let jar = clamp(speed * 0.025, 0, 0.35);
         if (own < other) jar *= 1.6;
         if (parry) jar *= 0.3;
@@ -123,11 +123,11 @@ export class Combat {
 
   weaponHit(wi, part, wb, p, rel, speed) {
     const g = this.game;
-    const attacker = wi.owner;
+    const weapon = wi.weapon;
+    const attacker = weapon.holder;
     const victim = part.fighter;
-    if (!attacker || attacker === victim) return;
-    const weapon = attacker.weapon;
-    if (weapon.dropped) {
+    if (attacker === victim) return;
+    if (weapon.dropped || !attacker) {
       if (speed > 4) g.audio.thud(p, speed * 0.3);
       return;
     }
@@ -137,7 +137,11 @@ export class Combat {
     _axis.set(0, 1, 0).applyQuaternion(_q);
     const along = rel.dot(_axis);
     let type = 'blunt', eff = speed;
-    if (wi.kind === 'tip' && along > 0.55 * speed) {
+    // local height of the contact along the weapon (how close to the point)
+    const wt = wb.translation();
+    const localY = _tmp.set(p.x - wt.x, p.y - wt.y, p.z - wt.z).dot(_axis);
+    const nearTip = localY > weapon.def.tipY * 0.78;
+    if ((wi.kind === 'tip' || (wi.kind === 'edge' && nearTip)) && along > (wi.kind === 'tip' ? 0.55 : 0.7) * speed) {
       type = 'thrust'; eff = along;
     } else if (wi.kind === 'edge') {
       _perp.copy(rel).addScaledVector(_axis, -along);
@@ -175,7 +179,7 @@ export class Combat {
       covered = Math.random() < cov;
     }
     let raw = DAMAGE_K[type] * (E - ENERGY_THRESHOLD);
-    if (weapon.def === attacker.weaponDef && weapon.def.label === 'Bearded Axe' && type === 'slash') raw *= 1.2;
+    if (weapon.def.label === 'Bearded Axe' && type === 'slash') raw *= 1.2;
     const reduction = covered ? ARMOR_REDUCTION[armorType][type] : 0;
     const dmg = raw * part.dmg * (1 - reduction);
 

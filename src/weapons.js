@@ -64,6 +64,7 @@ export function createWeapon(physics, def, fighterIndex, position, rotation, own
     .setLinearDamping(0.05);
   const body = physics.world.createRigidBody(desc);
   const colliders = [];
+  const weapon = { body, colliders, def, mass: weaponMass(def), blood: 0, holder: owner, dropped: false, joint: null };
   for (const p of def.parts) {
     let cd;
     if (p.shape === 'ball') cd = RAPIER.ColliderDesc.ball(p.r);
@@ -76,7 +77,7 @@ export function createWeapon(physics, def, fighterIndex, position, rotation, own
       .setCollisionGroups(weaponGroups(fighterIndex))
       .setActiveEvents(RAPIER.ActiveEvents.COLLISION_EVENTS);
     const c = physics.world.createCollider(cd, body);
-    physics.register(c, { type: 'weapon', kind: p.kind, owner, part: p });
+    physics.register(c, { type: 'weapon', kind: p.kind, weapon, part: p });
     colliders.push(c);
   }
   physics.track(body);
@@ -84,7 +85,9 @@ export function createWeapon(physics, def, fighterIndex, position, rotation, own
   const bladeMat = new THREE.MeshStandardMaterial({ color: 0xc9ced6, metalness: 0.9, roughness: 0.28 });
   const mesh = def.visual(bladeMat);
   mesh.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
-  return { body, colliders, mesh, bladeMat, def, mass: weaponMass(def), blood: 0 };
+  weapon.mesh = mesh;
+  weapon.bladeMat = bladeMat;
+  return weapon;
 }
 
 const darkMetal = () => new THREE.MeshStandardMaterial({ color: 0x55555d, metalness: 0.8, roughness: 0.4 });

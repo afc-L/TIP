@@ -98,6 +98,19 @@ export class AIController {
     }
 
     const me = f.parts.pelvis.p;
+    // Disarmed: go and pick a weapon up if one is lying around
+    if (!f.hasWeapon && !f.severed.has('handR')) {
+      const w = this.game.nearestLooseWeapon(me, 7);
+      if (w) {
+        const wp = w.body.translation();
+        const d = Math.hypot(wp.x - me.x, wp.z - me.z);
+        inp.faceTarget = this.lootPos = (this.lootPos || new THREE.Vector3()).set(wp.x, 1, wp.z);
+        if (d > 0.8) { inp.moveZ = 1; inp.run = d > 2.5; }
+        else inp.grab = true;
+        this.toward(0.1, -0.3, 0.3, dt, 3);
+        return;
+      }
+    }
     const dist = Math.hypot(seen.pelvis.x - me.x, seen.pelvis.z - me.z);
     const reach = f.hasWeapon ? f.weaponDef.reach : 0.4;
     const ideal = reach + 0.45;

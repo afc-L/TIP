@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-import { RAPIER, bodyGroups, GROUP_DEBRIS } from './physics.js';
+import { RAPIER, bodyGroups, weaponGroups, GROUP_DEBRIS } from './physics.js';
 import { createWeapon, WEAPONS } from './weapons.js';
 import {
   UP, clamp, lerp, smooth, yawQuat, wrapAngle, rotationError, basisQuat, basisQuatXY, v3, q4, rand,
@@ -193,8 +193,7 @@ export class Fighter {
       { x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0, w: 1 },
     );
     this.weapon.joint = world.createImpulseJoint(jd, hand.body, this.weapon.body, true);
-    this.game.addVisual(this.weapon.body, this.weapon.mesh);
-    this.root.add(this.weapon.mesh);
+    this.game.addWeapon(this.weapon);
     // Weapon inertia about the grip (for the wrist controller)
     this.weaponInertia = this.weaponDef.parts.reduce((s, p) => s + p.mass * (p.y * p.y + (p.x || 0) ** 2), 0) + 0.02;
 
@@ -212,6 +211,7 @@ export class Fighter {
     for (const part of this.joints) for (let a = 3; a <= 5; a++) this.jointRaw.jointConfigureMotorModel(part.joint.handle, a, RAPIER.MotorModel.ForceBased);
     this.carrot = new THREE.Vector3(pp.x, 0, pp.z);
     this.handTarget = new THREE.Vector3();
+    this.desiredVel = new THREE.Vector3();
     this.bladeTarget = new THREE.Vector3();
 
     this.totalMass = this.partList.reduce((s, p) => s + p.mass, 0) + this.weapon.mass;
@@ -381,7 +381,7 @@ export class Fighter {
     const braced = upright && inp.brace && this.stamina > 2;
     if (this.state === 'stand') {
       support = 1;
-      assist = 0.12 + 0.88 * smooth(this.balance / 0.55);
+      assist = 0.05 + 0.95 * smooth((this.balance - 0.08) / 0.6);
       if (braced) heightTarget = 0.93;
     } else if (this.state === 'rising') {
       const t = this.stateTime;
@@ -413,6 +413,9 @@ export class Fighter {
     // The carrot leads the pelvis at the desired velocity, but can't run away from it.
     const carrot = this.carrot;
     if (support > 0) {
+      // leaky: the carrot drifts back onto the pelvis, so shoves aren't "undone" by a spring
+      carrot.x += (pelvis.p.x - carrot.x) * Math.min(1, dt * 4);
+      carrot.z += (pelvis.p.z - carrot.z) * Math.min(1, dt * 4);
       carrot.addScaledVector(desired, dt);
       _v3.set(carrot.x - pelvis.p.x, 0, carrot.z - pelvis.p.z);
       if (_v3.length() > 0.3) { _v3.setLength(0.3); carrot.set(pelvis.p.x + _v3.x, 0, pelvis.p.z + _v3.z); }
@@ -424,11 +427,13 @@ export class Fighter {
     rig.setNextKinematicRotation(_r);
 
     const balF = 0.3 + 0.7 * smooth(this.balance / 0.5);
-    const hMax = 1200 * support * balF * (braced ? 1.4 : 1);
+    const hMax = 750 * support * balF * (braced ? 1.5 : 1);
+    // smoothed intent: our own changes of direction shouldn't count as being shoved
+    this.desiredVel.lerp(desired, Math.min(1, dt * 6));
     this.rigMotor(this.rigJoint, 0, M * 49, 2 * M * 7, hMax);
     this.rigMotor(this.rigJoint, 2, M * 49, 2 * M * 7, hMax);
     this.rigMotor(this.rigJoint, 1, M * 100, 2 * M * 10 * 0.9, support * 1.6 * M * G);
-    const tiltMax = 1500 * assist;
+    const tiltMax = 1100 * assist * (braced ? 1.3 : 1);
     this.rigMotor(this.rigJoint, 3, 2400, 400, tiltMax);
     this.rigMotor(this.rigJoint, 5, 2400, 400, tiltMax);
     this.rigMotor(this.rigJoint, 4, 1500, 300, tiltMax * 0.8);
@@ -740,6 +745,7 @@ export class Fighter {
     if (inp.grab) {
       inp.grab = false;
       if (this.grabJoint) this.releaseGrab();
+      else if (upright && !this.hasWeapon && this.tryPickup()) { /* picked up a weapon */ }
       else if (upright && this.stamina > 10 && this.target && !this.severed.has('handL')) {
         this.grabbing = 0.6;
         this.grabTarget = this.nearestPartOf(this.target, this.parts.handL.p);
@@ -764,7 +770,7 @@ export class Fighter {
       const d = part.p.distanceTo(p);
       if (d < bd) { bd = d; best = part; }
     }
-    return bd < 1.0 ? best : null;
+    return bd < 1.3 ? best : null;
   }
 
   makeGrab(part) {
@@ -821,6 +827,9 @@ export class Fighter {
       const mx = (fl.x + fr.x) / 2, mz = (fl.z + fr.z) / 2;
       const off = Math.hypot(this.com.x - mx, this.com.z - mz);
       this.balance -= dt * Math.max(0, off - 0.3) * 2.5;
+      // being shoved off your intended motion
+      const dvx = this.comVel.x - this.desiredVel.x, dvz = this.comVel.z - this.desiredVel.z;
+      this.balance -= dt * Math.max(0, Math.hypot(dvx, dvz) - 0.6) * 2.6 * (this.input.brace ? 0.5 : 1);
       // a violent, uncontrolled swing pulls you around
       if (this.handForce > 0.95 && this.swingSpeed > 9) this.balance -= dt * 0.25;
       this.balance = clamp(this.balance, -1, 1);
@@ -888,10 +897,43 @@ export class Fighter {
     return lost;
   }
 
+  /** Pick up a loose weapon lying near our feet (it snaps into the grip). */
+  tryPickup() {
+    if (this.hasWeapon || this.severed.has('handR') || this.state !== 'stand') return false;
+    const w = this.game.nearestLooseWeapon(this.parts.pelvis.p, 1.4);
+    if (!w) return false;
+    this.equip(w);
+    return true;
+  }
+
+  equip(w) {
+    const world = this.physics.world;
+    if (w.joint && w.joint.isValid()) world.removeImpulseJoint(w.joint, true);
+    if (w.holder && w.holder !== this && w.holder.weapon === w) w.holder.weapon = null;
+    const hand = this.parts.handR;
+    const wq = hand.q.clone().multiply(GRIP_ROT);
+    const wp = GRIP_OFFSET.clone().applyQuaternion(hand.q).add(hand.p);
+    w.body.setTranslation({ x: wp.x, y: wp.y, z: wp.z }, true);
+    w.body.setRotation({ x: wq.x, y: wq.y, z: wq.z, w: wq.w }, true);
+    w.body.setLinvel({ x: hand.v.x, y: hand.v.y, z: hand.v.z }, true);
+    w.body.setAngvel({ x: 0, y: 0, z: 0 }, true);
+    const gr = GRIP_ROT;
+    w.joint = world.createImpulseJoint(RAPIER.JointData.fixed(
+      { x: GRIP_OFFSET.x, y: GRIP_OFFSET.y, z: GRIP_OFFSET.z }, { x: gr.x, y: gr.y, z: gr.z, w: gr.w },
+      { x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0, w: 1 }), hand.body, w.body, true);
+    for (const c of w.colliders) c.setCollisionGroups(weaponGroups(this.index));
+    w.dropped = false; w.holder = this;
+    this.weapon = w; this.weaponDef = w.def;
+    this.weaponInertia = w.def.parts.reduce((s, p) => s + p.mass * (p.y * p.y + (p.x || 0) ** 2), 0) + 0.02;
+    hand.inertia = 0.004 + this.weaponInertia;
+    this.game.resetVisual(w.body);
+    this.game.audio.armor(wp, 3, 'mail');
+  }
+
   dropWeapon(detach = true) {
     if (!this.weapon || this.weapon.dropped) return;
     this.weapon.dropped = true;
-    if (detach && this.weapon.joint) this.physics.world.removeImpulseJoint(this.weapon.joint, true);
+    if (detach && this.weapon.joint && this.weapon.joint.isValid()) this.physics.world.removeImpulseJoint(this.weapon.joint, true);
     for (const c of this.weapon.colliders) c.setCollisionGroups(GROUP_DEBRIS);
   }
 
@@ -899,7 +941,8 @@ export class Fighter {
     this.releaseGrab();
     for (const p of this.partList) { this.game.removeVisual(p.body); this.physics.removeBody(p.body); }
     this.physics.world.removeRigidBody(this.rig);
-    if (this.weapon) { this.game.removeVisual(this.weapon.body); this.physics.removeBody(this.weapon.body); }
+    // the weapon stays in the world as loot
+    if (this.weapon) { this.dropWeapon(false); this.weapon.holder = null; this.weapon = null; }
     this.game.scene.remove(this.root);
     this.root.traverse((o) => { if (o.isMesh) { o.geometry.dispose(); } });
   }
