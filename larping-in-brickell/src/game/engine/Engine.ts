@@ -23,6 +23,7 @@ import { OUTFIT_BY_ID, WATCH_BY_ID, levelFor } from '../data/catalog';
 import { CREATOR_BY_ID } from '../data/creators';
 import { BOUNCE_REACTIONS, CRASH_LINES, FAMOUS_CHATTER, LUXURY_REACTIONS, PED_CHATTER, VALET_LINES } from '../data/dialogue';
 import { pick } from '../systems/format';
+import { SUBSTANCES, SUBSTANCE_BY_ID, type SubstanceId } from '../data/substances';
 import { endgameReady } from '../data/missions';
 import type { BounceStyle, Poi } from '../types';
 
@@ -713,7 +714,7 @@ export class Engine {
       mz /= ml;
     }
     const sprint = inp.down_('ShiftLeft') || inp.down_('ShiftRight') || inp.gp.lb;
-    const maxSp = sprint ? 6.8 : 3.3;
+    const maxSp = (sprint ? 6.8 * (1 + this.highs.coke * 0.7) : 3.3) * (1 - this.highs.weed * 0.3) * (1 - this.comedown * 0.35);
     const ease = this.grounded ? 10 : 2;
     this.vel.x += (mx * maxSp - this.vel.x) * Math.min(1, dt * ease);
     this.vel.z += (mz * maxSp - this.vel.z) * Math.min(1, dt * ease);
@@ -842,6 +843,7 @@ export class Engine {
       label = g.creators[a.id] ? `Check in with ${def.name} (your client)` : `Talk to ${def.name} · ${def.niche}`;
     }
     if (a.kind === 'rival') label = `Talk to ${a.name} (rival)`;
+    if (a.kind === 'dealer') label = `Talk to the ${a.name.toLowerCase()}`;
     list.push({
       label,
       dist: a.kind === 'valet' || a.kind === 'bouncer' ? d + 3 : d, // doors beat staff small talk
@@ -855,6 +857,9 @@ export class Engine {
         } else if (a.kind === 'valet') {
           const tier = this.valetTier();
           this.say(pick(VALET_LINES[tier]).replace('{nick}', g.nickname), a.agent.x, a.agent.y + 2.1, a.agent.z);
+        } else if (a.kind === 'dealer') {
+          this.say(pick(['Psst. You look like you need... a business opportunity.', "Don't look at me. Look at the menu.", 'Everything is organic. Probably.']), a.agent.x, a.agent.y + 2.1, a.agent.z);
+          ui.open('stash', a.interior ? 'club' : 'street');
         } else if (a.kind === 'bouncer') {
           const ok = g.properties.includes('club') || levelFor(g.clout) >= 2;
           this.say(ok ? (g.properties.includes('club') ? 'Evening, boss. Your club is packed.' : "You're on the list. Go on in.") : "Not on the list. Come back when you're a Brickell Regular.", a.agent.x, a.agent.y + 2.2, a.agent.z);
@@ -1090,7 +1095,41 @@ export class Engine {
 
   /** Fully blacked out: the drunkenness stops wearing off and only sleep fixes it. */
   get blackedOut() {
-    return this.drunk >= 1;
+    return this.drunk >= 1 || Object.values(this.highs).some((v) => v >= 1);
+  }
+
+  /** Effect levels for each substance (0..1, 1 = blackout). Not saved: sleep clears everything. */
+  highs: Record<SubstanceId, number> = { weed: 0, shrooms: 0, lsd: 0, coke: 0 };
+  private comedown = 0;
+
+  /** Buy and take a substance from a dealer. Street deals carry a small risk of an undercover cop. */
+  takeSubstance(id: SubstanceId, street: boolean): boolean {
+    const def = SUBSTANCE_BY_ID[id];
+    const g = useGame.getState();
+    if (!g.spend(def.price, `${def.name} (from a guy)`, 'purchases')) return false;
+    if (street && Math.random() < 0.06) {
+      g.addClout(-15, 'Bought from an undercover cop');
+      g.post('Brickell Tea', '@brickelltea', `Saw ${g.game.nickname} get played by an undercover cop behind the car meet. The linen suit was a costume. 🚨`, 'npc');
+      notify('That was an undercover cop. He kept your cash and the gossip accounts got the video.', 'bad');
+      audio.ui('error');
+      return false;
+    }
+    this.highs[id] = Math.min(1.05, this.highs[id] + def.amount);
+    g.stat(`took_${id}`);
+    audio.ui('cash');
+    notify(`${def.icon} ${def.name}: ${def.effect}`, this.highs[id] > 0.7 ? 'warn' : 'info');
+    if (this.highs[id] >= 1) {
+      this.highs[id] = 1.05;
+      notify("Way too much. You're blacking out on and off, and it won't wear off. Find a bed and sleep it off.", 'bad');
+      g.stat('blackouts');
+    }
+    return true;
+  }
+
+  /** Overall impairment used for wandering steering. */
+  private impairment() {
+    const h = this.highs;
+    return Math.min(1.2, this.drunk + h.lsd * 0.6 + h.shrooms * 0.5 + h.weed * 0.25);
   }
 
   /** Sleep in any bed (home, penthouse, yacht suite). Blacked out, you can crash at any hour. Always wakes you sober. */
@@ -1099,6 +1138,8 @@ export class Engine {
     if (!g.sleep(this.blackedOut)) return false;
     const wasOut = this.blackedOut;
     this.drunk = 0;
+    for (const k of Object.keys(this.highs) as SubstanceId[]) this.highs[k] = 0;
+    this.comedown = 0;
     g.save();
     if (wasOut) notify('You slept it off. Head pounding, wallet lighter, but you are sober.', 'info');
     return true;
@@ -1106,14 +1147,14 @@ export class Engine {
 
   /** Driving drunk is allowed; it just gets messy. A heads-up when you set off impaired. */
   private drunkDriveWarning(what: string) {
-    if (this.drunk < 0.35) return;
-    notify(`You're ${drunkLevel(this.drunk).toLowerCase()} and about to ${what}. Steering will wander and every crash costs clout.`, 'warn');
+    if (this.impairment() < 0.35) return;
+    notify(`You're ${this.drunk >= 0.35 ? drunkLevel(this.drunk).toLowerCase() : 'very high'} and about to ${what}. Steering will wander and every crash costs clout.`, 'warn');
     this.say(pick(["I'm fine. I'm totally fine.", 'Hold my champagne.', 'The Maybach drives itself, basically.']), this.pos.x, this.pos.y + 2.1, this.pos.z);
   }
 
   /** Drunk steering: a slow wander, sudden lurches and sloppy throttle. */
   private drunkSteer(steer: number, throttle: number) {
-    const d = this.drunk;
+    const d = this.impairment();
     if (d < 0.05) return { steer, throttle };
     const wander = Math.sin(this.t * 0.8) * 0.35 + Math.sin(this.t * 2.3 + 1) * 0.2;
     const lurch = Math.sin(this.t * 0.37) > 0.92 ? Math.sign(Math.sin(this.t * 5)) * 0.6 : 0;
@@ -1156,11 +1197,24 @@ export class Engine {
   }
 
   private blackoutEl: HTMLDivElement | null = null;
+  private filterT = 0;
+  private lastFilter = '';
   private blackoutT = 0;
 
   private updateDrunk(dt: number) {
     // sobers up over roughly 90 seconds from fully drunk, unless blacked out (then only sleep helps)
     if (this.drunk > 0 && !this.blackedOut) this.drunk = Math.max(0, this.drunk - dt * 0.011);
+    if (!this.blackedOut) {
+      for (const s of SUBSTANCES) {
+        const before = this.highs[s.id];
+        if (before > 0) this.highs[s.id] = Math.max(0, before - dt * s.decay);
+        if (s.id === 'coke' && before > 0.15 && this.highs.coke <= 0.15) {
+          this.comedown = 1;
+          notify('The coke wears off. Everything feels slow and expensive.', 'warn');
+        }
+      }
+      this.comedown = Math.max(0, this.comedown - dt * 0.03);
+    }
     // blackout: 7 seconds of (blurry) vision, then ~3 seconds of black, on repeat
     if (!this.blackoutEl) {
       const el = document.createElement('div');
@@ -1176,16 +1230,36 @@ export class Engine {
       this.blackoutT = 0;
       this.blackoutEl.style.opacity = '0';
     }
-    const want = Math.round(this.drunk * 20) / 20;
-    if (want !== this.drunkFilter) {
-      this.drunkFilter = want;
-      this.renderer.domElement.style.filter = want > 0.05 ? `blur(${(want * 2.4).toFixed(2)}px) saturate(${(1 + want * 0.7).toFixed(2)}) hue-rotate(${Math.round(want * 25)}deg)` : '';
+    // screen filter (refreshed ~15x per second; LSD/shrooms cycle their colours over time)
+    this.filterT -= dt;
+    if (this.filterT <= 0) {
+      this.filterT = 0.066;
+      const h = this.highs, d = this.drunk;
+      const any = d + h.weed + h.shrooms + h.lsd + h.coke + this.comedown;
+      let f = '';
+      if (any > 0.04) {
+        const blur = d * 2.4 + h.weed * 0.7 + h.shrooms * 0.9 + h.lsd * 0.6;
+        const sat = 1 + d * 0.7 + h.weed * 0.4 + h.shrooms * 1.3 + h.lsd * 1.8 + h.coke * 0.3 - this.comedown * 0.5;
+        const hue = d * 25 + h.weed * 35 + Math.sin(this.t * 0.35) * 140 * h.shrooms + ((this.t * 110) % 360) * Math.min(1, h.lsd * 1.5);
+        const con = 1 + h.coke * 0.45 + h.lsd * 0.35 + h.shrooms * 0.15;
+        const bri = 1 + h.coke * 0.15 + Math.sin(this.t * 2.1) * 0.12 * h.lsd - this.comedown * 0.15;
+        f = `blur(${blur.toFixed(2)}px) saturate(${Math.max(0.2, sat).toFixed(2)}) hue-rotate(${Math.round(hue)}deg) contrast(${con.toFixed(2)}) brightness(${bri.toFixed(2)})`;
+        if (h.weed > 0.05) f += ` sepia(${(h.weed * 0.25).toFixed(2)})`;
+      }
+      if (f !== this.lastFilter) {
+        this.lastFilter = f;
+        this.renderer.domElement.style.filter = f;
+      }
     }
-    if (this.drunk > 0.4 && this.mode === 'foot') {
+    void this.drunkFilter;
+    // what your character blurts out
+    if (this.mode === 'foot') {
       this.slurT -= dt;
       if (this.slurT <= 0) {
         this.slurT = 7 + Math.random() * 6;
-        this.say(pick(SLURRED), this.pos.x, this.pos.y + 2.1, this.pos.z, 3, this.pos);
+        const top = SUBSTANCES.filter((s) => this.highs[s.id] > 0.3).sort((a, b) => this.highs[b.id] - this.highs[a.id])[0];
+        const line = top && this.highs[top.id] >= this.drunk ? pick(top.lines) : this.drunk > 0.4 ? pick(SLURRED) : null;
+        if (line) this.say(line, this.pos.x, this.pos.y + 2.1, this.pos.z, 3, this.pos);
       }
     }
   }
@@ -1650,6 +1724,14 @@ export class Engine {
       cam.fov += Math.sin(this.t * 1.2) * 5 * d;
       cam.updateProjectionMatrix();
     }
+    const h = this.highs;
+    if (h.weed + h.shrooms + h.lsd + h.coke > 0.02) {
+      cam.rotateZ(Math.sin(this.t * 0.5) * 0.12 * h.shrooms + Math.sin(this.t * 1.1) * 0.1 * h.lsd);
+      cam.rotateY(Math.sin(this.t * 0.9 + 1) * 0.06 * h.lsd);
+      if (h.coke > 0.02) cam.rotateX((Math.random() - 0.5) * 0.012 * h.coke);
+      cam.fov += -5 * h.weed + Math.sin(this.t * 0.8) * 9 * h.shrooms + Math.sin(this.t * 1.7) * 14 * h.lsd;
+      cam.updateProjectionMatrix();
+    }
   }
 
   /** Gold beacon for the manual waypoint; green beacon for the current objective's location otherwise. */
@@ -1780,6 +1862,7 @@ export class Engine {
       vehicleId: c?.def.id ?? g.activeVehicle,
       fps: this.fps,
       drunk: this.drunk,
+      highs: { ...this.highs },
       minigame: this.minigame ? this.minigame.hud() : null,
     });
   }

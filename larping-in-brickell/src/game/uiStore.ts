@@ -25,7 +25,8 @@ export type Panel =
   | 'finale'
   | 'venue'
   | 'bar'
-  | 'casino';
+  | 'casino'
+  | 'stash';
 
 export interface Toast {
   id: number;
@@ -70,6 +71,7 @@ export interface Runtime {
   zone: string | null;
   minigame: MinigameHud | null;
   drunk: number;
+  highs: { weed: number; shrooms: number; lsd: number; coke: number };
 }
 
 export interface MinigameHud {
@@ -123,7 +125,7 @@ export const useUI = create<UIState>()((set, get) => ({
   bubbles: [],
   rt: {
     mode: 'foot', speed: 0, gear: 'P', x: 0, z: 0, heading: 0, camHeading: 0, interior: null, prompt: null,
-    bounceActive: false, bounceLimited: false, bounceLevel: 0, vehicleId: 'maybach', fps: 0, zone: null, minigame: null, drunk: 0,
+    bounceActive: false, bounceLimited: false, bounceLevel: 0, vehicleId: 'maybach', fps: 0, zone: null, minigame: null, drunk: 0, highs: { weed: 0, shrooms: 0, lsd: 0, coke: 0 },
   },
   setScreen: (screen) => set({ screen }),
   open: (panel, arg = null) => set({ panel, panelArg: arg }),

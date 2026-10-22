@@ -9,6 +9,7 @@ import { clock, dateLabel, money } from '../game/systems/format';
 import { engine, drunkLevel } from '../game/engine/Engine';
 import { BASE_SCALE, MAP_BOUNDS, baseMap, drawPlayer } from './mapdraw';
 
+const HIGH_LABEL: Record<string, string> = { weed: '🌿 WEED', shrooms: '🍄 SHROOMS', lsd: '🌈 LSD', coke: '❄️ COCAINE' };
 const STYLE_LABEL: Record<string, string> = { executive: 'Executive Bounce', brickell: 'Brickell Bounce', miami: 'MIAMI MODE' };
 
 function CashClout() {
@@ -281,6 +282,11 @@ export function Hud() {
       <CashClout />
       <div className="hud-tr">
         <Clock />
+        {rt.highs && (Object.entries(rt.highs) as [string, number][]).filter(([, v]) => v > 0.05).map(([k, v]) => (
+          <div key={k} className="glass small" style={{ padding: '6px 12px', color: v > 0.7 ? 'var(--red)' : 'var(--gold2)' }}>
+            {v >= 1 ? `${HIGH_LABEL[k]} · BLACKED OUT · SLEEP IT OFF` : `${HIGH_LABEL[k]} · ${v < 0.3 ? 'LIGHT' : v < 0.7 ? 'HIGH' : 'VERY HIGH'}`}
+          </div>
+        ))}
         {rt.drunk > 0.05 && <div className="glass small" style={{ padding: '6px 12px', color: rt.drunk > 0.6 ? 'var(--red)' : 'var(--gold2)' }}>🥂 {rt.drunk >= 1 ? 'BLACKED OUT · SLEEP IT OFF' : drunkLevel(rt.drunk).toUpperCase()}{rt.drunk < 1 && rt.drunk >= 0.35 && rt.mode !== 'foot' ? ' · DRIVING IMPAIRED' : ''}</div>}
         {rt.interior && <div className="glass small" style={{ padding: '6px 12px' }}>{rt.interior === 'club' ? '⚡ VOLT NIGHTCLUB' : rt.interior === 'casino' ? '🎰 THE GILDED FLAMINGO' : rt.interior === 'penthouse' ? '🏙 AURUM PENTHOUSE' : '⚓ ON YOUR YACHT'}</div>}
       </div>

@@ -101,5 +101,6 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   { id: 'a_millionaire', name: 'Actually Rich', desc: 'Have $1,000,000 in cash at once.', reward: { cash: 0, clout: 50 }, check: (s) => s.cash >= 1_000_000 },
   { id: 'a_bigNight', name: 'Big Night Out', desc: 'Get properly drunk at VOLT. Do not drive.', reward: { cash: 0, clout: 15 }, check: (s) => st(s, 'wastedAtVolt') > 0 },
   { id: 'a_highroller', name: 'High Roller', desc: 'Win $100,000 or more on a single casino bet.', reward: { cash: 0, clout: 40 }, check: (s) => st(s, 'biggestWin') >= 100000 },
+  { id: 'a_bender', name: 'Brickell Bender', desc: 'Try weed, shrooms, LSD and cocaine.', reward: { cash: 0, clout: 5 }, check: (s) => ['weed', 'shrooms', 'lsd', 'coke'].every((k) => st(s, `took_${k}`) > 0) },
   { id: 'a_king', name: 'King of Brickell', desc: 'Reach the highest clout level and complete the endgame.', reward: { cash: 0, clout: 0 }, check: (s) => s.endgameCelebrated },
 ];

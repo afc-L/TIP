@@ -19,7 +19,7 @@ export interface Ped {
   dodge: { x: number; z: number; t: number } | null;
 }
 
-export type ActorKind = 'creator' | 'rival' | 'contact' | 'valet' | 'bouncer';
+export type ActorKind = 'creator' | 'rival' | 'contact' | 'valet' | 'bouncer' | 'dealer';
 
 export interface Actor {
   kind: ActorKind;
@@ -206,7 +206,7 @@ export class Actors {
       const agent = crowd.add({ x, y: inside ? 0.08 : 0.14, z, yaw, speed: 0, phase: Math.random() * 10, dance: inside ? 0.25 : 0, wave: 0, look, visible: true });
       if (!agent) return;
       let marker: THREE.Mesh | null = null;
-      if (kind !== 'valet' && kind !== 'bouncer') {
+      if (kind !== 'valet' && kind !== 'bouncer' && kind !== 'dealer') {
         marker = new THREE.Mesh(this.markerGeo, this.mat('available'));
         marker.position.set(x, (inside ? 0.08 : 0.14) + 2.35, z);
         (inside ? this.clubScene : this.cityGroup).add(marker);
@@ -217,6 +217,8 @@ export class Actors {
       place('creator', c.id, c.name, c.venue, { skin: c.look.skin, hair: c.look.hair, top: c.look.outfit, bottom: '#1d2433', hairStyle: c.look.hairStyle, scale: 0.97 }, c.venue === 'club');
     }
     for (const r of RIVALS) place('rival', r.id, r.name, r.venue, { skin: r.look.skin, hair: r.look.hair, top: r.look.outfit, bottom: '#111', hairStyle: 'short', scale: 1.04 }, r.venue === 'club');
+    place('dealer', 'dealer_street', 'Guy in a linen suit', 'carmeet', { skin: '#c68a5e', hair: '#111', top: '#f4efe4', bottom: '#f4efe4', hairStyle: 'short' });
+    place('dealer', 'dealer_club', 'VIP bathroom attendant', 'club', { skin: '#e2b48c', hair: '#3a2a1a', top: '#111', bottom: '#111', hairStyle: 'short' }, true);
     for (const c of CONTACTS) place('contact', c.id, c.name, c.venue, { skin: c.look.skin, hair: c.look.hair, top: c.look.outfit, bottom: '#222', hairStyle: 'short' }, c.venue === 'club');
     for (const p of Object.values(POI_BY_ID)) {
       if (!p.valet) continue;
