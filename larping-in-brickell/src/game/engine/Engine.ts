@@ -62,6 +62,7 @@ export class Engine {
   actors!: Actors;
   traffic!: Traffic;
   player = new PlayerFigure();
+  private playerLight = new THREE.PointLight('#ffe6c8', 0, 7, 1.5);
   car: Vehicle | null = null;
   yacht: Yacht | null = null;
   sky!: Sky;
@@ -166,6 +167,8 @@ export class Engine {
     this.traffic = new Traffic(Math.round(22 * settings.trafficDensity));
     this.scene.add(this.traffic.group);
     this.scene.add(this.player.root);
+    this.playerLight.position.set(0, 3, -2.2); // behind and above, on the camera side
+    this.player.root.add(this.playerLight);
     // waypoint beacon
     this.beacon = new THREE.Mesh(
       new THREE.CylinderGeometry(1.2, 1.2, 300, 16, 1, true),
@@ -615,11 +618,12 @@ export class Engine {
   }
 
   private render() {
-    if (this.interior === 'club') {
-      this.renderer.render(this.club.scene, this.camera);
-    } else if (this.interior === 'casino') {
-      this.renderer.render(this.casino.scene, this.camera);
-    } else this.renderer.render(this.scene, this.camera);
+    const scene = this.interior === 'club' ? this.club.scene : this.interior === 'casino' ? this.casino.scene : this.scene;
+    // the player figure belongs to whichever scene is being drawn (VOLT and the casino are separate scenes)
+    if (this.player.root.parent !== scene) scene.add(this.player.root);
+    // dark rooms: a soft light that follows the player so they don't vanish into the dancefloor
+    this.playerLight.intensity = this.interior === 'club' ? 30 : this.interior === 'casino' ? 8 : 0;
+    this.renderer.render(scene, this.camera);
   }
 
   // ---------------------------------------------------------------------------------- lighting
