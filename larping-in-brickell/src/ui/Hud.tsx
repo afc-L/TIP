@@ -281,7 +281,7 @@ export function Hud() {
       <CashClout />
       <div className="hud-tr">
         <Clock />
-        {rt.drunk > 0.05 && <div className="glass small" style={{ padding: '6px 12px', color: rt.drunk > 0.6 ? 'var(--red)' : 'var(--gold2)' }}>🥂 {drunkLevel(rt.drunk).toUpperCase()}{rt.drunk >= 0.35 && rt.mode !== 'foot' ? ' · DRIVING IMPAIRED' : ''}</div>}
+        {rt.drunk > 0.05 && <div className="glass small" style={{ padding: '6px 12px', color: rt.drunk > 0.6 ? 'var(--red)' : 'var(--gold2)' }}>🥂 {rt.drunk >= 1 ? 'BLACKED OUT · SLEEP IT OFF' : drunkLevel(rt.drunk).toUpperCase()}{rt.drunk < 1 && rt.drunk >= 0.35 && rt.mode !== 'foot' ? ' · DRIVING IMPAIRED' : ''}</div>}
         {rt.interior && <div className="glass small" style={{ padding: '6px 12px' }}>{rt.interior === 'club' ? '⚡ VOLT NIGHTCLUB' : rt.interior === 'casino' ? '🎰 THE GILDED FLAMINGO' : rt.interior === 'penthouse' ? '🏙 AURUM PENTHOUSE' : '⚓ ON YOUR YACHT'}</div>}
       </div>
       <Toasts />

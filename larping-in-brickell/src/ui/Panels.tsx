@@ -252,7 +252,8 @@ function VenuePanel() {
               <Btn key={d.name} small onClick={() => {
                 if (!engine) return;
                 if (d.sober) {
-                  if (useGame.getState().spend(d.price, d.name, 'purchases')) { engine.soberUp(d.sober); ui.notify(`${d.name} ☕ You feel a bit more sober.`, 'info'); }
+                  if (engine.blackedOut) engine.soberUp(d.sober);
+                  else if (useGame.getState().spend(d.price, d.name, 'purchases')) { engine.soberUp(d.sober); ui.notify(`${d.name} ☕ You feel a bit more sober.`, 'info'); }
                 } else engine.drink(d.name, d.price, d.amount, d.clout);
               }}>{d.name} · {money(d.price)}</Btn>
             ))}

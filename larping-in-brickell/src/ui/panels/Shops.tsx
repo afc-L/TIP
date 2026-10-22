@@ -294,14 +294,15 @@ export function HomePanel() {
   const g = useGame((s) => s.game);
   const { sleep, save } = useGame();
   const ui = useUI();
-  const canSleep = g.minute >= 18 * 60 || g.minute < 6 * 60;
+  const blackedOut = useUI((s) => s.rt.drunk) >= 1;
+  const canSleep = blackedOut || g.minute >= 18 * 60 || g.minute < 6 * 60;
   return (
     <Panel title={g.home === 'studio' ? 'Your Studio' : 'Home'} sub={g.home === 'studio' ? 'The bed folds into the wall. The dream does not.' : 'Upgraded living. The doorman nods.'} size="narrow">
       <div className="col">
         <div className="card">
           <h4>Sleep until 8:00 AM</h4>
           <div className="small muted">Commissions pay out at midnight. Bills arrive at the end of each month (every 7 days).</div>
-          <Btn kind="gold" disabled={!canSleep} onClick={() => { if (sleep()) { save(); ui.close(); } }}>{canSleep ? 'Sleep & save' : 'Available after 6:00 PM'}</Btn>
+          <Btn kind="gold" disabled={!canSleep} onClick={() => { if (engine ? engine.sleepHere() : sleep() && (save(), true)) ui.close(); }}>{blackedOut ? 'Sleep it off' : canSleep ? 'Sleep & save' : 'Available after 6:00 PM'}</Btn>
         </div>
         <div className="card">
           <h4>Save game</h4>

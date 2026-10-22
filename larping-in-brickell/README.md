@@ -91,7 +91,8 @@ A to interact, Y to bounce, Start to pause, Back for the phone.
   media posts, and a fireworks finale.
 - **Nightlife**: VOLT and The Gilded Flamingo casino both have walkable interiors with full bar menus.
   The casino offers blackjack, European roulette, slots and Jacks or Better video poker. Drinks make you
-  tipsy, then drunk, then you black out (blur, sway, stagger, sloppy steering); coffee and water sober you up.
+  tipsy, then drunk, then you black out (blur, sway, stagger, sloppy steering). Coffee and water help until
+  you black out; after that the screen cuts to black every 7 seconds until you sleep in any bed.
 - **Smartphone**: AlwaysFans Manager (overview, sortable roster, creator detail with charts, prospects,
   campaigns, agency), Bank, Contacts, Clout (social), Map, Properties, Vehicles, Events and Tasks.
 - **Saving**: autosaves after every meaningful change and at midnight. You can also save manually from the

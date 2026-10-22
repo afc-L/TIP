@@ -112,7 +112,7 @@ interface GameStore {
   stat: (k: string, n?: number) => void;
   maxStat: (k: string, v: number) => void;
   advance: (minutes: number) => void;
-  sleep: () => boolean;
+  sleep: (anyTime?: boolean) => boolean;
   signCreator: (id: string, offer: RecruitOffer) => void;
   declineCreator: (id: string) => void;
   renewContract: (id: string, offer: RecruitOffer) => void;
@@ -408,14 +408,14 @@ export const useGame = create<GameStore>()((set, get) => {
       get().save(true);
       get().checkProgress();
     },
-    sleep: () => {
+    sleep: (anyTime = false) => {
       const m = get().game.minute;
-      if (m < 18 * 60 && m >= 6 * 60) {
+      if (!anyTime && m < 18 * 60 && m >= 6 * 60) {
         notify('Too early to sleep. Come back after 6:00 PM (or hustle until then).', 'warn');
         return false;
       }
       const target = 8 * 60;
-      const add = m >= 18 * 60 ? 1440 - m + target : target - m;
+      const add = m >= target ? 1440 - m + target : target - m;
       get().advance(add);
       notify('You slept like someone with recurring revenue.', 'info');
       return true;

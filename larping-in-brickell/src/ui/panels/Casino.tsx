@@ -467,6 +467,10 @@ export function BarPanel() {
   const order = (d: Drink) => {
     if (!engine) return;
     if (d.sober) {
+      if (engine.blackedOut) {
+        engine.soberUp(d.sober); // explains that only sleep helps now
+        return;
+      }
       if (useGame.getState().spend(d.price, d.name, 'purchases')) {
         engine.soberUp(d.sober);
         useUI.getState().notify(`${d.name}. You feel a little sharper.`, 'info');

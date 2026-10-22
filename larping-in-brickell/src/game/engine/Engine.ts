@@ -220,6 +220,7 @@ export class Engine {
     this.renderer.forceContextLoss();
     this.renderer.domElement.remove();
     this.bubbles.forEach((b) => b.el.remove());
+    this.blackoutEl?.remove();
     if (engine === this) engine = null;
   }
 
@@ -802,7 +803,7 @@ export class Engine {
       const lp = this.yachtLocal;
       const d = (x: number, z: number) => Math.hypot(lp.x - x, lp.z - z);
       if (d(L.helm.x, L.helm.z) < 2.2) list.push({ label: 'Take the helm', dist: d(L.helm.x, L.helm.z), act: () => this.takeHelm() });
-      if (d(L.suite.x, L.suite.z) < 2.2) list.push({ label: 'Master suite: sleep & save', dist: d(L.suite.x, L.suite.z), act: () => { if (useGame.getState().sleep()) useGame.getState().save(); } });
+      if (d(L.suite.x, L.suite.z) < 2.2) list.push({ label: 'Master suite: sleep & save', dist: d(L.suite.x, L.suite.z), act: () => this.sleepHere() });
       if (d(L.suite.x, L.salon.maxZ - 1) < 2.2) list.push({ label: 'Pop champagne ($300)', dist: d(L.suite.x, L.salon.maxZ - 1), act: () => this.drink('Yacht champagne', 300, 0.2, 1) });
       // leaving is always possible: walk off when docked, or take the tender back from anywhere on deck
       if (this.yacht.docked) list.push({ label: 'Leave the yacht', dist: 0, key: 'F', act: () => this.disembark() });
@@ -1018,7 +1019,7 @@ export class Engine {
       this.yaw = p.face;
       this.camYaw = p.face;
     } else if (id === 'ph_bed') {
-      if (useGame.getState().sleep()) useGame.getState().save();
+      this.sleepHere();
     } else if (id === 'ph_wardrobe') ui.open('inspect');
     else if (id === 'ph_party') ui.startEvent('penthouse');
     else if (id === 'ph_bar') this.drink('Penthouse whiskey (the good one)', 0, 0.15);
@@ -1069,44 +1070,38 @@ export class Engine {
     const lvl = drunkLevel(this.drunk);
     notify(`${label} 🥂 · You feel ${lvl.toLowerCase()}.`, this.drunk > 0.7 ? 'warn' : 'info');
     if (this.interior === 'club' && this.drunk >= 0.75) g.stat('wastedAtVolt');
-    if (this.drunk >= 1) this.passOut();
+    if (this.blackedOut) {
+      this.drunk = 1.05;
+      notify("You blacked out. Your vision keeps cutting to black, and it won't wear off. Get to a bed and sleep it off.", 'bad');
+      g.stat('blackouts');
+    }
     return true;
   }
 
   /** Coffee helps a little. Time helps more. */
-  soberUp(amount: number) {
+  soberUp(amount: number): boolean {
+    if (this.blackedOut) {
+      notify('Nothing helps now. You need to sleep it off.', 'warn');
+      return false;
+    }
     this.drunk = Math.max(0, this.drunk - amount);
+    return true;
   }
 
-  private passOut() {
+  /** Fully blacked out: the drunkenness stops wearing off and only sleep fixes it. */
+  get blackedOut() {
+    return this.drunk >= 1;
+  }
+
+  /** Sleep in any bed (home, penthouse, yacht suite). Blacked out, you can crash at any hour. Always wakes you sober. */
+  sleepHere(): boolean {
     const g = useGame.getState();
-    notify('You blacked out. You wake up at home with a headache and a $1,200 bar tab.', 'bad');
-    g.mutate((x) => {
-      x.cash -= 1200;
-      x.ledger.unshift({ day: x.day, minute: x.minute, label: 'Mystery bar tab', amount: -1200, category: 'other' });
-      x.clout = Math.max(0, x.clout - 5);
-    }, { save: true });
-    // skip ahead a few hours and wake up at home, car delivered outside
-    g.advance(6 * 60);
-    this.mode = 'foot';
-    this.interior = null;
-    this.minigame = null;
-    const h = POI_BY_ID.home_modest;
-    this.pos.set(h.x, this.world.groundAt(h.x, h.z), h.z - 1);
-    this.yaw = Math.PI / 2;
-    this.camYaw = this.yaw;
-    this.vel.set(0, 0, 0);
-    if (this.car) {
-      this.car.occupied = false;
-      this.car.x = START_CAR.x;
-      this.car.z = START_CAR.z;
-      this.car.yaw = START_CAR.yaw;
-      this.car.speed = 0;
-    }
-    if (this.yacht && !this.yacht.docked) this.yacht.dock();
-    this.player.root.visible = true;
+    if (!g.sleep(this.blackedOut)) return false;
+    const wasOut = this.blackedOut;
     this.drunk = 0;
-    useUI.getState().close();
+    g.save();
+    if (wasOut) notify('You slept it off. Head pounding, wallet lighter, but you are sober.', 'info');
+    return true;
   }
 
   /** Driving drunk is allowed; it just gets messy. A heads-up when you set off impaired. */
@@ -1160,9 +1155,27 @@ export class Engine {
     return true;
   }
 
+  private blackoutEl: HTMLDivElement | null = null;
+  private blackoutT = 0;
+
   private updateDrunk(dt: number) {
-    // sobers up over roughly 90 seconds from fully drunk
-    if (this.drunk > 0) this.drunk = Math.max(0, this.drunk - dt * 0.011);
+    // sobers up over roughly 90 seconds from fully drunk, unless blacked out (then only sleep helps)
+    if (this.drunk > 0 && !this.blackedOut) this.drunk = Math.max(0, this.drunk - dt * 0.011);
+    // blackout: 7 seconds of (blurry) vision, then ~3 seconds of black, on repeat
+    if (!this.blackoutEl) {
+      const el = document.createElement('div');
+      el.style.cssText = 'position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;z-index:30;transition:opacity .35s ease';
+      (this.container.parentElement ?? this.container).appendChild(el);
+      this.blackoutEl = el;
+    }
+    if (this.blackedOut) {
+      this.blackoutT += dt;
+      const black = this.blackoutT % 10 >= 7;
+      this.blackoutEl.style.opacity = black ? '1' : '0';
+    } else {
+      this.blackoutT = 0;
+      this.blackoutEl.style.opacity = '0';
+    }
     const want = Math.round(this.drunk * 20) / 20;
     if (want !== this.drunkFilter) {
       this.drunkFilter = want;
