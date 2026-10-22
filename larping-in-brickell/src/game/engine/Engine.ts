@@ -1004,7 +1004,7 @@ export class Engine {
   }
 
   private takeHelm() {
-    if (this.tooDrunkToDrive('captain a yacht')) return;
+    this.drunkDriveWarning('captain a yacht');
     this.mode = 'boat';
     this.player.root.visible = false;
     notify('At the helm. W/S throttle, A/D steer, E to leave the helm, F to dock near the berth.', 'info');
@@ -1062,11 +1062,39 @@ export class Engine {
     useUI.getState().close();
   }
 
-  private tooDrunkToDrive(what: string) {
-    if (this.drunk < 0.35) return false;
-    notify(`You're too drunk to ${what}. Grab a coffee at Café Clout, sleep it off, or call a ride home (Phone → Vehicles).`, 'warn');
-    this.say(pick(["Nah. Not tonight, champ.", "Keys? What keys? I'm holding them.", 'The Maybach deserves better than this.']), this.pos.x, this.pos.y + 2.1, this.pos.z);
-    return true;
+  /** Driving drunk is allowed; it just gets messy. A heads-up when you set off impaired. */
+  private drunkDriveWarning(what: string) {
+    if (this.drunk < 0.35) return;
+    notify(`You're ${drunkLevel(this.drunk).toLowerCase()} and about to ${what}. Steering will wander and every crash costs clout.`, 'warn');
+    this.say(pick(["I'm fine. I'm totally fine.", 'Hold my champagne.', 'The Maybach drives itself, basically.']), this.pos.x, this.pos.y + 2.1, this.pos.z);
+  }
+
+  /** Drunk steering: a slow wander, sudden lurches and sloppy throttle. */
+  private drunkSteer(steer: number, throttle: number) {
+    const d = this.drunk;
+    if (d < 0.05) return { steer, throttle };
+    const wander = Math.sin(this.t * 0.8) * 0.35 + Math.sin(this.t * 2.3 + 1) * 0.2;
+    const lurch = Math.sin(this.t * 0.37) > 0.92 ? Math.sign(Math.sin(this.t * 5)) * 0.6 : 0;
+    return {
+      steer: Math.max(-1, Math.min(1, steer + (wander + lurch) * d)),
+      throttle: throttle > 0 ? Math.max(0, Math.min(1, throttle + Math.sin(this.t * 1.6) * 0.35 * d)) : 0,
+    };
+  }
+
+  private drunkCrashT = 0;
+
+  /** Crashing while drunk: clout hit and the gossip accounts find out (rate-limited). */
+  private drunkCrash() {
+    if (this.drunk < 0.35 || this.t - this.drunkCrashT < 8) return;
+    this.drunkCrashT = this.t;
+    const g = useGame.getState();
+    g.addClout(-8, 'Someone filmed that crash');
+    g.stat('drunkCrashes');
+    g.post('Brickell Tea', '@brickelltea', pick([
+      `Was that ${g.game.nickname}'s car bouncing off a palm tree? 👀`,
+      `${g.game.nickname} just parallel parked into a lamp post. Respectfully: call an Uber.`,
+      `BREAKING: ${g.game.nickname} vs. Brickell Ave. Brickell Ave won.`,
+    ]), 'npc');
   }
 
   /** Rideshare home: always available, ends any trip. */
@@ -1105,7 +1133,7 @@ export class Engine {
   // ---------------------------------------------------------------------------------- car
   enterCar() {
     if (!this.car) return;
-    if (this.tooDrunkToDrive('drive')) return;
+    this.drunkDriveWarning('drive');
     audio.init();
     audio.door();
     this.mode = 'car';
@@ -1175,6 +1203,9 @@ export class Engine {
       steer: ax.x,
       handbrake: inp.down_('Space') || inp.gp.x,
     };
+    const ds = this.drunkSteer(di.steer, di.throttle);
+    di.steer = ds.steer;
+    di.throttle = ds.throttle;
     this.burnHeld = inp.down_('KeyW') && inp.down_('KeyS');
     if (this.burnHeld) {
       di.throttle = 0;
@@ -1203,6 +1234,7 @@ export class Engine {
     if (c.impact > 4) {
       audio.crash(c.impact);
       this.crashT = 0.5;
+      this.drunkCrash();
     }
     // traffic collisions
     for (const tc of this.traffic.cars) {
@@ -1221,6 +1253,7 @@ export class Engine {
             this.say(pick(CRASH_LINES), tc.x, 2.2, tc.z);
           }
         }
+        if (Math.abs(c.speed) > 4) this.drunkCrash();
         c.speed *= 0.6;
         tc.speed = 0;
       }
@@ -1319,7 +1352,8 @@ export class Engine {
     this.camOrbit -= m.dx;
     this.camPitch = THREE.MathUtils.clamp(this.camPitch + m.dy, -0.2, 1.0);
     const ax = inp.axes();
-    y.update(dt, this.t, { throttle: Math.max(0, ax.y), brake: Math.max(0, -ax.y), steer: ax.x });
+    const bs = this.drunkSteer(ax.x, Math.max(0, ax.y));
+    y.update(dt, this.t, { throttle: bs.throttle, brake: Math.max(0, -ax.y), steer: bs.steer });
     this.yachtLocal = { x: y.layout.helm.x, z: y.layout.helm.z - 0.5 };
     const w = y.localToWorld(this.yachtLocal.x, this.yachtLocal.z);
     this.pos.set(w.x, y.root.position.y + y.layout.deckY, w.z);
