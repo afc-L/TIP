@@ -146,6 +146,7 @@ export interface GameState {
   home: string;
   club: ClubState;
   yacht: string | null;
+  yachtHull: string; // '' = factory finish
   missionsDone: string[];
   sideDone: string[];
   achievements: string[];

@@ -57,6 +57,7 @@ export function defaultState(nickname = 'Boss'): GameState {
     home: 'studio',
     club: { upgrades: [], lastEventDay: 0, eventsHosted: 0, bestAttendance: 0 },
     yacht: null,
+    yachtHull: '',
     missionsDone: [],
     sideDone: [],
     achievements: [],

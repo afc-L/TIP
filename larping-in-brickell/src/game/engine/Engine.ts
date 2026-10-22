@@ -207,6 +207,7 @@ export class Engine {
     this.input?.dispose();
     audio.setMusic('none');
     this.renderer.dispose();
+    this.renderer.forceContextLoss();
     this.renderer.domElement.remove();
     this.bubbles.forEach((b) => b.el.remove());
     if (engine === this) engine = null;
@@ -308,7 +309,7 @@ export class Engine {
         }
         if (g.equippedOutfit !== p.equippedOutfit) this.player.setOutfit(OUTFIT_BY_ID[g.equippedOutfit] ?? OUTFIT_BY_ID.starter);
         if (g.equippedWatch !== p.equippedWatch) this.player.setWatch(g.equippedWatch ? WATCH_BY_ID[g.equippedWatch] : null);
-        if (g.yacht !== p.yacht) {
+        if (g.yacht !== p.yacht || (g.yacht && g.yachtHull !== p.yachtHull)) {
           if (g.yacht) this.spawnYacht(g.yacht);
           else this.yacht?.dispose();
         }
@@ -432,7 +433,7 @@ export class Engine {
       state = { x: this.yacht.x, z: this.yacht.z, yaw: this.yacht.yaw, docked: this.yacht.docked };
       this.yacht.dispose();
     }
-    this.yacht = new Yacht(id);
+    this.yacht = new Yacht(id, useGame.getState().game.yachtHull);
     if (state && !state.docked) {
       this.yacht.x = state.x;
       this.yacht.z = state.z;
@@ -766,6 +767,7 @@ export class Engine {
       const lp = this.yachtLocal;
       const d = (x: number, z: number) => Math.hypot(lp.x - x, lp.z - z);
       if (d(L.helm.x, L.helm.z) < 2.2) list.push({ label: 'Take the helm', dist: d(L.helm.x, L.helm.z), act: () => this.takeHelm() });
+      if (d(L.suite.x, L.suite.z) < 2.2) list.push({ label: 'Master suite: sleep & save', dist: d(L.suite.x, L.suite.z), act: () => { if (useGame.getState().sleep()) useGame.getState().save(); } });
       if (this.yacht.docked && d(L.gangway.x, L.gangway.z) < 3) list.push({ label: 'Disembark to the marina', dist: d(L.gangway.x, L.gangway.z), act: () => this.disembark() });
       if (d(L.party.x, L.party.z) < 3.5) {
         if (endgameReady(g) && !g.endgameCelebrated) list.push({ label: '👑 Throw the King of Brickell party', dist: 0.1, act: () => ui.open('finale') });
@@ -1410,6 +1412,15 @@ export class Engine {
     if (desired.y < minY) desired.y = minY;
     if (this.interior === 'club') desired.y = Math.min(desired.y, 7.5);
     if (this.interior === 'penthouse') desired.y = Math.min(desired.y, PENTHOUSE.y + 3.9);
+    if (this.interior === 'yacht' && this.yacht && this.mode === 'foot') {
+      // keep the camera under the salon roof while inside it
+      const sl = this.yacht.layout.salon;
+      const lp = this.yachtLocal;
+      if (lp.x > sl.minX && lp.x < sl.maxX && lp.z > sl.minZ - 1 && lp.z < sl.maxZ) {
+        desired.y = Math.min(desired.y, this.yacht.root.position.y + this.yacht.layout.deckY + 2.3);
+        desired.lerpVectors(target, desired, 0.6);
+      }
+    }
     const k = this.mode === 'car' ? 1 - Math.exp(-dt * 9) : 1 - Math.exp(-dt * 14);
     if (this.camPos.lengthSq() === 0 || this.camPos.distanceTo(desired) > 60) this.camPos.copy(desired);
     else this.camPos.lerp(desired, k);

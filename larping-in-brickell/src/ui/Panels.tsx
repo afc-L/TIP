@@ -118,6 +118,16 @@ function ClubPanel() {
   );
 }
 
+const HULL_PRICE = 75000;
+const HULLS = [
+  { name: 'Factory finish', color: '' },
+  { name: 'Midnight Navy', color: '#0e1a2b' },
+  { name: 'Pearl White', color: '#f4f4f2' },
+  { name: 'Liquid Gold', color: '#c9a03a' },
+  { name: 'Obsidian', color: '#0b0b0d' },
+  { name: 'Miami Pink', color: '#ff5fa2' },
+];
+
 function MarinaPanel() {
   const g = useGame((s) => s.game);
   const { buyProperty, buyYacht } = useGame();
@@ -138,7 +148,14 @@ function MarinaPanel() {
         {cur && (
           <div className="card owned">
             <div className="row between"><h4>Your yacht: {cur.name}</h4><Btn kind="gold" onClick={() => engine?.boardYacht()}>Board yacht</Btn></div>
-            <div className="muted small">Walk the deck, take the helm to cruise the bay, or host a yacht party from the aft deck.</div>
+            <div className="muted small">Walk the deck, sleep in the master suite, take the helm to cruise the bay, or host a yacht party from the aft deck.</div>
+            <div className="mb-label" style={{ marginTop: 6 }}>Hull finish · {money(HULL_PRICE)}</div>
+            <div className="swatches">
+              {HULLS.map((h) => (
+                <div key={h.name} title={h.name} className={`swatch ${g.yachtHull === h.color ? 'sel' : ''}`} style={{ background: h.color || 'repeating-linear-gradient(45deg,#ddd,#ddd 4px,#0e1a2b 4px,#0e1a2b 8px)' }}
+                  onClick={() => { if (g.yachtHull === h.color) return; if (!h.color || useGame.getState().spend(HULL_PRICE, `Yacht hull: ${h.name}`, 'purchases')) useGame.getState().mutate((x) => { x.yachtHull = h.color; x.clout += h.color ? 10 : 0; }, { save: true }); }} />
+              ))}
+            </div>
           </div>
         )}
         {ready && (

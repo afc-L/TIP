@@ -11,6 +11,7 @@ export interface YachtLayout {
   helm: { x: number; z: number };
   gangway: { x: number; z: number };
   party: { x: number; z: number };
+  suite: { x: number; z: number };
   salon: { minX: number; maxX: number; minZ: number; maxZ: number };
 }
 
@@ -27,7 +28,7 @@ export class Yacht {
   lights: THREE.MeshBasicMaterial;
   maxSpeed: number;
 
-  constructor(id: string) {
+  constructor(id: string, hull = '') {
     this.id = id;
     const def = YACHT_BY_ID[id];
     this.maxSpeed = def.speed;
@@ -39,17 +40,18 @@ export class Yacht {
       helm: { x: 0, z: L * 0.18 },
       gangway: { x: B / 2 - 0.8, z: -L * 0.3 },
       party: { x: 0, z: -L * 0.32 },
+      suite: { x: 0, z: L * 0.02 },
       salon: { minX: -B * 0.32, maxX: B * 0.32, minZ: -L * 0.08, maxZ: L * 0.12 },
     };
     this.lights = new THREE.MeshBasicMaterial({ color: '#7fd9ff', toneMapped: false });
-    this.build(L, B, deckY, def.rank);
+    this.build(L, B, deckY, def.rank, hull);
     this.root.position.set(this.x, 0, this.z);
     this.root.rotation.y = this.yaw;
   }
 
-  private build(L: number, B: number, deckY: number, rank: number) {
+  private build(L: number, B: number, deckY: number, rank: number, hullColor: string) {
     const white = new THREE.MeshStandardMaterial({ color: '#f7f7f5', roughness: 0.25, metalness: 0.1 });
-    const hullMat = new THREE.MeshStandardMaterial({ color: rank >= 3 ? '#0e1a2b' : '#f4f4f2', roughness: 0.2, metalness: 0.3 });
+    const hullMat = new THREE.MeshStandardMaterial({ color: hullColor || (rank >= 3 ? '#0e1a2b' : '#f4f4f2'), roughness: 0.2, metalness: 0.3 });
     const glass = new THREE.MeshStandardMaterial({ color: '#0d1620', roughness: 0.05, metalness: 0.8 });
     const gold = new THREE.MeshStandardMaterial({ color: '#d4af37', metalness: 1, roughness: 0.2 });
     const wt = woodTexture();
