@@ -42,7 +42,7 @@ function profile(shape: BodyShape, L: number, W: number, H: number): Profile {
         roof: { z0: -f + 0.3, z1: f - 2.08, y: H },
         belt: 1.2, seatZ: 0.25, eye: [0.42, 1.6, 0.05], dashZ: f - 1.55,
         windshield: [[f - 1.35, 1.2], [f - 2.1, H]], rearGlass: [[-f + 0.18, 1.22], [-f + 0.38, H - 0.02]],
-        grille: { w: 0.92, h: 0.56, y: 0.78 }, lights: { y: 0.98, x: W / 2 - 0.28, w: 0.42 },
+        grille: { w: 0.96, h: 0.5, y: 0.74 }, lights: { y: 0.93, x: W / 2 - 0.3, w: 0.42 },
       };
     case 'sedan':
       return {
@@ -366,23 +366,35 @@ export function buildCar(shape: BodyShape, dims: { length: number; width: number
     body.add(new THREE.Mesh(track(beam(new THREE.Vector3(0, t[1], t[0]), new THREE.Vector3(0, t[1] + 0.01, t[0] - 0.02), pr.width - 0.2, 0.05)), chrome));
   }
 
-  // --- Front: grille, lights, bumper
-  const fz = pr.length / 2;
+  // --- Front: grille, lights, bumper (placed on the actual bevelled body surface)
+  const BEV = 0.06;
+  const zAt = (y: number, front: boolean) => {
+    const pts = front ? pr.top : [...pr.top].reverse();
+    for (let i = 0; i < pts.length - 1; i++) {
+      const [z0, y0] = pts[i], [z1, y1] = pts[i + 1];
+      if ((y >= y0 && y <= y1) || (y <= y0 && y >= y1)) {
+        const t = Math.abs(y1 - y0) < 1e-6 ? 0 : (y - y0) / (y1 - y0);
+        return z0 + (z1 - z0) * t + (front ? BEV : -BEV);
+      }
+    }
+    return front ? pr.length / 2 + BEV : -pr.length / 2 - BEV;
+  };
   const gr = pr.grille;
   if (shape === 'suv' || shape === 'sedan' || shape === 'show') {
     const gtex = grilleTexture();
     const grille = new THREE.Mesh(track(new THREE.PlaneGeometry(gr.w, gr.h)), new THREE.MeshStandardMaterial({ map: gtex, metalness: 0.9, roughness: 0.2 }));
-    grille.position.set(0, gr.y, fz + 0.075);
+    const gz = zAt(gr.y, true) + 0.012;
+    grille.position.set(0, gr.y, gz);
     body.add(grille);
     // frame
     const t = 0.04;
-    body.add(new THREE.Mesh(track(boxAt(gr.w + t * 2, t, 0.06, 0, gr.y + gr.h / 2, fz + 0.06)), chrome));
-    body.add(new THREE.Mesh(track(boxAt(gr.w + t * 2, t, 0.06, 0, gr.y - gr.h / 2, fz + 0.06)), chrome));
-    body.add(new THREE.Mesh(track(boxAt(t, gr.h, 0.06, -gr.w / 2 - t / 2, gr.y, fz + 0.06)), chrome));
-    body.add(new THREE.Mesh(track(boxAt(t, gr.h, 0.06, gr.w / 2 + t / 2, gr.y, fz + 0.06)), chrome));
+    body.add(new THREE.Mesh(track(boxAt(gr.w + t * 2, t, 0.06, 0, gr.y + gr.h / 2, gz)), chrome));
+    body.add(new THREE.Mesh(track(boxAt(gr.w + t * 2, t, 0.06, 0, gr.y - gr.h / 2, gz)), chrome));
+    body.add(new THREE.Mesh(track(boxAt(t, gr.h, 0.06, -gr.w / 2 - t / 2, gr.y, gz)), chrome));
+    body.add(new THREE.Mesh(track(boxAt(t, gr.h, 0.06, gr.w / 2 + t / 2, gr.y, gz)), chrome));
     // emblem / hood star
     const emb = new THREE.Mesh(track(new THREE.TorusGeometry(0.07, 0.012, 8, 24)), chrome);
-    emb.position.set(0, gr.y + 0.05, fz + 0.1);
+    emb.position.set(0, gr.y + 0.05, gz + 0.03);
     body.add(emb);
     if (isMaybach) {
       const hood = new THREE.Mesh(track(new THREE.CylinderGeometry(0.004, 0.004, 0.09, 6)), chrome);
@@ -394,45 +406,51 @@ export function buildCar(shape: BodyShape, dims: { length: number; width: number
     }
   } else {
     // sporty intake
-    body.add(new THREE.Mesh(track(boxAt(gr.w, gr.h, 0.05, 0, gr.y, fz + 0.02)), blackTrim()));
-    for (const sx of [-1, 1]) body.add(new THREE.Mesh(track(boxAt(0.35, 0.18, 0.05, sx * (pr.width / 2 - 0.35), gr.y - 0.02, fz)), blackTrim()));
+    body.add(new THREE.Mesh(track(boxAt(gr.w, gr.h, 0.05, 0, gr.y, zAt(gr.y, true))), blackTrim()));
+    for (const sx of [-1, 1]) body.add(new THREE.Mesh(track(boxAt(0.35, 0.18, 0.05, sx * (pr.width / 2 - 0.35), gr.y - 0.02, zAt(gr.y - 0.02, true))), blackTrim()));
   }
   // lower intakes (Maybach diamond pattern approximated with chrome-dotted dark panels)
   if (shape === 'suv') {
     for (const sx of [-1, 1]) {
-      body.add(new THREE.Mesh(track(boxAt(0.36, 0.24, 0.04, sx * (pr.width / 2 - 0.32), 0.52, fz + 0.03)), blackTrim()));
+      const iz = zAt(0.52, true);
+      body.add(new THREE.Mesh(track(boxAt(0.36, 0.24, 0.04, sx * (pr.width / 2 - 0.32), 0.52, iz)), blackTrim()));
       for (let i = 0; i < 3; i++)
         for (let j = 0; j < 2; j++)
-          body.add(new THREE.Mesh(track(boxAt(0.05, 0.05, 0.03, sx * (pr.width / 2 - 0.44 + i * 0.12), 0.47 + j * 0.1, fz + 0.06)), chrome));
+          body.add(new THREE.Mesh(track(boxAt(0.05, 0.05, 0.03, sx * (pr.width / 2 - 0.44 + i * 0.12), 0.47 + j * 0.1, iz + 0.025)), chrome));
     }
-    body.add(new THREE.Mesh(track(boxAt(pr.width - 0.5, 0.05, 0.06, 0, 0.36, fz + 0.04)), chrome));
+    body.add(new THREE.Mesh(track(boxAt(pr.width - 0.5, 0.05, 0.06, 0, 0.36, zAt(0.36, true))), chrome));
   }
   // headlights + DRL
   const L = pr.lights;
+  const hz = zAt(L.y, true);
   for (const sx of [-1, 1]) {
-    const hl = new THREE.Mesh(track(boxAt(L.w, 0.11, 0.06, sx * L.x, L.y, fz - 0.02)), headMat);
+    const hl = new THREE.Mesh(track(boxAt(L.w, 0.13, 0.08, sx * L.x, L.y, hz - 0.02)), headMat);
     body.add(hl);
-    body.add(new THREE.Mesh(track(boxAt(L.w * 0.9, 0.02, 0.07, sx * L.x, L.y - 0.07, fz - 0.015)), headMat));
+    body.add(new THREE.Mesh(track(boxAt(L.w * 0.95, 0.025, 0.08, sx * L.x, L.y - 0.085, zAt(L.y - 0.085, true) - 0.015)), headMat));
+    // chrome headlight surround
+    body.add(new THREE.Mesh(track(boxAt(L.w + 0.04, 0.02, 0.07, sx * L.x, L.y + 0.075, hz - 0.025)), chrome));
   }
   // taillights
-  const rz = -pr.length / 2;
+  const tz = zAt(L.y + 0.02, false);
   for (const sx of [-1, 1]) {
-    body.add(new THREE.Mesh(track(boxAt(L.w + 0.05, 0.09, 0.06, sx * (L.x + 0.02), L.y + 0.02, rz - 0.01)), brakeMat));
+    body.add(new THREE.Mesh(track(boxAt(L.w + 0.05, 0.14, 0.08, sx * (L.x + 0.02), L.y + 0.02, tz + 0.02)), brakeMat));
   }
-  body.add(new THREE.Mesh(track(boxAt(pr.width - 0.9, 0.025, 0.05, 0, L.y + 0.02, rz - 0.015)), chrome));
+  body.add(new THREE.Mesh(track(boxAt(pr.width - 0.9, 0.03, 0.06, 0, L.y + 0.02, tz + 0.01)), chrome));
+  body.add(new THREE.Mesh(track(boxAt(pr.width - 0.4, 0.05, 0.06, 0, pr.bottom + 0.22, zAt(pr.bottom + 0.22, false) + 0.01)), chrome));
   // exhaust
   for (const sx of [-1, 1]) {
     const ex = new THREE.Mesh(track(new THREE.CylinderGeometry(0.045, 0.045, 0.12, 12)), chrome);
     ex.rotation.x = Math.PI / 2;
-    ex.position.set(sx * (pr.width / 2 - 0.45), pr.bottom + 0.08, rz - 0.02);
+    ex.position.set(sx * (pr.width / 2 - 0.45), pr.bottom + 0.08, zAt(pr.bottom + 0.1, false) - 0.02);
     body.add(ex);
   }
   // plates
   const plate = signTexture('LARP 305', { color: '#111', bg: '#f4f4f0', font: '700 56px Arial, sans-serif' });
   const plateMat = new THREE.MeshStandardMaterial({ map: plate.tex, roughness: 0.5 });
-  for (const [z, ry] of [[fz + 0.08, 0], [rz - 0.05, Math.PI]] as [number, number][]) {
+  const plateY = shape === 'suv' ? 0.46 : 0.36;
+  for (const [z, ry] of [[zAt(plateY, true) + 0.01, 0], [zAt(plateY, false) - 0.01, Math.PI]] as [number, number][]) {
     const p = new THREE.Mesh(track(new THREE.PlaneGeometry(0.52, 0.12)), plateMat);
-    p.position.set(0, shape === 'suv' ? 0.4 : 0.32, z);
+    p.position.set(0, plateY, z);
     p.rotation.y = ry;
     body.add(p);
   }

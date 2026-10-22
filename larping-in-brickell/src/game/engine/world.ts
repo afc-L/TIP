@@ -264,7 +264,7 @@ export class World {
     aw.position.set(cx + fx * (facadeDist + 1.1), 3.6, cz + fz * (facadeDist + 1.1));
     aw.castShadow = true;
     this.group.add(aw);
-    const door = new THREE.Mesh(new THREE.PlaneGeometry(3, 3.2), new THREE.MeshStandardMaterial({ color: '#221a10', emissive: '#ffcf8a', emissiveIntensity: 0.6 }));
+    const door = new THREE.Mesh(new THREE.PlaneGeometry(3, 3.2), new THREE.MeshStandardMaterial({ color: '#1c242e', emissive: '#c99a5a', emissiveIntensity: 0.6, metalness: 0.6, roughness: 0.15 }));
     door.position.set(cx + fx * (facadeDist + 0.06), 1.75, cz + fz * (facadeDist + 0.06));
     door.rotation.y = p.face;
     this.group.add(door);

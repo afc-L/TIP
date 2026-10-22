@@ -13,7 +13,7 @@ import { Yacht } from './yacht';
 import { audio } from './audio';
 import { BounceOff, Showoff, type Minigame } from './minigames';
 import type { CollisionWorld } from './collision';
-import { useGame } from '../store';
+import { currentMission, useGame } from '../store';
 import { useUI, notify } from '../uiStore';
 import { useSettings } from '../settings';
 import { POIS, POI_BY_ID, START_CAR, START_SPAWN, YACHT_BERTH, valetSpot, SEAWALL_X } from '../data/world';
@@ -998,6 +998,7 @@ export class Engine {
     this.camYaw = this.car.yaw;
     this.camOrbit = 0;
     const g = useGame.getState();
+    if (!g.game.stats.maybachEntered) notify('W/S drive & brake · A/D steer · Space handbrake · B bounce · 1/2/3 style · C camera · E exit', 'info');
     if (this.car.isMaybach) g.stat('maybachEntered');
     this.valetTravel = 0;
     this.lastValetPos = { x: this.car.x, z: this.car.z };
@@ -1421,19 +1422,32 @@ export class Engine {
     cam.lookAt(target);
   }
 
+  /** Gold beacon for the manual waypoint; green beacon for the current objective's location otherwise. */
   private updateBeacon() {
     const wp = useUI.getState().waypoint;
-    if (!wp || this.interior === 'club') {
+    const mat = this.beacon.material as THREE.MeshBasicMaterial;
+    if (this.interior === 'club') {
       this.beacon.visible = false;
       return;
     }
-    this.beacon.visible = true;
-    this.beacon.position.set(wp.x, 150, wp.z);
     const pw = this.playerWorld();
-    if (Math.hypot(pw.x - wp.x, pw.z - wp.z) < 12) {
-      useUI.getState().setWaypoint(null);
-      notify(`Arrived: ${wp.label}`, 'info');
+    if (wp) {
+      this.beacon.visible = true;
+      mat.color.set('#ffd36a');
+      this.beacon.position.set(wp.x, 150, wp.z);
+      if (Math.hypot(pw.x - wp.x, pw.z - wp.z) < 12) {
+        useUI.getState().setWaypoint(null);
+        notify(`Arrived: ${wp.label}`, 'info');
+      }
+      return;
     }
+    const m = currentMission(useGame.getState().game);
+    const target = m?.target ? POI_BY_ID[m.target] : null;
+    if (target && Math.hypot(pw.x - target.x, pw.z - target.z) > 25) {
+      this.beacon.visible = true;
+      mat.color.set('#3dffb0');
+      this.beacon.position.set(target.x, 150, target.z);
+    } else this.beacon.visible = false;
   }
 
   // ---------------------------------------------------------------------------------- stats

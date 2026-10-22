@@ -34,7 +34,7 @@ export class BounceOff implements Minigame {
   time = 45;
   score = 0;
   done = false;
-  private call: { style: BounceStyle; min: number; max: number } = { style: 'executive', min: 0.2, max: 0.6 };
+  call: { style: BounceStyle; min: number; max: number } = { style: 'executive', min: 0.2, max: 0.6 };
   private callT = 0;
   private combo = 0;
   private matching = false;

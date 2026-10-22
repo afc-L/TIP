@@ -226,8 +226,17 @@ export class Crowd {
     this.dirty = true;
   }
 
+  private visHash = 0;
+
   update(dt: number, t: number) {
     const n = this.agents.length;
+    // instance slots are packed by visibility, so recolour whenever the visible set changes
+    let h = n;
+    for (let i = 0; i < n; i++) if (this.agents[i].visible) h = (h * 31 + i) | 0;
+    if (h !== this.visHash) {
+      this.visHash = h;
+      this.dirty = true;
+    }
     let k = 0;
     for (let i = 0; i < n; i++) {
       const a = this.agents[i];

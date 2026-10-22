@@ -163,9 +163,14 @@ export class AudioSystem {
   }
 
   /** Called every frame */
+  private lastUpdate = 0;
+
   update(p: { driving: boolean; rpm: number; throttle: number; skid: number; night: number; nearWater: number; boat: number; interior: string | null; prestige: number }) {
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
+    // ~30 Hz is plenty for parameter automation and keeps the event timeline small
+    if (t - this.lastUpdate < 0.033) return;
+    this.lastUpdate = t;
     const base = 32 + p.prestige * 2;
     const f = base + p.rpm * 95;
     for (let i = 0; i < this.engOsc.length; i++) this.engOsc[i].frequency.setTargetAtTime(i === 2 ? f * 2 : f, t, 0.05);
@@ -347,9 +352,14 @@ export class AudioSystem {
   }
 
   // --- music sequencer (original procedural loops)
+  private muffled = false;
+
   setMusic(mode: 'none' | 'lounge' | 'club' | 'party', muffled = false) {
     if (!this.ctx) return;
-    this.clubFilter.frequency.setTargetAtTime(muffled ? 380 : 20000, this.ctx.currentTime, 0.2);
+    if (muffled !== this.muffled) {
+      this.muffled = muffled;
+      this.clubFilter.frequency.setTargetAtTime(muffled ? 380 : 20000, this.ctx.currentTime, 0.2);
+    }
     if (mode === this.musicMode) return;
     this.musicMode = mode;
     if (this.seqTimer) {

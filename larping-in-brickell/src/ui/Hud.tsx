@@ -44,7 +44,7 @@ function Objective() {
       <div className="k">{m.stage === 'Side' ? 'SIDE JOB' : 'OBJECTIVE'}</div>
       <div className="t">{m.title}</div>
       <div className="d">{m.desc}{m.progress ? ` (${m.progress(g)})` : ''}</div>
-      {m.target && !wp && <div className="d" style={{ color: 'var(--gold2)' }}>Tab → Tasks to set a waypoint</div>}
+      {m.target && !wp && <div className="d" style={{ color: 'var(--green)' }}>Follow the green beacon · {POI_BY_ID[m.target].name}</div>}
     </div>
   );
 }
@@ -99,6 +99,16 @@ function Minimap() {
         ctx.arc(wp.x, wp.z, 6, 0, Math.PI * 2);
         ctx.fillStyle = '#ffd36a';
         ctx.fill();
+      }
+      // current objective (when no manual waypoint)
+      const cm = currentMission(useGame.getState().game);
+      if (!wp && cm?.target) {
+        const tp = POI_BY_ID[cm.target];
+        ctx.beginPath();
+        ctx.arc(tp.x, tp.z, 6, 0, Math.PI * 2);
+        ctx.strokeStyle = '#3dffb0';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
       }
       // yacht
       if (e.yacht) {

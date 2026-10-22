@@ -74,8 +74,8 @@ export function CarPreview(props: { id: string; mods: VehicleMods; height?: numb
     s.scene.add(car.root);
     s.car = car;
     const L = def.length;
-    s.cam.position.set(L * 1.35, 2.6, L * 1.35);
-    s.cam.lookAt(0, 0.6, 0);
+    s.cam.position.set(L * 1.05, 2.1, L * 1.05);
+    s.cam.lookAt(0, 0.65, 0);
   }, [props.id, JSON.stringify(props.mods)]); // eslint-disable-line react-hooks/exhaustive-deps
   return <div ref={host} style={{ width: '100%', height: props.height ?? 260, borderRadius: 14, overflow: 'hidden', background: 'radial-gradient(circle at 50% 40%, #23232b, #0b0b0e)' }} />;
 }
