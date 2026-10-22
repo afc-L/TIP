@@ -224,6 +224,14 @@ function PropertyPanel({ id }: { id?: string }) {
   );
 }
 
+// Drinks sold at each venue. `amount` raises drunkenness (1 = blackout), `sober` lowers it.
+const DRINKS: Record<string, { name: string; price: number; amount: number; clout?: number; sober?: number }[]> = {
+  cafe: [{ name: 'Triple espresso', price: 8, amount: 0, sober: 0.3 }, { name: 'Espresso martini', price: 22, amount: 0.12 }],
+  brunch: [{ name: 'Bottomless mimosas', price: 45, amount: 0.25 }, { name: 'Cold brew', price: 7, amount: 0, sober: 0.2 }],
+  restaurant: [{ name: 'Old fashioned', price: 28, amount: 0.15 }, { name: 'Bottle of Bordeaux', price: 900, amount: 0.3, clout: 2 }],
+  rooftop: [{ name: 'Rosé', price: 24, amount: 0.12 }, { name: 'Sunset spritz tower', price: 350, amount: 0.3, clout: 2 }],
+};
+
 function VenuePanel() {
   const id = useUI((s) => s.panelArg) ?? 'cafe';
   const p = POI_BY_ID[id];
@@ -235,6 +243,21 @@ function VenuePanel() {
   const contacts = CONTACTS.filter((c) => c.venue === id);
   return (
     <Panel title={p.name} sub={p.desc}>
+      {(DRINKS[id] ?? []).length > 0 && (
+        <>
+          <h3 className="sec">{id === 'cafe' ? 'Menu' : 'Bar'}</h3>
+          <div className="row wrap">
+            {(DRINKS[id] ?? []).map((d) => (
+              <Btn key={d.name} small onClick={() => {
+                if (!engine) return;
+                if (d.sober) {
+                  if (useGame.getState().spend(d.price, d.name, 'purchases')) { engine.soberUp(d.sober); ui.notify(`${d.name} ☕ You feel a bit more sober.`, 'info'); }
+                } else engine.drink(d.name, d.price, d.amount, d.clout);
+              }}>{d.name} · {money(d.price)}</Btn>
+            ))}
+          </div>
+        </>
+      )}
       {events.length > 0 && <h3 className="sec">Events here</h3>}
       <div className="col">
         {events.map((e) => {

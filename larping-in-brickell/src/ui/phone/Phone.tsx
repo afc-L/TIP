@@ -403,6 +403,15 @@ function Vehicles() {
         <Btn onClick={() => ui.open('garage')}>Garage & customization</Btn>
       </div>
       <div className="card small">
+        <b>Ride home</b>
+        <div className="muted">Too many drinks, stuck on the yacht, or just lost? A rideshare takes you home for $85.</div>
+        <Btn small onClick={() => {
+          if (!engine) return;
+          if (useUI.getState().rt.mode !== 'foot') { ui.notify('Park and get out first.', 'warn'); return; }
+          if (engine.rideHome()) ui.close();
+        }}>Call a ride home</Btn>
+      </div>
+      <div className="card small">
         <b>Valet delivery</b>
         <div className="muted">Lost your car? A valet brings your active vehicle to you for $250.</div>
         <Btn small onClick={() => {

@@ -6,7 +6,7 @@ import { CLOUT_LEVELS, MONTH_DAYS, levelFor } from '../game/data/catalog';
 import { POI_BY_ID } from '../game/data/world';
 import { VEHICLE_BY_ID } from '../game/data/vehicles';
 import { clock, dateLabel, money } from '../game/systems/format';
-import { engine } from '../game/engine/Engine';
+import { engine, drunkLevel } from '../game/engine/Engine';
 import { BASE_SCALE, MAP_BOUNDS, baseMap, drawPlayer } from './mapdraw';
 
 const STYLE_LABEL: Record<string, string> = { executive: 'Executive Bounce', brickell: 'Brickell Bounce', miami: 'MIAMI MODE' };
@@ -281,6 +281,7 @@ export function Hud() {
       <CashClout />
       <div className="hud-tr">
         <Clock />
+        {rt.drunk > 0.05 && <div className="glass small" style={{ padding: '6px 12px', color: rt.drunk > 0.6 ? 'var(--red)' : 'var(--gold2)' }}>🥂 {drunkLevel(rt.drunk).toUpperCase()}{rt.drunk >= 0.35 ? ' · NO DRIVING' : ''}</div>}
         {rt.interior && <div className="glass small" style={{ padding: '6px 12px' }}>{rt.interior === 'club' ? '⚡ VOLT NIGHTCLUB' : rt.interior === 'penthouse' ? '🏙 AURUM PENTHOUSE' : '⚓ ON YOUR YACHT'}</div>}
       </div>
       <Toasts />

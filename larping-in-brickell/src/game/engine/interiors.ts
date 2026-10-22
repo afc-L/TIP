@@ -180,6 +180,7 @@ export class ClubInterior {
     this.points.push({ id: 'club_exit', x: 0, z: D / 2 - 1.5, label: 'Exit to Brickell' });
     this.points.push({ id: 'club_office', x: W / 2 - 2, z: -14, label: 'Club manager office' });
     this.points.push({ id: 'club_bar', x: -15, z: 2, label: 'Order bottle service ($2,500, +clout)' });
+    this.points.push({ id: 'club_shot', x: -15, z: -5, label: 'Take a tequila shot ($40)' });
     // dancers
     this.crowd.addTo(s);
     const r = (() => { let x = 7; return () => ((x = (x * 16807) % 2147483647) / 2147483647); })();
@@ -306,5 +307,6 @@ export class Penthouse {
     this.points.push({ id: 'ph_bed', x: cx - 6.2, z: cz - 12, label: 'Sleep / save' });
     this.points.push({ id: 'ph_wardrobe', x: cx - 18.2, z: cz + 12, label: 'Walk-in wardrobe' });
     this.points.push({ id: 'ph_party', x: cx + 8.5, z: cz - 3, label: 'Host a Penthouse Soirée' });
+    this.points.push({ id: 'ph_bar', x: cx - 10.2, z: cz + 10, label: 'Pour a whiskey' });
   }
 }

@@ -99,5 +99,6 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   { id: 'a_roster', name: 'Full House', desc: 'Sign eight creators.', reward: { cash: 50000, clout: 60 }, check: (s) => signed(s) >= 8 },
   { id: 'a_rivals', name: 'Undisputed', desc: 'Defeat all three rival managers.', reward: { cash: 100000, clout: 100 }, check: (s) => ['chase', 'brielle', 'dmitri'].every((r) => s.rivals[r]?.defeated) },
   { id: 'a_millionaire', name: 'Actually Rich', desc: 'Have $1,000,000 in cash at once.', reward: { cash: 0, clout: 50 }, check: (s) => s.cash >= 1_000_000 },
+  { id: 'a_bigNight', name: 'Big Night Out', desc: 'Get properly drunk at VOLT. Do not drive.', reward: { cash: 0, clout: 15 }, check: (s) => st(s, 'wastedAtVolt') > 0 },
   { id: 'a_king', name: 'King of Brickell', desc: 'Reach the highest clout level and complete the endgame.', reward: { cash: 0, clout: 0 }, check: (s) => s.endgameCelebrated },
 ];

@@ -67,6 +67,7 @@ export interface Runtime {
   fps: number;
   zone: string | null;
   minigame: MinigameHud | null;
+  drunk: number;
 }
 
 export interface MinigameHud {
@@ -120,7 +121,7 @@ export const useUI = create<UIState>()((set, get) => ({
   bubbles: [],
   rt: {
     mode: 'foot', speed: 0, gear: 'P', x: 0, z: 0, heading: 0, camHeading: 0, interior: null, prompt: null,
-    bounceActive: false, bounceLimited: false, bounceLevel: 0, vehicleId: 'maybach', fps: 0, zone: null, minigame: null,
+    bounceActive: false, bounceLimited: false, bounceLevel: 0, vehicleId: 'maybach', fps: 0, zone: null, minigame: null, drunk: 0,
   },
   setScreen: (screen) => set({ screen }),
   open: (panel, arg = null) => set({ panel, panelArg: arg }),

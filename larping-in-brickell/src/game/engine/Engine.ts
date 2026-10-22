@@ -114,6 +114,10 @@ export class Engine {
   private disposed = false;
   private prevSpeedKmh = 0;
   private burnHeld = false;
+  /** 0 = sober, 1 = passes out. Not saved: you always wake up sober. */
+  drunk = 0;
+  private drunkFilter = -1;
+  private slurT = 8;
 
   // ---------------------------------------------------------------------------------- init
   async init(container: HTMLElement, bubbleLayer: HTMLElement, onProgress: (p: number, label: string) => void) {
@@ -531,6 +535,7 @@ export class Engine {
       }
     }
     this.updateLighting(false);
+    this.updateDrunk(dt);
 
     // --- player / vehicle
     if (this.mode === 'foot') this.updateFoot(dt);
@@ -675,6 +680,11 @@ export class Engine {
     this.camPitch = THREE.MathUtils.clamp(this.camPitch + m.dy, -0.45, 1.15);
     if (inp.hit('KeyC')) this.camMode = (this.camMode + 1) % 2;
     const ax = inp.axes();
+    if (this.drunk > 0.05 && (ax.x || ax.y)) {
+      // drunk stagger: drift sideways and wander
+      ax.x += Math.sin(this.t * 1.7) * 0.7 * this.drunk + Math.sin(this.t * 4.3) * 0.25 * this.drunk;
+      ax.y *= 1 - 0.3 * this.drunk;
+    }
     const fx = Math.sin(this.camYaw), fz = Math.cos(this.camYaw);
     const rx = -fz, rz = fx;
     let mx = fx * ax.y + rx * ax.x, mz = fz * ax.y + rz * ax.x;
@@ -740,6 +750,8 @@ export class Engine {
     this.player.root.position.copy(this.pos);
     this.player.root.rotation.y = this.yaw;
     this.player.animate(dt, hsp, !this.grounded, this.t);
+    this.player.root.rotation.z = Math.sin(this.t * 1.9) * 0.14 * this.drunk;
+    this.player.root.rotation.x = Math.sin(this.t * 1.3 + 1) * 0.06 * this.drunk;
     // interactions
     this.collectFootInteractions();
     this.handleInteractions();
@@ -768,7 +780,10 @@ export class Engine {
       const d = (x: number, z: number) => Math.hypot(lp.x - x, lp.z - z);
       if (d(L.helm.x, L.helm.z) < 2.2) list.push({ label: 'Take the helm', dist: d(L.helm.x, L.helm.z), act: () => this.takeHelm() });
       if (d(L.suite.x, L.suite.z) < 2.2) list.push({ label: 'Master suite: sleep & save', dist: d(L.suite.x, L.suite.z), act: () => { if (useGame.getState().sleep()) useGame.getState().save(); } });
-      if (this.yacht.docked && d(L.gangway.x, L.gangway.z) < 3) list.push({ label: 'Disembark to the marina', dist: d(L.gangway.x, L.gangway.z), act: () => this.disembark() });
+      if (d(L.suite.x, L.salon.maxZ - 1) < 2.2) list.push({ label: 'Pop champagne ($300)', dist: d(L.suite.x, L.salon.maxZ - 1), act: () => this.drink('Yacht champagne', 300, 0.2, 1) });
+      // leaving is always possible: walk off when docked, or take the tender back from anywhere on deck
+      if (this.yacht.docked) list.push({ label: 'Leave the yacht', dist: 0, key: 'F', act: () => this.disembark() });
+      else list.push({ label: 'Tender back to the marina', dist: 0, key: 'F', act: () => { this.yacht!.dock(); this.disembark(); } });
       if (d(L.party.x, L.party.z) < 3.5) {
         if (endgameReady(g) && !g.endgameCelebrated) list.push({ label: '👑 Throw the King of Brickell party', dist: 0.1, act: () => ui.open('finale') });
         else list.push({ label: 'Host a Yacht Party', dist: d(L.party.x, L.party.z), act: () => ui.startEvent('yachtparty') });
@@ -884,11 +899,15 @@ export class Engine {
   }
 
   private handleInteractions() {
-    const top = this.interactions[0];
-    this.currentPrompt = top ? `E · ${top.label}` : null;
+    const top = this.interactions.find((i) => (i.key ?? 'E') === 'E');
+    const f = this.interactions.find((i) => i.key === 'F');
+    this.currentPrompt = [top ? `E · ${top.label}` : null, f ? `F · ${f.label}` : null].filter(Boolean).join('   ') || null;
     if (top && this.input.hit('KeyE')) {
       audio.ui('click');
       top.act();
+    } else if (f && this.input.hit('KeyF')) {
+      audio.ui('click');
+      f.act();
     }
   }
 
@@ -923,11 +942,12 @@ export class Engine {
         useUI.getState().open('property', 'club');
       }
     } else if (id === 'club_bar') {
-      if (g.spend(2500, 'VOLT bottle service', 'purchases')) {
-        g.addClout(3, 'Sparklers & bottle service');
+      if (this.drink('VOLT bottle service', 2500, 0.3, 3)) {
         this.say('🍾 Bottle service for the Maybach legend!', -15, 2.2, 2);
         audio.crowdCheer(0.6);
       }
+    } else if (id === 'club_shot') {
+      if (this.drink('Tequila shot at VOLT', 40, 0.15)) this.say('🥃 Salud!', -15, 2.2, -5);
     }
   }
 
@@ -954,6 +974,7 @@ export class Engine {
       if (useGame.getState().sleep()) useGame.getState().save();
     } else if (id === 'ph_wardrobe') ui.open('inspect');
     else if (id === 'ph_party') ui.startEvent('penthouse');
+    else if (id === 'ph_bar') this.drink('Penthouse whiskey (the good one)', 0, 0.15);
   }
 
   boardYacht() {
@@ -969,7 +990,7 @@ export class Engine {
     this.vel.set(0, 0, 0);
     this.camYaw = this.yacht.yaw + Math.PI / 2;
     useUI.getState().close();
-    notify('Welcome aboard, Captain.', 'info');
+    notify('Welcome aboard, Captain. Press F anytime to leave the yacht.', 'info');
     return true;
   }
 
@@ -983,14 +1004,108 @@ export class Engine {
   }
 
   private takeHelm() {
+    if (this.tooDrunkToDrive('captain a yacht')) return;
     this.mode = 'boat';
     this.player.root.visible = false;
     notify('At the helm. W/S throttle, A/D steer, E to leave the helm, F to dock near the berth.', 'info');
   }
 
+  // ---------------------------------------------------------------------------------- drinking
+  /** Have a drink. Returns false if the player couldn't pay. */
+  drink(label: string, price: number, amount: number, clout = 0): boolean {
+    const g = useGame.getState();
+    if (price > 0 && !g.spend(price, label, 'purchases')) return false;
+    this.drunk = Math.min(1.05, this.drunk + amount);
+    g.stat('drinks');
+    if (clout) g.addClout(clout, label);
+    audio.ui('cash');
+    const lvl = drunkLevel(this.drunk);
+    notify(`${label} 🥂 · You feel ${lvl.toLowerCase()}.`, this.drunk > 0.7 ? 'warn' : 'info');
+    if (this.interior === 'club' && this.drunk >= 0.75) g.stat('wastedAtVolt');
+    if (this.drunk >= 1) this.passOut();
+    return true;
+  }
+
+  /** Coffee helps a little. Time helps more. */
+  soberUp(amount: number) {
+    this.drunk = Math.max(0, this.drunk - amount);
+  }
+
+  private passOut() {
+    const g = useGame.getState();
+    notify('You blacked out. You wake up at home with a headache and a $1,200 bar tab.', 'bad');
+    g.mutate((x) => {
+      x.cash -= 1200;
+      x.ledger.unshift({ day: x.day, minute: x.minute, label: 'Mystery bar tab', amount: -1200, category: 'other' });
+      x.clout = Math.max(0, x.clout - 5);
+    }, { save: true });
+    // skip ahead a few hours and wake up at home, car delivered outside
+    g.advance(6 * 60);
+    this.mode = 'foot';
+    this.interior = null;
+    this.minigame = null;
+    const h = POI_BY_ID.home_modest;
+    this.pos.set(h.x, this.world.groundAt(h.x, h.z), h.z - 1);
+    this.yaw = Math.PI / 2;
+    this.camYaw = this.yaw;
+    this.vel.set(0, 0, 0);
+    if (this.car) {
+      this.car.occupied = false;
+      this.car.x = START_CAR.x;
+      this.car.z = START_CAR.z;
+      this.car.yaw = START_CAR.yaw;
+      this.car.speed = 0;
+    }
+    if (this.yacht && !this.yacht.docked) this.yacht.dock();
+    this.player.root.visible = true;
+    this.drunk = 0;
+    useUI.getState().close();
+  }
+
+  private tooDrunkToDrive(what: string) {
+    if (this.drunk < 0.35) return false;
+    notify(`You're too drunk to ${what}. Grab a coffee at Café Clout, sleep it off, or call a ride home (Phone → Vehicles).`, 'warn');
+    this.say(pick(["Nah. Not tonight, champ.", "Keys? What keys? I'm holding them.", 'The Maybach deserves better than this.']), this.pos.x, this.pos.y + 2.1, this.pos.z);
+    return true;
+  }
+
+  /** Rideshare home: always available, ends any trip. */
+  rideHome() {
+    if (this.mode !== 'foot') return false;
+    const g = useGame.getState();
+    if (!g.spend(85, 'Rideshare home', 'other')) return false;
+    if (this.yacht && !this.yacht.docked) this.yacht.dock();
+    this.interior = null;
+    const h = POI_BY_ID.home_modest;
+    this.pos.set(h.x, this.world.groundAt(h.x, h.z), h.z - 1);
+    this.yaw = Math.PI / 2;
+    this.camYaw = this.yaw;
+    this.vel.set(0, 0, 0);
+    notify('Your driver had opinions about your playlist. You are home.', 'info');
+    return true;
+  }
+
+  private updateDrunk(dt: number) {
+    // sobers up over roughly 90 seconds from fully drunk
+    if (this.drunk > 0) this.drunk = Math.max(0, this.drunk - dt * 0.011);
+    const want = Math.round(this.drunk * 20) / 20;
+    if (want !== this.drunkFilter) {
+      this.drunkFilter = want;
+      this.renderer.domElement.style.filter = want > 0.05 ? `blur(${(want * 2.4).toFixed(2)}px) saturate(${(1 + want * 0.7).toFixed(2)}) hue-rotate(${Math.round(want * 25)}deg)` : '';
+    }
+    if (this.drunk > 0.4 && this.mode === 'foot') {
+      this.slurT -= dt;
+      if (this.slurT <= 0) {
+        this.slurT = 7 + Math.random() * 6;
+        this.say(pick(SLURRED), this.pos.x, this.pos.y + 2.1, this.pos.z, 3, this.pos);
+      }
+    }
+  }
+
   // ---------------------------------------------------------------------------------- car
   enterCar() {
     if (!this.car) return;
+    if (this.tooDrunkToDrive('drive')) return;
     audio.init();
     audio.door();
     this.mode = 'car';
@@ -1210,6 +1325,7 @@ export class Engine {
     this.pos.set(w.x, y.root.position.y + y.layout.deckY, w.z);
     const list: Interaction[] = [{ label: 'Leave the helm', dist: 2, key: 'E', act: () => this.leaveHelm() }];
     if (!y.docked && y.nearBerth()) list.push({ label: 'Dock at the berth', dist: 1, key: 'F', act: () => { y.dock(); notify('Docked at Bayside Marina.', 'info'); } });
+    else if (!y.docked) list.push({ label: 'Autopilot back to the berth', dist: 1, key: 'F', act: () => { y.dock(); notify('Autopilot engaged. Docked at Bayside Marina.', 'info'); } });
     this.interactions = list;
     this.currentPrompt = list.map((i) => `${i.key} · ${i.label}`).join('   ');
     for (const i of list) if (inp.hit(i.key === 'F' ? 'KeyF' : 'KeyE')) i.act();
@@ -1431,6 +1547,14 @@ export class Engine {
     }
     cam.position.copy(this.camPos);
     cam.lookAt(target);
+    if (this.drunk > 0.02) {
+      const d = this.drunk;
+      cam.rotateZ(Math.sin(this.t * 0.9) * 0.09 * d);
+      cam.rotateY(Math.sin(this.t * 0.63 + 2) * 0.05 * d);
+      cam.rotateX(Math.sin(this.t * 0.77 + 1) * 0.035 * d);
+      cam.fov += Math.sin(this.t * 1.2) * 5 * d;
+      cam.updateProjectionMatrix();
+    }
   }
 
   /** Gold beacon for the manual waypoint; green beacon for the current objective's location otherwise. */
@@ -1560,9 +1684,23 @@ export class Engine {
       bounceLevel: c ? c.susp.out.level : 0,
       vehicleId: c?.def.id ?? g.activeVehicle,
       fps: this.fps,
+      drunk: this.drunk,
       minigame: this.minigame ? this.minigame.hud() : null,
     });
   }
+}
+
+const SLURRED = [
+  'I love this city. I love YOU, palm tree.',
+  "Who's got the aux? I've got the aux.",
+  "I'm not drunk, I'm networking.",
+  'Is the ground... bouncing? Did someone press B?',
+  'One more bottle. For the brand.',
+  "Brickell! BRICKELL! ...where's my car?",
+];
+
+export function drunkLevel(d: number) {
+  return d < 0.05 ? 'Sober' : d < 0.3 ? 'Tipsy' : d < 0.6 ? 'Buzzed' : d < 0.85 ? 'Drunk' : 'Wasted';
 }
 
 function styleName(s: BounceStyle) {
