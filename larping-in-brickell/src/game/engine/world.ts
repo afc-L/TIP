@@ -372,6 +372,18 @@ export class World {
       this.addBuilding(-175, -250, 20, 60, 26, 'condo');
     }
     mark(50, -250); this.poiBuilding('hq', 40, 50, 165, 'dark', { text: 'BRICKELL AGENCY HQ', color: '#d4af6a', bg: '#0e0e10' }, '#d4af6a');
+    mark(150, 150); {
+      const { cx, cz } = this.poiBuilding('casino', 30, 50, 26, 'gold', { text: 'THE GILDED FLAMINGO', color: '#ff7ab8', neon: true, sub: 'CASINO · BAR · VALET' }, '#ff7ab8');
+      for (const [yy, c] of [[25.5, '#ffcf6a'], [20, '#ff7ab8'], [14.5, '#ffcf6a']] as [number, string][]) {
+        const m = new THREE.MeshBasicMaterial({ color: c, toneMapped: false });
+        this.neonMats.push(m);
+        const strip = new THREE.Mesh(new THREE.BoxGeometry(30.4, 0.3, 50.4), m);
+        strip.position.set(cx, yy, cz);
+        this.group.add(strip);
+      }
+      this.sign('CASINO', cx - 15.25, 17.2, cz, -Math.PI / 2, 2.4, { color: '#ffcf6a', neon: true });
+      this.addBuilding(172, 150, 24, 60, 118, 'glass', { crown: '#ff7ab8' });
+    }
     mark(245, 250); this.promenadePlaza(findBlock(245, 250));
     mark(245, 150); this.park(findBlock(245, 150), 'BAYFRONT PARK');
     mark(-50, 250); this.park(findBlock(-50, 250), 'BRICKELL PARK');

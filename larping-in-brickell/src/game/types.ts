@@ -200,7 +200,8 @@ export type PoiKind =
   | 'marina'
   | 'network'
   | 'hq'
-  | 'showoff';
+  | 'showoff'
+  | 'casino';
 
 export interface Poi {
   id: string;

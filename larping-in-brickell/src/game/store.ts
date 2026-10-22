@@ -138,6 +138,7 @@ interface GameStore {
   completeEvent: (eventId: string, score: number) => EventResult;
   rivalShowdown: (rivalId: string) => EventResult & { player: number; rival: number };
   valetFlex: (poiId: string, score: number, tier: number) => void;
+  gamble: (delta: number, label: string) => void;
   meetContact: (id: string) => void;
   post: (author: string, handle: string, text: string, tone: 'player' | 'rival' | 'npc' | 'creator', likes?: number) => void;
   setSpawn: (x: number, z: number, yaw: number) => void;
@@ -846,6 +847,21 @@ export const useGame = create<GameStore>()((set, get) => {
         x.clout += clout;
       }, { save: true });
       notify(`Valet Flex score ${Math.round(score)} · +${clout} clout`, 'clout');
+      get().checkProgress();
+    },
+    gamble: (delta, label) => {
+      mutate((x) => {
+        x.cash += delta;
+        if (delta > 0) {
+          x.month.otherIncome += delta;
+          x.month.incomeBySource['Casino winnings'] = (x.month.incomeBySource['Casino winnings'] || 0) + delta;
+          x.stats.biggestWin = Math.max(x.stats.biggestWin || 0, delta);
+        } else x.month.purchases -= delta;
+        x.stats.casinoNet = (x.stats.casinoNet || 0) + delta;
+        x.stats.handsPlayed = (x.stats.handsPlayed || 0) + 1;
+        x.ledger.unshift({ day: x.day, minute: x.minute, label, amount: delta, category: 'casino' });
+        if (x.ledger.length > 80) x.ledger.length = 80;
+      }, { save: true });
       get().checkProgress();
     },
     meetContact: (id) => {

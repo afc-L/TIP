@@ -23,7 +23,9 @@ export type Panel =
   | 'inspect'
   | 'property'
   | 'finale'
-  | 'venue';
+  | 'venue'
+  | 'bar'
+  | 'casino';
 
 export interface Toast {
   id: number;

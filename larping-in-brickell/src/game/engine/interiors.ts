@@ -179,8 +179,7 @@ export class ClubInterior {
     s.add(os);
     this.points.push({ id: 'club_exit', x: 0, z: D / 2 - 1.5, label: 'Exit to Brickell' });
     this.points.push({ id: 'club_office', x: W / 2 - 2, z: -14, label: 'Club manager office' });
-    this.points.push({ id: 'club_bar', x: -15, z: 2, label: 'Order bottle service ($2,500, +clout)' });
-    this.points.push({ id: 'club_shot', x: -15, z: -5, label: 'Take a tequila shot ($40)' });
+    for (const z of [-5, 2, 9]) this.points.push({ id: 'club_bar', x: -15, z, label: 'VOLT bar (drinks menu)' });
     // dancers
     this.crowd.addTo(s);
     const r = (() => { let x = 7; return () => ((x = (x * 16807) % 2147483647) / 2147483647); })();

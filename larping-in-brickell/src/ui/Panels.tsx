@@ -18,6 +18,7 @@ import { DialoguePanel } from './panels/Dialogue';
 import { EventPanel, eventStatus } from './panels/EventPanel';
 import { ClothesPanel, DealerPanel, GaragePanel, HomePanel, InspectPanel, WatchPanel } from './panels/Shops';
 import { Phone } from './phone/Phone';
+import { BarPanel, CasinoPanel } from './panels/Casino';
 
 function Pause() {
   const ui = useUI();
@@ -335,6 +336,8 @@ export function Panels() {
     case 'property': return <PropertyPanel />;
     case 'venue': return <VenuePanel />;
     case 'finale': return <Finale />;
+    case 'bar': return <BarPanel />;
+    case 'casino': return <CasinoPanel />;
     default: return null;
   }
 }

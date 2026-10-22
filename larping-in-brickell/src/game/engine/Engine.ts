@@ -9,6 +9,7 @@ import { Crowd, PlayerFigure, randomLook } from './character';
 import { Actors, Pedestrians, angleDiff, type Actor } from './npcs';
 import { Traffic } from './traffic';
 import { ClubInterior, PENTHOUSE, Penthouse } from './interiors';
+import { CasinoInterior } from './casino';
 import { Yacht } from './yacht';
 import { audio } from './audio';
 import { BounceOff, Showoff, type Minigame } from './minigames';
@@ -26,7 +27,7 @@ import { endgameReady } from '../data/missions';
 import type { BounceStyle, Poi } from '../types';
 
 type Mode = 'foot' | 'car' | 'boat';
-type Interior = null | 'club' | 'penthouse' | 'yacht';
+type Interior = null | 'club' | 'casino' | 'penthouse' | 'yacht';
 
 interface Interaction {
   label: string;
@@ -39,7 +40,7 @@ interface Bubble {
   el: HTMLDivElement;
   pos: THREE.Vector3;
   ttl: number;
-  club: boolean;
+  room: string; // separate-scene interior the bubble belongs to ('' = city)
   follow?: { x: number; y: number; z: number };
 }
 
@@ -54,6 +55,7 @@ export class Engine {
   world = new World();
   input!: Input;
   club!: ClubInterior;
+  casino!: CasinoInterior;
   penthouse!: Penthouse;
   crowd = new Crowd(140);
   peds!: Pedestrians;
@@ -156,6 +158,7 @@ export class Engine {
     this.crowd.addTo(this.scene);
     this.peds = new Pedestrians(this.crowd, this.world.sidewalkLoops, 70);
     this.club = new ClubInterior();
+    this.casino = new CasinoInterior();
     this.penthouse = new Penthouse(this.world.col);
     this.scene.add(this.penthouse.group);
     this.actors = new Actors(this.crowd, this.club.crowd, this.scene, this.club.scene);
@@ -457,22 +460,28 @@ export class Engine {
         const el = document.createElement('div');
         el.className = 'speech';
         this.bubbleLayer.appendChild(el);
-        b = { el, pos: new THREE.Vector3(), ttl: 0, club: false };
+        b = { el, pos: new THREE.Vector3(), ttl: 0, room: '' };
         this.bubbles.push(b);
       }
     }
     b.el.textContent = text;
     b.pos.set(x, y, z);
     b.ttl = ttl;
-    b.club = this.interior === 'club';
+    b.room = this.sceneRoom();
     b.follow = follow;
+  }
+
+  /** Interiors rendered as their own scene ('' when the player is in the city scene). */
+  sceneRoom(): '' | 'club' | 'casino' {
+    return this.interior === 'club' || this.interior === 'casino' ? this.interior : '';
   }
 
   playerWorld() {
     if (this.mode === 'car' && this.car) return { x: this.car.x, z: this.car.z };
     if (this.mode === 'boat' && this.yacht) return { x: this.yacht.x, z: this.yacht.z };
-    if (this.interior === 'club') {
-      const p = POI_BY_ID.club;
+    const room = this.sceneRoom();
+    if (room) {
+      const p = POI_BY_ID[room];
       return { x: p.x, z: p.z };
     }
     return { x: this.pos.x, z: this.pos.z };
@@ -482,7 +491,7 @@ export class Engine {
     const p = POI_BY_ID[id];
     if (!p) return false;
     const w = this.playerWorld();
-    if (this.interior === 'club') return id === 'club';
+    if (this.sceneRoom()) return id === this.sceneRoom();
     if (this.interior === 'penthouse') return id === 'penthouse';
     if (this.interior === 'yacht' || this.mode === 'boat') return id === 'marina' && !!this.yacht && this.yacht.docked;
     return Math.hypot(w.x - p.x, w.z - p.z) < Math.max(r, p.radius);
@@ -549,7 +558,7 @@ export class Engine {
 
     // --- world systems
     const pw = this.playerWorld();
-    const inCity = this.interior !== 'club';
+    const inCity = !this.sceneRoom();
     if (inCity) {
       const obstacles: { x: number; z: number; r: number }[] = [];
       if (this.car) obstacles.push({ x: this.car.x, z: this.car.z, r: 1.2 });
@@ -563,6 +572,8 @@ export class Engine {
       this.ambientChatter(dt, pw);
       this.world.update(dt, this.t);
       this.crowd.update(dt, this.t);
+    } else if (this.interior === 'casino') {
+      this.casino.update(dt, this.t);
     } else {
       this.club.update(dt, this.t);
       this.actors.update(dt, this.t, this.pos.x, this.pos.z, 'club');
@@ -581,9 +592,10 @@ export class Engine {
     const thr = driving ? (this.input.down_('KeyW') ? 1 : this.input.gp.rt) : 0;
     const skid = driving && car ? Math.min(1, Math.abs(car.lat) / 6 + (car.braking && Math.abs(car.speed) > 12 ? 0.4 : 0)) : 0;
     const nearWater = Math.max(0, 1 - Math.abs(pw.x - SEAWALL_X) / 60);
-    audio.update({ driving, rpm, throttle: thr, skid, night: this.night, nearWater: this.interior === 'club' ? 0 : nearWater, boat: this.mode === 'boat' && this.yacht ? 0.3 + Math.min(1, Math.abs(this.yacht.speed) / 10) : 0, interior: this.interior, prestige: car?.def.prestige ?? 5 });
+    audio.update({ driving, rpm, throttle: thr, skid, night: this.night, nearWater: this.sceneRoom() ? 0 : nearWater, boat: this.mode === 'boat' && this.yacht ? 0.3 + Math.min(1, Math.abs(this.yacht.speed) / 10) : 0, interior: this.interior, prestige: car?.def.prestige ?? 5 });
     const nearClub = Math.hypot(pw.x - POI_BY_ID.club.x, pw.z - POI_BY_ID.club.z) < 45;
     if (this.interior === 'club') audio.setMusic('club');
+    else if (this.interior === 'casino') audio.setMusic('lounge');
     else if (nearClub && this.interior === null) audio.setMusic('club', true);
     else if (this.interior === 'yacht' || this.interior === 'penthouse') audio.setMusic('party');
     else audio.setMusic(useSettings.getState().s.musicVolume > 0 ? 'lounge' : 'none');
@@ -605,6 +617,8 @@ export class Engine {
   private render() {
     if (this.interior === 'club') {
       this.renderer.render(this.club.scene, this.camera);
+    } else if (this.interior === 'casino') {
+      this.renderer.render(this.casino.scene, this.camera);
     } else this.renderer.render(this.scene, this.camera);
   }
 
@@ -664,11 +678,11 @@ export class Engine {
 
   // ---------------------------------------------------------------------------------- on foot
   private colWorld(): CollisionWorld {
-    return this.interior === 'club' ? this.club.col : this.world.col;
+    return this.interior === 'club' ? this.club.col : this.interior === 'casino' ? this.casino.col : this.world.col;
   }
 
   private floorAt(x: number, z: number) {
-    if (this.interior === 'club') return 0;
+    if (this.sceneRoom()) return 0;
     if (this.interior === 'penthouse') return PENTHOUSE.y;
     return this.world.groundAt(x, z);
   }
@@ -769,6 +783,11 @@ export class Engine {
         if (d < 2.6) list.push({ label: p.label, dist: d, act: () => this.clubPoint(p.id) });
       }
       for (const a of this.actors.list) if (a.interior === 'club') this.actorInteraction(a, list, near(a.agent.x, a.agent.z));
+    } else if (this.interior === 'casino') {
+      for (const p of this.casino.points) {
+        const d = near(p.x, p.z);
+        if (d < 2.6) list.push({ label: p.label, dist: d, act: () => this.casinoPoint(p.id) });
+      }
     } else if (this.interior === 'penthouse') {
       for (const p of this.penthouse.points) {
         const d = near(p.x, p.z);
@@ -820,7 +839,7 @@ export class Engine {
     if (a.kind === 'rival') label = `Talk to ${a.name} (rival)`;
     list.push({
       label,
-      dist: d,
+      dist: a.kind === 'valet' || a.kind === 'bouncer' ? d + 3 : d, // doors beat staff small talk
       act: () => {
         a.talkT = 2;
         if (a.kind === 'creator') ui.startDialogue({ kind: 'creator', id: a.id });
@@ -857,6 +876,7 @@ export class Engine {
       case 'agency': return g.properties.includes('office') ? 'Your office: AlwaysFans Manager' : 'Suite 404 (for lease)';
       case 'hq': return g.properties.includes('hq') ? 'Agency HQ' : 'Brickell Agency HQ (for sale)';
       case 'marina': return 'Bayside Marina';
+      case 'casino': return 'Enter The Gilded Flamingo Casino';
       default: return `${p.name}`;
     }
   }
@@ -871,6 +891,7 @@ export class Engine {
       case 'clothes': ui.open('clothes'); break;
       case 'garage': ui.open('garage'); break;
       case 'marina': ui.open('marina'); break;
+      case 'casino': this.enterCasino(); break;
       case 'club': {
         if (g.properties.includes('club') || levelFor(g.clout) >= 2) this.enterClub();
         else {
@@ -932,6 +953,33 @@ export class Engine {
     this.camYaw = p.face;
   }
 
+  enterCasino() {
+    audio.door();
+    this.interior = 'casino';
+    this.pos.set(this.casino.spawn.x, 0, this.casino.spawn.z);
+    this.yaw = this.casino.spawn.yaw;
+    this.camYaw = this.yaw;
+    this.vel.set(0, 0, 0);
+    useGame.getState().stat('visit_casino_inside');
+    notify('Welcome to The Gilded Flamingo. The house thanks you in advance. 🦩', 'info');
+  }
+
+  exitCasino() {
+    audio.door();
+    const p = POI_BY_ID.casino;
+    this.interior = null;
+    this.pos.set(p.x + Math.sin(p.face) * 2, 0.14, p.z + Math.cos(p.face) * 2);
+    this.yaw = p.face;
+    this.camYaw = p.face;
+  }
+
+  private casinoPoint(id: string) {
+    const ui = useUI.getState();
+    if (id === 'casino_exit') this.exitCasino();
+    else if (id === 'casino_bar') ui.open('bar', 'casino');
+    else if (id.startsWith('game_')) ui.open('casino', id.slice(5));
+  }
+
   private clubPoint(id: string) {
     const g = useGame.getState();
     if (id === 'club_exit') this.exitClub();
@@ -942,12 +990,7 @@ export class Engine {
         useUI.getState().open('property', 'club');
       }
     } else if (id === 'club_bar') {
-      if (this.drink('VOLT bottle service', 2500, 0.3, 3)) {
-        this.say('🍾 Bottle service for the Maybach legend!', -15, 2.2, 2);
-        audio.crowdCheer(0.6);
-      }
-    } else if (id === 'club_shot') {
-      if (this.drink('Tequila shot at VOLT', 40, 0.15)) this.say('🥃 Salud!', -15, 2.2, -5);
+      useUI.getState().open('bar', 'volt');
     }
   }
 
@@ -1488,7 +1531,7 @@ export class Engine {
       if (b.follow) b.pos.set(b.follow.x, b.follow.y + 2.1, b.follow.z);
       v.copy(b.pos).project(this.camera);
       const dist = this.camera.position.distanceTo(b.pos);
-      if (v.z > 1 || dist > 60 || b.club !== (this.interior === 'club')) {
+      if (v.z > 1 || dist > 60 || b.room !== this.sceneRoom()) {
         b.el.style.display = 'none';
         continue;
       }
@@ -1558,9 +1601,10 @@ export class Engine {
       const t = col.raycast(target.x, target.y, target.z, desired.x, desired.y, desired.z);
       if (t < 1) desired.lerpVectors(target, desired, Math.max(0.05, t - 0.06));
     }
-    const minY = (this.interior === 'penthouse' ? PENTHOUSE.y : this.interior === 'club' ? 0 : this.world.groundAt(desired.x, desired.z)) + 0.3;
+    const minY = (this.interior === 'penthouse' ? PENTHOUSE.y : this.sceneRoom() ? 0 : this.world.groundAt(desired.x, desired.z)) + 0.3;
     if (desired.y < minY) desired.y = minY;
     if (this.interior === 'club') desired.y = Math.min(desired.y, 7.5);
+    if (this.interior === 'casino') desired.y = Math.min(desired.y, 6.4);
     if (this.interior === 'penthouse') desired.y = Math.min(desired.y, PENTHOUSE.y + 3.9);
     if (this.interior === 'yacht' && this.yacht && this.mode === 'foot') {
       // keep the camera under the salon roof while inside it
@@ -1595,7 +1639,7 @@ export class Engine {
   private updateBeacon() {
     const wp = useUI.getState().waypoint;
     const mat = this.beacon.material as THREE.MeshBasicMaterial;
-    if (this.interior === 'club') {
+    if (this.sceneRoom()) {
       this.beacon.visible = false;
       return;
     }

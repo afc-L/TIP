@@ -78,6 +78,7 @@ export const POIS: Poi[] = [
   { id: 'network', name: 'The Hustle Hub', kind: 'network', x: -110, z: -250, face: E, radius: 6, icon: '🤝', color: '#9f9', desc: 'Co-working space. Everyone is a founder.' },
   { id: 'hq', name: 'Brickell Agency HQ', kind: 'hq', x: 10, z: -250, face: W, radius: 6, icon: '🏢', color: '#d4af6a', desc: 'Premium headquarters tower for serious agencies.' },
   { id: 'marina', name: 'Bayside Marina', kind: 'marina', x: 304, z: 200, face: E, radius: 8, icon: '⚓', color: '#4cf', desc: 'Yachts, slips and people who say "on the boat".' },
+  { id: 'casino', name: 'The Gilded Flamingo Casino', kind: 'casino', x: 110, z: 150, face: W, radius: 7, icon: '🎰', color: '#ff7ab8', desc: 'Blackjack, roulette, slots, video poker and a gold-plated bar.', valet: true },
   { id: 'showoff', name: 'Bayfront Promenade', kind: 'showoff', x: 245, z: 250, face: E, radius: 22, icon: '★', color: '#ffd700', desc: 'Miami Showoff challenge plaza.' },
 ];
 

@@ -268,3 +268,37 @@ kbd { display: inline-block; min-width: 26px; text-align: center; padding: 3px 7
   .fps { left: 166px; }
   .toasts { top: auto; bottom: 170px; }
 }
+
+/* ---------- casino */
+.felt { background: radial-gradient(800px 400px at 50% 0%, #17603a, #0b3a22); border: 1px solid rgba(212,175,106,.35); border-radius: 16px; padding: 16px; gap: 12px; }
+.hand { gap: 8px; min-height: 92px; }
+.pcard { width: 62px; height: 88px; border-radius: 8px; background: #fbfaf6; box-shadow: 0 4px 12px rgba(0,0,0,.35); position: relative; font-weight: 800; user-select: none; flex: none; }
+.pcard .tl { position: absolute; top: 5px; left: 7px; font-size: 14px; line-height: 1.05; text-align: center; }
+.pcard .mid { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 30px; }
+.pcard.back { background: repeating-linear-gradient(45deg, #7b0d1e, #7b0d1e 6px, #a01a2e 6px, #a01a2e 12px); border: 3px solid #fbfaf6; }
+.pcard.click { cursor: pointer; transition: transform .12s; }
+.pcard.click:hover { transform: translateY(-3px); }
+.pcard.held { transform: translateY(-8px); box-shadow: 0 0 0 3px var(--gold), 0 8px 16px rgba(0,0,0,.4); }
+.pcard .holdtag { position: absolute; bottom: -20px; left: 0; right: 0; text-align: center; font-size: 10px; letter-spacing: 1.5px; color: var(--gold2); }
+.casino-msg { font-size: 15px; font-weight: 600; color: #fff6dc; min-height: 22px; }
+.chip { width: 46px; height: 46px; border-radius: 50%; border: 3px dashed rgba(255,255,255,.7); background: radial-gradient(circle, #b8202e 55%, #7b0d1e 56%); color: #fff; font-weight: 800; font-size: 11px; cursor: pointer; }
+.chip.sel { box-shadow: 0 0 0 3px var(--gold); transform: translateY(-2px); }
+.chip:disabled { opacity: .3; cursor: not-allowed; }
+.rboard { display: grid; grid-template-columns: repeat(13, minmax(0, 1fr)); grid-template-rows: repeat(3, 34px); grid-auto-flow: column; gap: 3px; overflow-x: auto; }
+.rboard .zero { grid-row: 1 / span 3; }
+.rcell { position: relative; border: 1px solid rgba(255,255,255,.25); border-radius: 6px; background: rgba(0,0,0,.25); color: #fff; font-weight: 700; font-size: 12px; cursor: pointer; padding: 4px 8px; min-width: 0; }
+.rcell.r { background: #a8121e; }
+.rcell.b { background: #141414; }
+.rcell.g { background: #0a8a3a; }
+.rcell:hover:not(:disabled) { outline: 2px solid var(--gold); }
+.rchip { position: absolute; top: -6px; right: -6px; background: var(--gold); color: #111; border-radius: 10px; font-size: 9px; padding: 1px 4px; }
+.rball { width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 800; background: #333; border: 3px solid var(--gold); }
+.rball.r, .rhist.r { background: #a8121e; } .rball.b, .rhist.b { background: #141414; } .rball.g, .rhist.g { background: #0a8a3a; }
+.rhist { width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
+.reels { display: flex; gap: 10px; padding: 14px; border-radius: 16px; background: linear-gradient(180deg, #2a1206, #120806); border: 3px solid var(--gold); }
+.reel { width: 92px; height: 110px; border-radius: 10px; background: #fbfaf6; display: flex; align-items: center; justify-content: center; font-size: 56px; box-shadow: inset 0 8px 14px rgba(0,0,0,.25), inset 0 -8px 14px rgba(0,0,0,.25); }
+.reel.spin { filter: blur(1.5px); }
+.paytable { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 4px 12px; font-size: 12px; color: #ffe9b0; }
+.paytable span { display: flex; justify-content: space-between; padding: 2px 6px; border-radius: 4px; }
+.paytable span.hit { background: rgba(212,175,106,.3); }
+@media (max-width: 720px) { .reel { width: 70px; height: 86px; font-size: 42px; } .pcard { width: 50px; height: 72px; } }
