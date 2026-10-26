@@ -48,8 +48,8 @@ export function SettingsMenu({ onBack, embedded }: { onBack?: () => void; embedd
   }, []);
   const toggleFs = () => {
     try {
-      if (document.fullscreenElement) void document.exitFullscreen();
-      else void document.documentElement.requestFullscreen?.();
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+      else document.documentElement.requestFullscreen?.()?.catch(() => {});
     } catch { /* unsupported */ }
   };
   return (
