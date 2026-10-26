@@ -1,0 +1,70 @@
+.overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; z-index: 20; }
+.levelup { background: radial-gradient(ellipse at center, rgba(18,13,31,.55), rgba(18,13,31,.9)); padding: 20px; }
+.levelup-title { font-family: var(--head); font-size: 64px; color: var(--gold2); -webkit-text-stroke: 2px #3a1200; text-shadow: 0 5px 0 rgba(0,0,0,.4), 0 0 40px rgba(255,214,10,.5); }
+.levelup-sub { color: var(--dim); font-weight: 800; margin-top: -12px; }
+.cards { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+.card { position: relative; width: 220px; min-height: 310px; padding: 18px 16px 16px; border-radius: 18px; cursor: pointer; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 6px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--r) 22%, #1d1536), #1d1536 55%); border: 3px solid var(--r); box-shadow: 0 10px 30px rgba(0,0,0,.5), 0 0 0 0 var(--r);
+  animation: cardIn .4s cubic-bezier(.2,1.3,.4,1) both; transition: transform .15s, box-shadow .2s, opacity .2s; }
+.card:hover { transform: translateY(-8px) scale(1.03); box-shadow: 0 16px 40px rgba(0,0,0,.6), 0 0 26px color-mix(in srgb, var(--r) 70%, transparent); }
+.card.picked { transform: scale(1.1); box-shadow: 0 0 50px var(--r); }
+.card.faded { opacity: .25; transform: scale(.94); }
+@keyframes cardIn { from { opacity: 0; transform: translateY(40px) rotate(-3deg); } }
+.card-rarity { position: absolute; top: -12px; padding: 2px 12px; border-radius: 999px; background: var(--r); color: #120d1f; font-family: var(--head); font-size: 13px; letter-spacing: 1px; }
+.card-icon { font-size: 54px; width: 90px; height: 90px; display: grid; place-items: center; border-radius: 22px; background: radial-gradient(circle, color-mix(in srgb, var(--c) 45%, transparent), transparent 70%); margin-top: 6px; }
+.card-kind { font-size: 11px; color: var(--r); font-weight: 900; letter-spacing: 1.5px; }
+.card-name { font-family: var(--head); font-size: 22px; line-height: 1.05; }
+.card-level { font-size: 13px; font-weight: 900; color: var(--gold2); background: rgba(0,0,0,.3); border-radius: 6px; padding: 1px 8px; }
+.card-effect { font-size: 14px; font-weight: 800; color: #b9fbc0; }
+.card-desc { font-size: 12px; color: var(--dim); margin-top: auto; }
+.card-key { position: absolute; bottom: 8px; right: 10px; font-family: var(--head); opacity: .4; }
+.rarity-evolution { animation: cardIn .4s both, evoGlow 1.2s infinite alternate; background: linear-gradient(180deg, #4a3a00, #1d1536 60%); }
+@keyframes evoGlow { to { box-shadow: 0 0 40px #ffd60a, 0 0 80px #ff9f1c66; } }
+
+.pause { background: rgba(10,7,20,.72); }
+.pause-panel { padding: 24px 28px; width: min(860px, 94vw); max-height: 90vh; overflow-y: auto; }
+.pause-panel h2 { font-size: 40px; text-align: center; }
+.pause-panel .tabs { justify-content: center; }
+.pause-panel .menu-buttons { margin: 0 auto; max-width: 340px; }
+.pause-panel .menu-buttons .btn { justify-content: center; }
+.inventory { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.inventory h4 { color: var(--gold); margin: 10px 0 6px; }
+.inv-row { display: flex; gap: 10px; align-items: center; padding: 6px 8px; border-radius: 10px; background: rgba(255,255,255,.04); margin-bottom: 5px; }
+.inv-row.evolved { background: rgba(255,214,10,.12); border: 1px solid rgba(255,214,10,.45); }
+.inv-icon { font-size: 24px; }
+.inv-name { font-weight: 900; }
+.inv-lvl { font-size: 12px; color: var(--gold2); }
+.inv-sub { font-size: 12px; color: var(--dim); }
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 14px; font-size: 13px; }
+.stat-grid div { display: flex; justify-content: space-between; border-bottom: 1px solid var(--line); padding: 3px 0; }
+.stat-grid span { color: var(--dim); }
+
+.boss-intro { background: linear-gradient(180deg, transparent 25%, rgba(120,0,20,.55) 50%, transparent 75%); pointer-events: none !important; }
+.bi-warning { font-family: var(--head); font-size: 26px; color: #ff4d4d; letter-spacing: 6px; animation: blink .4s infinite alternate; }
+.bi-name { font-family: var(--head); font-size: clamp(48px, 8vw, 96px); color: #fff; -webkit-text-stroke: 3px #4a0010; text-shadow: 0 6px 0 rgba(0,0,0,.5); animation: popIn .5s both; }
+.bi-title { font-weight: 900; font-size: 20px; color: #ffccd5; }
+@keyframes blink { to { opacity: .3; } }
+
+.results { background: rgba(10,7,20,.75); padding: 16px; }
+.results-panel { padding: 26px 30px; width: min(780px, 96vw); max-height: 94vh; overflow-y: auto; text-align: center; display: grid; gap: 14px; }
+.results-title { font-family: var(--head); font-size: 72px; line-height: 1; }
+.defeat .results-title { color: #ff4d6d; -webkit-text-stroke: 2px #3a0010; }
+.victory .results-title { color: var(--gold2); -webkit-text-stroke: 2px #3a1200; text-shadow: 0 0 40px rgba(255,214,10,.6); }
+.results-sub { color: var(--dim); font-weight: 800; }
+.record { font-weight: 800; }
+.new-record { color: var(--gold2); animation: pulse .6s infinite alternate; display: inline-block; }
+.results-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.rg-cell { background: rgba(255,255,255,.05); border-radius: 12px; padding: 10px; display: grid; gap: 2px; }
+.rg-cell span { font-size: 12px; color: var(--dim); font-weight: 800; text-transform: uppercase; }
+.rg-cell b { font-family: var(--head); font-weight: 400; font-size: 24px; }
+.results-loadout { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; text-align: left; }
+.results-loadout h4, .results-ach h4 { color: var(--gold); margin-bottom: 4px; }
+.currency-earned { font-family: var(--head); font-size: 26px; color: var(--gold2); }
+.currency-earned .dim { font-family: var(--body); font-size: 14px; }
+@media (max-width: 700px) {
+  .results-grid { grid-template-columns: repeat(2, 1fr); }
+  .inventory, .results-loadout { grid-template-columns: 1fr; }
+  .card { width: 160px; min-height: 260px; }
+  .card-icon { font-size: 40px; width: 64px; height: 64px; }
+  .levelup-title { font-size: 44px; }
+}

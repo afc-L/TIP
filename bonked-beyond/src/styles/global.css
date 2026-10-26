@@ -1,0 +1,86 @@
+:root {
+  --bg: #120d1f;
+  --panel: rgba(24, 17, 44, 0.88);
+  --panel-solid: #1d1536;
+  --line: rgba(255, 255, 255, 0.12);
+  --text: #f4f1ff;
+  --dim: #a59cc4;
+  --gold: #ffb627;
+  --gold2: #ffd60a;
+  --pink: #ff4d6d;
+  --cyan: #4cc9f0;
+  --green: #80ff72;
+  --purple: #c77dff;
+  --head: 'Lilita One', 'Arial Black', system-ui, sans-serif;
+  --body: 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: var(--body); }
+body { user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+button { font: inherit; color: inherit; }
+kbd { font-family: var(--body); font-weight: 900; font-size: 0.72em; padding: 1px 6px; border-radius: 5px; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.2); border-bottom-width: 2px; }
+h1, h2, h3, h4 { font-family: var(--head); font-weight: 400; letter-spacing: .5px; margin: 0; }
+.dim { color: var(--dim); }
+.hint { color: var(--dim); font-size: 13px; }
+
+.app { position: fixed; inset: 0; }
+.canvas-host { position: absolute; inset: 0; z-index: 0; }
+.game-canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.ui-layer { position: absolute; inset: 0; z-index: 10; pointer-events: none; }
+.ui-layer > * { pointer-events: auto; }
+.ui-layer.menu-bg::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg, rgba(18,13,31,.92) 0%, rgba(18,13,31,.55) 38%, transparent 65%); }
+
+.float-layer { position: absolute; inset: 0; pointer-events: none; z-index: 5; overflow: hidden; }
+.float-text { position: absolute; left: 0; top: 0; font-family: var(--head); font-size: 18px; color: #fff; white-space: nowrap; text-shadow: 0 2px 0 #000, 0 0 4px rgba(0,0,0,.8); will-change: transform, opacity; }
+.ft-dmg { font-size: 16px; }
+.ft-big { font-size: 22px; color: #ffe8a3; }
+.ft-crit { font-size: 26px; color: var(--gold2); text-shadow: 0 2px 0 #7a3b00, 0 0 10px rgba(255,180,0,.8); }
+.ft-player { font-size: 24px; color: #ff4d6d; text-shadow: 0 2px 0 #4a0012; }
+.ft-label { font-size: 17px; color: #e0f7ff; }
+.ft-pickup { font-size: 20px; color: var(--green); }
+.screen-flash { position: absolute; inset: 0; pointer-events: none; opacity: 0; z-index: 6; transition: opacity .35s ease-out; }
+
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 18px 50px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.06); backdrop-filter: blur(6px); }
+
+.btn { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 20px; font-weight: 900; font-size: 15px; letter-spacing: .3px; border-radius: 12px; border: 1px solid var(--line); background: rgba(255,255,255,.07); cursor: pointer; transition: transform .12s, background .15s, box-shadow .15s, border-color .15s; }
+.btn:hover:not(:disabled) { transform: translateY(-2px); background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.3); }
+.btn:active:not(:disabled) { transform: translateY(1px) scale(.98); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn-primary { background: linear-gradient(180deg, #ffcf4a, #ff9f1c); color: #2b1300; border: none; box-shadow: 0 5px 0 #b35c00, 0 10px 25px rgba(255,159,28,.35); font-family: var(--head); font-weight: 400; letter-spacing: 1px; }
+.btn-primary:hover:not(:disabled) { background: linear-gradient(180deg, #ffe07a, #ffb03c); }
+.btn-gold { background: linear-gradient(180deg, #ffe066, #f4a100); color: #2b1300; border: none; box-shadow: 0 4px 0 #a46500; }
+.btn-danger { background: rgba(255,77,109,.16); border-color: rgba(255,77,109,.5); color: #ffb3c1; }
+.btn-danger:hover:not(:disabled) { background: rgba(255,77,109,.3) !important; }
+.btn-big { padding: 15px 28px; font-size: 21px; }
+.row-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+.seg { display: inline-flex; background: rgba(0,0,0,.3); border-radius: 10px; padding: 3px; gap: 2px; border: 1px solid var(--line); }
+.seg button { border: none; background: none; padding: 7px 13px; border-radius: 8px; cursor: pointer; font-weight: 800; color: var(--dim); }
+.seg button.on { background: var(--gold); color: #2b1300; }
+.tabs { display: flex; gap: 6px; margin: 12px 0 16px; flex-wrap: wrap; }
+.tabs.center { justify-content: center; }
+.tabs button { border: 1px solid var(--line); background: rgba(255,255,255,.05); padding: 8px 16px; border-radius: 999px; cursor: pointer; font-weight: 800; color: var(--dim); }
+.tabs button.on { background: var(--purple); color: #1a0033; border-color: transparent; }
+
+.fade-in { animation: fadeIn .5s ease both; }
+.pop-in { animation: popIn .32s cubic-bezier(.2,1.4,.4,1) both; }
+.slide-in { animation: slideIn .35s ease both; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } }
+@keyframes popIn { from { opacity: 0; transform: scale(.85); } }
+@keyframes slideIn { from { opacity: 0; transform: translateX(30px); } }
+
+.confirm-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: grid; place-items: center; z-index: 100; }
+.confirm { padding: 26px; max-width: 420px; text-align: center; }
+.confirm h3 { font-size: 26px; margin-bottom: 8px; }
+.confirm p { color: var(--dim); margin-bottom: 20px; }
+
+.stars { color: var(--gold2); letter-spacing: 2px; }
+.stars .dim { color: rgba(255,255,255,.18); }
+.statbar { display: grid; gap: 4px; }
+.statbar-label { font-size: 13px; font-weight: 800; color: var(--dim); }
+.statbar-track { height: 9px; border-radius: 9px; background: rgba(255,255,255,.1); overflow: hidden; }
+.statbar-fill { height: 100%; border-radius: 9px; transition: width .4s; }
+.chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; margin: 3px; border-radius: 999px; background: rgba(255,255,255,.08); font-size: 13px; font-weight: 800; }
+.chip.evo { background: linear-gradient(90deg, #ffd60a55, #ff9f1c55); border: 1px solid #ffd60a; }
+.chip.ach { background: rgba(199,125,255,.2); }
