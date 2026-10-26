@@ -41,7 +41,8 @@ export function LevelUpScreen() {
       <div className="levelup-sub">Level {lu.level}{lu.pending > 1 ? ` · ${lu.pending - 1} more to choose` : ''} · Pick an upgrade (1-{lu.cards.length})</div>
       <div className="cards">
         {lu.cards.map((c, i) => (
-          <button key={c.key} className={`card rarity-${c.rarity} ${picked === i ? 'picked' : ''} ${picked !== null && picked !== i ? 'faded' : ''}`}
+          <div key={c.key} className="card-wrap">
+          <button className={`card rarity-${c.rarity} ${picked === i ? 'picked' : ''} ${picked !== null && picked !== i ? 'faded' : ''}`}
             style={{ ['--r' as string]: RARITY_COLOR[c.rarity], ['--c' as string]: c.color, animationDelay: `${i * 70}ms` }}
             onClick={() => choose(i)}>
             <div className="card-rarity">{c.rarity.toUpperCase()}</div>
@@ -53,11 +54,16 @@ export function LevelUpScreen() {
             <div className="card-desc">{c.description}</div>
             <div className="card-key">{i + 1}</div>
           </button>
+          {lu.banishes > 0 && c.rarity !== 'evolution' && picked === null && (
+            <button className="banish" title="Banish: never offer this again this run" onClick={() => flow.banish(i)}>✕ Banish</button>
+          )}
+          </div>
         ))}
       </div>
       <div className="row-btns">
         <Btn onClick={() => flow.reroll()} disabled={lu.rerolls <= 0}>🎲 Reroll ({lu.rerolls}) <kbd>R</kbd></Btn>
         <Btn onClick={() => flow.skipUpgrade()}>Skip (+{CONFIG.levelUp.skipGold} gold)</Btn>
+        <span className="banish-count" title="Banished upgrades never appear again this run">🚫 {lu.banishes} banish{lu.banishes === 1 ? '' : 'es'} left</span>
       </div>
     </div>
   );

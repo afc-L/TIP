@@ -68,3 +68,17 @@
   .card-icon { font-size: 40px; width: 64px; height: 64px; }
   .levelup-title { font-size: 44px; }
 }
+.card-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.banish { border: 1px solid rgba(255,77,109,.5); background: rgba(255,77,109,.12); color: #ffb3c1; font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 999px; cursor: pointer; transition: background .15s; }
+.banish:hover { background: rgba(255,77,109,.3); }
+.banish-count { align-self: center; color: var(--dim); font-weight: 800; font-size: 13px; }
+.rarity-legendary { animation: cardIn .4s both, legGlow 1.4s infinite alternate; background: linear-gradient(180deg, #4a2600, #1d1536 60%); }
+@keyframes legGlow { to { box-shadow: 0 0 34px #ff9f1c, 0 0 70px #ff595e55; } }
+.rarity-epic { background: linear-gradient(180deg, #3c1f5c, #1d1536 60%); }
+.inv-row.ready { border: 1px solid var(--gold2); box-shadow: 0 0 12px rgba(255,214,10,.35); }
+.inv-tags { display: flex; gap: 4px; margin-top: 3px; flex-wrap: wrap; }
+.inv-tags span { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; padding: 0 6px; border-radius: 6px; background: rgba(255,255,255,.08); color: var(--dim); }
+.syn-list { display: grid; gap: 4px; max-height: 260px; overflow-y: auto; margin-bottom: 8px; }
+.syn { display: flex; gap: 8px; align-items: flex-start; padding: 5px 8px; border-radius: 8px; background: rgba(255,255,255,.03); opacity: .55; font-size: 13px; }
+.syn.on { opacity: 1; background: rgba(255,214,10,.1); border: 1px solid rgba(255,214,10,.4); }
+.stat-grid div[title] { cursor: help; }

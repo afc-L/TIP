@@ -3,6 +3,8 @@ import * as THREE from 'three';
 import { IN_RUN } from '../app/gameState';
 import { MAP_MAP } from '../data/maps';
 import { PASSIVE_MAP } from '../data/passives';
+import { MODIFIER_MAP } from '../data/modifiers';
+import { SYNERGY_MAP } from '../data/synergies';
 import type { PassiveId } from '../data/types';
 import { WEAPON_MAX_LEVEL } from '../data/weapons';
 import { useGame, type HudSnapshot } from '../store/gameStore';
@@ -194,6 +196,13 @@ class Engine {
         this.vfx.update(dt);
         this.numbers.update(dt, this.camera);
         run.world.update(run.time, dt, run.player);
+        // blizzards close in the fog
+        const fog = this.scene.fog as THREE.Fog | null;
+        if (fog) {
+          const wantFar = run.world.blizzard ? 45 : 115, wantNear = run.world.blizzard ? 8 : 48;
+          fog.far += (wantFar - fog.far) * Math.min(1, dt * 1.5);
+          fog.near += (wantNear - fog.near) * Math.min(1, dt * 1.5);
+        }
       } else if (screen === 'BOSS_INTRO') {
         run.updateIntro(rawDt);
         this.particles.update(rawDt);
@@ -202,7 +211,7 @@ class Engine {
       } else {
         this.numbers.update(0, this.camera);
       }
-      run.render(this.realTime);
+      run.render(this.realTime, this.camera);
       this.updateCamera(rawDt);
       this.renderer.render(this.scene, this.camera);
       this.hudT -= rawDt;
@@ -211,7 +220,7 @@ class Engine {
       // keep the final frame of the run visible behind the results
       this.particles.update(rawDt * 0.3);
       this.vfx.update(rawDt * 0.3);
-      run.render(this.realTime);
+      run.render(this.realTime, this.camera);
       this.renderer.render(this.scene, this.camera);
     } else {
       this.showcase.update(rawDt, window.innerWidth / window.innerHeight);
@@ -238,15 +247,22 @@ class Engine {
       xp: run.xp, xpNext: run.xpNext, level: run.level, time: run.time, kills: run.kills, gold: run.gold,
       weapons: run.weapons.list.map((w) => ({ id: w.id, icon: w.evolved ? w.def.evolution.icon : w.def.icon, level: w.level, max: WEAPON_MAX_LEVEL, color: w.def.color, evolved: w.evolved })),
       passives: (Object.entries(run.passives) as [PassiveId, number][]).filter(([, l]) => l > 0).map(([id, l]) => ({ id, icon: PASSIVE_MAP[id].icon, level: l, max: PASSIVE_MAP[id].maxLevel, color: PASSIVE_MAP[id].color })),
-      dodgeReady: 1 - p.dodgeCd / CONFIG.player.dodgeCooldown,
+      dodgeReady: 1 - p.dodgeCd / (CONFIG.player.dodgeCooldown * p.dodgeCooldownMult),
       superCharge: run.superCharge,
       stamina: p.stamina / CONFIG.player.staminaMax,
       buffs: [
         ...(run.buffs.damage > 0 ? [{ id: 'damage', icon: '🌶️', left: run.buffs.damage }] : []),
         ...(run.buffs.frenzy > 0 ? [{ id: 'frenzy', icon: '⚡', left: run.buffs.frenzy }] : []),
         ...(run.buffs.shield > 0 ? [{ id: 'shield', icon: '🛡️', left: run.buffs.shield }] : []),
+        ...(run.buffs.totem > 0 ? [{ id: 'totem', icon: '🗿', left: run.buffs.totem }] : []),
+        ...(run.buffs.dice > 0 ? [{ id: 'dice', icon: '🎲', left: run.buffs.dice }] : []),
+        ...(run.buffs.overcharge > 0 ? [{ id: 'over', icon: '🔋', left: run.buffs.overcharge }] : []),
         ...(run.shrineStacks > 0 ? [{ id: 'shrine', icon: '🩸', left: -run.shrineStacks }] : []),
       ],
+      synergies: run.synergies.map((id) => ({ id, icon: SYNERGY_MAP[id].icon, name: SYNERGY_MAP[id].name })),
+      modifiers: run.opts.modifiers.map((id) => ({ id, icon: MODIFIER_MAP[id].icon, name: MODIFIER_MAP[id].name })),
+      pendingLevels: run.pendingLevels,
+      revive: run.reviveAvailable,
       fps: Math.round(this.fps),
       enemies: run.enemies.aliveCount,
       objective: run.dead ? '' : run.director.objective(),

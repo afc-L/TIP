@@ -10,7 +10,7 @@ export class Showcase {
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(40, 1, 0.1, 300);
   private rig: CharacterRig | null = null;
-  private charId: CharacterId | null = null;
+  private charId: string | null = null;
   private island: THREE.Group;
   private top: THREE.Mesh;
   private floaters: { obj: THREE.Object3D; base: THREE.Vector3; speed: number; phase: number }[] = [];
@@ -85,14 +85,14 @@ export class Showcase {
     this.setCharacter('bonker');
   }
 
-  setCharacter(id: CharacterId) {
-    if (this.charId === id) return;
-    this.charId = id;
+  setCharacter(id: CharacterId, tint = '') {
+    if (this.charId === id + tint) return;
+    this.charId = id + tint;
     if (this.rig) {
       this.rig.root.removeFromParent();
       this.rig.root.traverse((o) => { const m = o as THREE.Mesh; m.geometry?.dispose(); });
     }
-    this.rig = buildCharacter(id);
+    this.rig = buildCharacter(id, tint || undefined);
     this.rig.root.scale.setScalar(1.5);
     this.scene.add(this.rig.root);
   }

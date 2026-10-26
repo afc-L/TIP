@@ -6,7 +6,12 @@ export type Sfx =
   | 'hover' | 'click' | 'hit' | 'crit' | 'kill' | 'xp' | 'gold' | 'levelup' | 'hurt' | 'dodge'
   | 'swing' | 'shoot' | 'knife' | 'zap' | 'explode' | 'quake' | 'poison' | 'boomerang'
   | 'bossWarn' | 'bossSlam' | 'bossDie' | 'victory' | 'gameover' | 'pickup' | 'chest'
-  | 'enemyShot' | 'fuse' | 'super' | 'select' | 'achievement' | 'heal' | 'deny';
+  | 'enemyShot' | 'fuse' | 'super' | 'select' | 'achievement' | 'heal' | 'deny'
+  | 'blink' | 'rumble' | 'arrow' | 'enemyHeal' | 'meteor' | 'tesla' | 'drone' | 'tornado' | 'cannon' | 'shard'
+  | 'rift' | 'reaper' | 'boulder' | 'bossRoar' | 'phase' | 'evolve' | 'rare' | 'whoosh' | 'evoReady' | 'synergy' | 'burn' | 'block' | 'altar';
+
+/** Sounds that must cut through a busy mix. */
+const PRIORITY: ReadonlySet<Sfx> = new Set(['levelup', 'hurt', 'bossWarn', 'bossDie', 'victory', 'gameover', 'achievement', 'evolve', 'phase', 'bossRoar', 'evoReady', 'chest', 'super']);
 
 type MusicTrack = 'menu' | 'game0' | 'game1' | 'game2' | 'boss' | 'none';
 
@@ -21,6 +26,8 @@ class AudioManager {
   private wanted: MusicTrack = 'none';
   private step = 0;
   private nextStepTime = 0;
+  private voices = 0;
+  private pitch = 1;
 
   constructor() {
     useSettings.subscribe(() => this.applyVolumes());
@@ -91,6 +98,7 @@ class AudioManager {
     o.connect(g).connect(bus ?? this.sfxBus);
     o.start(t);
     o.stop(t + dur + 0.05);
+    if (!bus) { this.voices++; o.onended = () => { this.voices--; }; }
   }
 
   private noiseBurst(dur: number, vol: number, freq: number, q = 1, type: BiquadFilterType = 'lowpass', delay = 0, bus?: GainNode) {
@@ -108,10 +116,14 @@ class AudioManager {
     src.connect(f).connect(g).connect(bus ?? this.sfxBus);
     src.start(t, Math.random() * 0.5);
     src.stop(t + dur + 0.05);
+    if (!bus) { this.voices++; src.onended = () => { this.voices--; }; }
   }
 
-  play(s: Sfx) {
+  /** `pitch` scales boss / variant sounds. Low-priority sounds are dropped when the mix is saturated. */
+  play(s: Sfx, pitch = 1) {
     if (!this.ctx) return;
+    if (this.voices > 36 && !PRIORITY.has(s)) return;
+    this.pitch = pitch * (0.94 + Math.random() * 0.12); // natural variation on every repeat
     try { this.playInner(s); } catch { /* audio is optional */ }
   }
 
@@ -159,10 +171,40 @@ class AudioManager {
         if (this.gate(s, 1)) { this.noiseBurst(1.5, 0.35, 400); for (let i = 0; i < 4; i++) this.tone('sine', 200 - i * 30, 40, 0.6, 0.2, i * 0.25); }
         break;
       case 'victory':
-        if (this.gate(s, 1)) [523, 659, 784, 1046, 784, 1046, 1318].forEach((f, i) => this.tone('square', f, f, 0.3, 0.07, i * 0.13));
+        if (this.gate(s, 1)) {
+          // a short fanfare with a bass line underneath
+          [523, 659, 784, 1046, 784, 1046, 1318, 1568].forEach((f, i) => this.tone('square', f, f, i === 7 ? 0.9 : 0.28, 0.07, i * 0.14));
+          [131, 165, 196, 262].forEach((f, i) => this.tone('triangle', f, f, 0.5, 0.12, i * 0.28));
+        }
         break;
+      case 'blink': if (this.gate(s, 0.15)) { this.tone('sine', 1400, 300, 0.2, 0.06); this.noiseBurst(0.15, 0.05, 3000, 2, 'bandpass'); } break;
+      case 'rumble': if (this.gate(s, 0.3)) { this.noiseBurst(0.8, 0.18, 160); this.tone('sine', 55, 40, 0.8, 0.12); } break;
+      case 'arrow': if (this.gate(s, 0.15)) this.noiseBurst(0.12, 0.08, 2500 * this.pitch, 6, 'bandpass'); break;
+      case 'enemyHeal': if (this.gate(s, 0.3)) { this.tone('sine', 400, 800, 0.3, 0.06); this.tone('sine', 600, 1200, 0.3, 0.04, 0.1); } break;
+      case 'meteor': if (this.gate(s, 0.12)) { this.noiseBurst(0.5, 0.25, 400); this.tone('sine', 90 * this.pitch, 30, 0.5, 0.25); } break;
+      case 'tesla': if (this.gate(s, 0.08)) { this.tone('sawtooth', 2200 * this.pitch, 700, 0.07, 0.035); this.noiseBurst(0.08, 0.05, 6000, 1, 'highpass'); } break;
+      case 'drone': if (this.gate(s, 0.06)) this.tone('square', 1800 * this.pitch, 900, 0.05, 0.025); break;
+      case 'tornado': if (this.gate(s, 0.4)) this.noiseBurst(0.9, 0.12, 500, 3, 'bandpass'); break;
+      case 'cannon': if (this.gate(s, 0.15)) { this.noiseBurst(0.3, 0.3, 700); this.tone('sine', 110 * this.pitch, 40, 0.35, 0.3); } break;
+      case 'shard': if (this.gate(s, 0.05)) this.tone('triangle', 2600 * this.pitch, 3200, 0.06, 0.04); break;
+      case 'rift': if (this.gate(s, 0.2)) { this.tone('sawtooth', 70, 140, 0.5, 0.08); this.noiseBurst(0.5, 0.08, 1200, 4, 'bandpass'); } break;
+      case 'reaper': if (this.gate(s, 0.1)) this.noiseBurst(0.22, 0.09, 1800 * this.pitch, 5, 'bandpass'); break;
+      case 'boulder': if (this.gate(s, 0.2)) { this.noiseBurst(0.6, 0.18, 220); this.tone('sine', 60, 45, 0.6, 0.15); } break;
+      case 'bossRoar': if (this.gate(s, 0.8)) { const f = 80 * this.pitch; this.tone('sawtooth', f, f * 0.6, 0.9, 0.15); this.tone('square', f * 1.5, f * 0.7, 0.8, 0.06, 0.05); this.noiseBurst(0.9, 0.15, 400); } break;
+      case 'phase': if (this.gate(s, 1)) { [220, 277, 330, 440].forEach((f, i) => this.tone('sawtooth', f * this.pitch, f * this.pitch * 1.02, 0.25, 0.08, i * 0.08)); this.noiseBurst(0.8, 0.2, 300); } break;
+      case 'evolve': if (this.gate(s, 1)) { [523, 659, 784, 1046, 1318, 1568].forEach((f, i) => this.tone('triangle', f, f, 0.35, 0.11, i * 0.07)); this.noiseBurst(1, 0.12, 4000, 1, 'highpass', 0.3); } break;
+      case 'evoReady': if (this.gate(s, 1)) [880, 1175, 1568].forEach((f, i) => this.tone('sine', f, f * 1.01, 0.3, 0.1, i * 0.1)); break;
+      case 'synergy': if (this.gate(s, 0.5)) [659, 880, 1109].forEach((f, i) => this.tone('square', f, f, 0.18, 0.05, i * 0.06)); break;
+      case 'rare': if (this.gate(s, 0.3)) [988, 1319, 1976].forEach((f, i) => this.tone('triangle', f, f, 0.2, 0.08, i * 0.05)); break;
+      case 'whoosh': if (this.gate(s, 0.08)) this.noiseBurst(0.18, 0.05, 1500, 0.7, 'bandpass'); break;
+      case 'burn': if (this.gate(s, 0.25)) this.noiseBurst(0.3, 0.05, 900, 1, 'bandpass'); break;
+      case 'block': if (this.gate(s, 0.1)) { this.tone('square', 1200, 900, 0.08, 0.06); this.noiseBurst(0.06, 0.1, 5000, 3, 'bandpass'); } break;
+      case 'altar': if (this.gate(s, 1)) { this.tone('sawtooth', 55, 50, 1.2, 0.12); [330, 311, 294].forEach((f, i) => this.tone('triangle', f, f, 0.4, 0.08, 0.2 + i * 0.25)); } break;
       case 'gameover':
-        if (this.gate(s, 1)) [392, 349, 311, 262].forEach((f, i) => this.tone('triangle', f, f * 0.98, 0.45, 0.14, i * 0.3));
+        if (this.gate(s, 1)) {
+          [392, 349, 311, 262, 247].forEach((f, i) => this.tone('triangle', f, f * 0.98, i === 4 ? 1.2 : 0.45, 0.14, i * 0.3));
+          [98, 87, 78, 65].forEach((f, i) => this.tone('sine', f, f, 0.6, 0.1, i * 0.3));
+        }
         break;
     }
   }

@@ -2,6 +2,9 @@ import { useEffect } from 'react';
 import { flow } from '../app/flow';
 import { ACHIEVEMENT_MAP } from '../data/achievements';
 import { MAPS } from '../data/maps';
+import { BOSSES } from '../data/enemies';
+import { MODIFIER_MAP, MODIFIERS, rollModifiers } from '../data/modifiers';
+import { audio } from '../game/effects/AudioManager';
 import type { RunMode } from '../data/types';
 import { DIFFICULTY, RUN_MODES } from '../game/GameConfig';
 import { engine } from '../game/Engine';
@@ -44,6 +47,29 @@ export function MapSelect() {
           <h3>{selected.name}</h3>
           <p>{selected.description}</p>
           <ul className="mods">{selected.modifiers.map((t) => <li key={t}>{t}</li>)}</ul>
+          <div className="map-facts">
+            <div><span className="k">Hazard</span> {selected.hazardText}</div>
+            <div><span className="k">Bosses</span> {selected.bosses.map((b) => BOSSES[b].name).join(' → ')}</div>
+          </div>
+          <div className="mod-box">
+            <label className="mod-toggle" onClick={() => { update((s) => { s.modifiersEnabled = !s.modifiersEnabled; if (!s.rolledModifiers.length) s.rolledModifiers = rollModifiers(); }); audio.play('click'); }}>
+              <span className={`switch ${save.modifiersEnabled ? 'on' : ''}`}><i /></span>
+              <b>Run modifiers</b> <span className="dim">{save.modifiersEnabled ? 'random twists for this run' : 'off: standard run'}</span>
+            </label>
+            {save.modifiersEnabled && (
+              <div className="mod-chips">
+                {save.rolledModifiers.map((id) => (
+                  <div key={id} className="mod-chip" title={MODIFIER_MAP[id].description}>
+                    <span>{MODIFIER_MAP[id].icon}</span>
+                    <div><b>{MODIFIER_MAP[id].name}</b><div className="dim">{MODIFIER_MAP[id].description}</div>
+                      <div className="mod-reward">{MODIFIER_MAP[id].reward > 0 ? `+${Math.round(MODIFIER_MAP[id].reward * 100)}% rewards` : MODIFIER_MAP[id].reward < 0 ? `${Math.round(MODIFIER_MAP[id].reward * 100)}% rewards` : 'no reward change'}</div></div>
+                  </div>
+                ))}
+                <Btn onClick={() => update((s) => { s.rolledModifiers = rollModifiers(); })}>🎲 Reroll modifiers</Btn>
+                <span className="dim small">{MODIFIERS.length} modifiers exist. Rewards scale with the challenge.</span>
+              </div>
+            )}
+          </div>
         </div>
         <div className="map-options">
           <div className="opt-group">

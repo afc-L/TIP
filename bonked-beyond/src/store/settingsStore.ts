@@ -18,6 +18,11 @@ export interface Settings {
   difficulty: Difficulty;
   reducedEffects: boolean;
   showFps: boolean;
+  shakeIntensity: number;    // 0..1
+  effectsIntensity: number;  // 0..1 particle density
+  highContrast: boolean;     // outlined enemies
+  pauseOnLevelUp: boolean;   // false = level-ups wait until you open them
+  enemyHealthBars: boolean;
 }
 
 const KEY = 'bonked_beyond_settings_v1';
@@ -27,6 +32,7 @@ export const DEFAULT_SETTINGS: Settings = {
   screenShake: true, damageNumbers: true, quality: 'medium',
   cameraDistance: 0.5, cameraSmoothing: 0.5, mouseAim: true,
   difficulty: 'normal', reducedEffects: false, showFps: false,
+  shakeIntensity: 0.8, effectsIntensity: 1, highContrast: false, pauseOnLevelUp: true, enemyHealthBars: true,
 };
 
 function load(): Settings {
@@ -48,6 +54,11 @@ function load(): Settings {
     difficulty: oneOf(v.difficulty, ['easy', 'normal', 'hard'] as const, d.difficulty),
     reducedEffects: bool(v.reducedEffects, d.reducedEffects),
     showFps: bool(v.showFps, d.showFps),
+    shakeIntensity: num(v.shakeIntensity, d.shakeIntensity, 0, 1),
+    effectsIntensity: num(v.effectsIntensity, d.effectsIntensity, 0, 1),
+    highContrast: bool(v.highContrast, d.highContrast),
+    pauseOnLevelUp: bool(v.pauseOnLevelUp, d.pauseOnLevelUp),
+    enemyHealthBars: bool(v.enemyHealthBars, d.enemyHealthBars),
   };
 }
 

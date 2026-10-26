@@ -75,3 +75,8 @@
   .hud-top-center { top: 70px; }
 }
 .objective { margin-top: -6px; font-size: 13px; color: #ffe8a3; background: rgba(0,0,0,.45); padding: 3px 12px; border-radius: 999px; white-space: nowrap; }
+.hud-tags { position: absolute; top: 150px; left: 14px; display: flex; flex-direction: column; gap: 4px; align-items: flex-start; }
+.hud-tag { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: rgba(0,0,0,.55); border: 1px solid rgba(255,255,255,.2); }
+.hud-tag.syn { border-color: var(--gold2); color: #fff3b0; }
+.hud-tag.mod { border-color: var(--pink); color: #ffccd5; }
+.levelup-ready { position: absolute; left: 50%; bottom: 128px; transform: translateX(-50%); padding: 8px 16px; border-radius: 12px; border: 2px solid var(--gold2); background: rgba(40,30,0,.85); color: var(--gold2); font-family: var(--head); font-size: 16px; cursor: pointer; animation: pulse .6s infinite alternate; }

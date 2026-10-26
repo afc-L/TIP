@@ -1,6 +1,6 @@
 // Uniform grid rebuilt every frame with a counting sort. O(n) build, cheap neighbour queries.
 
-export interface GridItem { x: number; z: number; radius: number; alive: boolean }
+export interface GridItem { x: number; z: number; radius: number; alive: boolean; hidden?: boolean }
 
 export class SpatialGrid<T extends GridItem> {
   readonly cell: number;
@@ -30,7 +30,7 @@ export class SpatialGrid<T extends GridItem> {
 
   build(list: readonly T[]) {
     this.items.length = 0;
-    for (const it of list) if (it.alive) this.items.push(it);
+    for (const it of list) if (it.alive && !it.hidden) this.items.push(it);
     const n = this.items.length;
     if (this.cellOf.length < n) this.cellOf = new Int32Array(Math.max(n, this.cellOf.length * 2, 64));
     this.cellCount.fill(0);

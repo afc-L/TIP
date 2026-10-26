@@ -19,7 +19,7 @@ export interface Telegraph {
   outline: THREE.Mesh;
   fillMat: THREE.MeshBasicMaterial;
   outlineMat: THREE.MeshBasicMaterial;
-  shape: 'circle' | 'rect';
+  shape: 'circle' | 'rect' | 'sector';
   active: boolean;
 }
 
@@ -35,6 +35,8 @@ export class Vfx {
   private circleGeo = new THREE.CircleGeometry(1, 40);
   private planeGeo = new THREE.PlaneGeometry(1, 1);
   private rectOutlineGeo: THREE.BufferGeometry;
+  private sectorGeo = new THREE.CircleGeometry(1, 28, -1.2, 2.4);
+  private sectorEdge = new THREE.RingGeometry(0.92, 1, 28, 1, -1.2, 2.4);
   reduced = false;
 
   constructor(scene: THREE.Scene) {
@@ -91,6 +93,12 @@ export class Vfx {
     fx.mesh.visible = true;
   }
 
+  /** A straight energy beam (no jitter). */
+  beam(ax: number, ay: number, az: number, bx: number, by: number, bz: number, color: THREE.ColorRepresentation, width = 0.1) {
+    _c.set(color);
+    if (this.bolts.length < 600) this.bolts.push({ ax, ay, az, bx, by, bz, life: 0.12, max: 0.12, width, r: _c.r, g: _c.g, b: _c.b });
+  }
+
   /** Jagged lightning between two points. */
   lightning(ax: number, ay: number, az: number, bx: number, by: number, bz: number, color: THREE.ColorRepresentation = '#9ff8ff', width = 0.14) {
     _c.set(color);
@@ -107,15 +115,16 @@ export class Vfx {
     }
   }
 
-  telegraph(shape: 'circle' | 'rect', color: THREE.ColorRepresentation = '#ff2e2e'): Telegraph {
+  telegraph(shape: 'circle' | 'rect' | 'sector', color: THREE.ColorRepresentation = '#ff2e2e'): Telegraph {
     let tg = this.telegraphs.find((t) => !t.active && t.shape === shape);
     if (!tg) {
       const group = new THREE.Group();
       const fillMat = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, opacity: 0.35 });
       const outlineMat = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, opacity: 0.9 });
-      const fill = new THREE.Mesh(shape === 'circle' ? this.circleGeo : this.planeGeo, fillMat);
-      const outline = new THREE.Mesh(shape === 'circle' ? this.ringGeo : this.rectOutlineGeo, outlineMat);
-      const base = new THREE.Mesh(shape === 'circle' ? this.circleGeo : this.planeGeo, new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, opacity: 0.12, color: 0xff0000 }));
+      const fillGeo = shape === 'circle' ? this.circleGeo : shape === 'sector' ? this.sectorGeo : this.planeGeo;
+      const fill = new THREE.Mesh(fillGeo, fillMat);
+      const outline = new THREE.Mesh(shape === 'circle' ? this.ringGeo : shape === 'sector' ? this.sectorEdge : this.rectOutlineGeo, outlineMat);
+      const base = new THREE.Mesh(fillGeo, new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, opacity: 0.12, color: 0xff0000 }));
       for (const m of [base, fill, outline]) { m.rotation.x = -Math.PI / 2; m.renderOrder = 1; group.add(m); }
       base.position.y = 0.03; fill.position.y = 0.04; outline.position.y = 0.05;
       this.scene.add(group);
@@ -151,6 +160,17 @@ export class Vfx {
     tg.outline.scale.set(length, width, 1); tg.outline.position.x = length / 2;
     const l = Math.max(0.01, progress) * length;
     tg.fill.scale.set(l, width, 1); tg.fill.position.x = l / 2;
+    tg.outlineMat.opacity = 0.6 + Math.sin(performance.now() * 0.02) * 0.3;
+  }
+
+  /** Sector (cone) facing `angle`, radius r: fill grows outward from the centre. */
+  setSector(tg: Telegraph, x: number, z: number, angle: number, r: number, progress: number) {
+    tg.group.position.set(x, 0, z);
+    tg.group.rotation.y = -angle;
+    tg.group.children[0].scale.set(r, r, 1);
+    tg.outline.scale.set(r, r, 1);
+    const f = Math.max(0.01, progress) * r;
+    tg.fill.scale.set(f, f, 1);
     tg.outlineMat.opacity = 0.6 + Math.sin(performance.now() * 0.02) * 0.3;
   }
 

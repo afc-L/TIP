@@ -132,7 +132,15 @@ export function GameHUD() {
       </div>
       <div className="hud-buffs">
         {hud.buffs.map((b) => <div key={b.id} className="buff">{b.icon}<span>{b.left < 0 ? `x${-b.left}` : Math.ceil(b.left)}</span></div>)}
+        {hud.revive && <div className="buff" title="Second Life: you will survive one fatal blow">👼</div>}
       </div>
+      {(hud.synergies.length > 0 || hud.modifiers.length > 0) && (
+        <div className="hud-tags">
+          {hud.modifiers.map((m) => <span key={m.id} className="hud-tag mod" title={`Run modifier: ${m.name}`}>{m.icon} {m.name}</span>)}
+          {hud.synergies.map((s) => <span key={s.id} className="hud-tag syn" title={`Synergy: ${s.name}`}>{s.icon} {s.name}</span>)}
+        </div>
+      )}
+      {hud.pendingLevels > 0 && <button className="levelup-ready" onClick={() => flow.openLevelUp(true)}>⬆ {hud.pendingLevels} LEVEL UP{hud.pendingLevels > 1 ? 'S' : ''} READY <kbd>TAB</kbd></button>}
       <div className="hud-bottom">
         <div className="abilities">
           <div className={`ability ${hud.dodgeReady >= 1 ? 'ready' : ''}`} title="Dodge (Space / Right-click)">

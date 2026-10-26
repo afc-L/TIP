@@ -3,6 +3,7 @@ import type { CharacterDef, CharacterId } from './types';
 export const CHARACTERS: CharacterDef[] = [
   {
     id: 'bonker', name: 'BONKER', title: 'The Original Bonk',
+    playstyle: 'Brawler. Wade into the crowd and swat everything away.',
     description: 'A sturdy brawler with an oversized hammer and no plan beyond "hit it harder".',
     color: '#ff9f1c', baseHp: 120, moveSpeed: 6.2, weapon: 'hammer',
     passiveName: 'Heavy Hands', passiveText: '+50% knockback and +5% damage.',
@@ -10,6 +11,7 @@ export const CHARACTERS: CharacterDef[] = [
   },
   {
     id: 'runner', name: 'THE RUNNER', title: 'Fastest Feet Alive',
+    playstyle: 'Kiter. Stay mobile, vacuum up XP and never stop running.',
     description: 'Never stops moving. Knife-throwing courier who outruns the horde.',
     color: '#2ec4b6', baseHp: 90, moveSpeed: 7.6, weapon: 'knives',
     passiveName: 'Long Reach', passiveText: '+60% pickup radius and +5% move speed.',
@@ -17,6 +19,7 @@ export const CHARACTERS: CharacterDef[] = [
   },
   {
     id: 'scrapRat', name: 'SCRAP RAT', title: 'Tinkerer of the Dump',
+    playstyle: 'Greedy. Open more chests and snowball your gold into power.',
     description: 'Small, fragile and greedy. Her whirling scrap blades keep the crowd at bay.',
     color: '#c77dff', baseHp: 80, moveSpeed: 6.8, weapon: 'blades',
     passiveName: 'Scavenger', passiveText: '+60% gold gained, +15 luck.',
@@ -24,6 +27,7 @@ export const CHARACTERS: CharacterDef[] = [
   },
   {
     id: 'wizard', name: 'THE WIZARD', title: 'Overcaffeinated Archmage',
+    playstyle: 'Glass cannon. Fast casting, but every hit hurts.',
     description: 'Glass cannon spellcaster. Hurls arcane orbs with alarming frequency.',
     color: '#4361ee', baseHp: 75, moveSpeed: 6.0, weapon: 'orb',
     passiveName: 'Quick Casting', passiveText: '-15% weapon cooldowns, +10% duration.',
@@ -31,10 +35,59 @@ export const CHARACTERS: CharacterDef[] = [
   },
   {
     id: 'moose', name: 'IRON MOOSE', title: 'Armored Avalanche',
+    playstyle: 'Tank. Shrug off hits and ram through the horde.',
     description: 'Huge, slow and wrapped in plate. Lowers his antlers and plows through everything.',
     color: '#8d99ae', baseHp: 170, moveSpeed: 5.2, weapon: 'charge',
     passiveName: 'Plated Hide', passiveText: '+8 armor and +30% knockback resistance.',
     stats: { armor: 8, knockbackResist: 0.3 }, difficulty: 1, unlock: 'survive_10',
+  },
+  {
+    id: 'alchemist', name: 'THE ALCHEMIST', title: 'Brewer of Bad Ideas',
+    description: 'Hurls poison clouds and makes every lingering effect nastier.',
+    playstyle: 'Damage over time. Stack clouds, burns and slows, then watch them melt.',
+    color: '#80ed99', baseHp: 95, moveSpeed: 6.1, weapon: 'poison',
+    passiveName: 'Potent Brews', passiveText: 'Poison and burn deal +40% damage; status effects last 30% longer.',
+    stats: { dotMult: 1.4, statusDuration: 1.3 }, difficulty: 2, unlock: 'kills_2500_total', trait: 'alchemist',
+  },
+  {
+    id: 'gunslinger', name: 'THE GUNSLINGER', title: 'Fastest Cannon in the West',
+    description: 'A golden cannon on the hip and an extra round in every chamber.',
+    playstyle: 'Projectiles. Every projectile weapon fires one extra shot.',
+    color: '#e9c46a', baseHp: 100, moveSpeed: 6.4, weapon: 'goldenCannon',
+    passiveName: 'Fan the Hammer', passiveText: '+1 projectile on projectile weapons and +15% projectile speed.',
+    stats: { projectileSpeedMult: 1.15 }, difficulty: 2, unlock: 'executioner', trait: 'gunslinger',
+  },
+  {
+    id: 'engineer', name: 'THE ENGINEER', title: 'Has a Drone for That',
+    description: 'Lets the robots do the fighting. Summons get more numerous and hit harder.',
+    playstyle: 'Summoner. Build up drones and coils, then stay out of the way.',
+    color: '#f4a261', baseHp: 105, moveSpeed: 6.0, weapon: 'drones',
+    passiveName: 'Overclocked Bots', passiveText: 'Drones and coils: +1 count, +25% damage, coils last 30% longer.',
+    stats: { summonMult: 1.25 }, difficulty: 1, unlock: 'evolve_2', trait: 'engineer',
+  },
+  {
+    id: 'berserker', name: 'THE BERSERKER', title: 'Angrier When Bleeding',
+    description: 'Swings spectral scythes and gets deadlier the more hurt he is.',
+    playstyle: 'Risk-taker. Fight at low health for enormous damage. Heals a little on kills.',
+    color: '#d00000', baseHp: 130, moveSpeed: 6.3, weapon: 'soulReaper',
+    passiveName: 'Blood Rage', passiveText: 'Up to +70% damage as health drops; every 20 kills heal 2 HP.',
+    stats: { armor: 2 }, difficulty: 3, unlock: 'elites_50', trait: 'bloodRage',
+  },
+  {
+    id: 'frostKnight', name: 'THE FROST KNIGHT', title: 'Winter Made Steel',
+    description: 'Fires mirror-ice shards. Everything he hits is slowed by frostbite.',
+    playstyle: 'Control. Slow the horde to a crawl and pick it apart.',
+    color: '#90e0ef', baseHp: 115, moveSpeed: 5.8, weapon: 'mirrorShards',
+    passiveName: 'Frostbite', passiveText: 'All hits slow enemies by 35% for 1.5s; +3 armor.',
+    stats: { armor: 3 }, difficulty: 1, unlock: 'frozen_8', trait: 'frostbite',
+  },
+  {
+    id: 'gambler', name: 'THE GAMBLER', title: 'Feeling Lucky, Always',
+    description: 'Rains meteors and rolls the dice every 25 seconds for a random blessing.',
+    playstyle: 'Chaos. Random temporary buffs, extra rerolls and lots of luck.',
+    color: '#ff006e', baseHp: 95, moveSpeed: 6.4, weapon: 'meteor',
+    passiveName: 'Loaded Dice', passiveText: 'Every 25s gain a random 12s blessing; +2 rerolls, +20 luck.',
+    stats: { luck: 20 }, difficulty: 2, unlock: 'rich_5000', trait: 'loadedDice',
   },
 ];
 

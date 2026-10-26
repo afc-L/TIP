@@ -3,7 +3,8 @@ import { CONFIG } from '../game/GameConfig';
 import { engine } from '../game/Engine';
 import { audio } from '../game/effects/AudioManager';
 import { input } from '../game/Input';
-import { choiceToCard, generateChoices, type Choice } from '../game/items/UpgradeSystem';
+import { choiceKey, choiceToCard, generateChoices, type Choice } from '../game/items/UpgradeSystem';
+import { rollModifiers } from '../data/modifiers';
 import type { RunOptions } from '../game/Run';
 import { useGame } from '../store/gameStore';
 import { getSave, useProgression } from '../store/progressionStore';
@@ -36,6 +37,9 @@ useGame.subscribe((s, prev) => {
 export const flow = {
   init() {
     input.onPause = () => flow.togglePause();
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Tab' && store().screen === 'PLAYING') { e.preventDefault(); flow.openLevelUp(true); }
+    });
     // never let the horde keep chewing on you in a background tab
     document.addEventListener('visibilitychange', () => {
       if (document.hidden && store().screen === 'PLAYING') go('PAUSED');
@@ -51,8 +55,15 @@ export const flow = {
   },
 
   startRun() {
-    const save = getSave();
-    const opts: RunOptions = { character: save.selectedCharacter, map: save.selectedMap, mode: save.selectedMode, difficulty: getSettings().difficulty };
+    let save = getSave();
+    if (save.modifiersEnabled && !save.rolledModifiers.length) {
+      useProgression.getState().update((s) => { s.rolledModifiers = rollModifiers(); });
+      save = getSave();
+    }
+    const opts: RunOptions = {
+      character: save.selectedCharacter, map: save.selectedMap, mode: save.selectedMode, difficulty: getSettings().difficulty,
+      modifiers: save.modifiersEnabled ? [...save.rolledModifiers] : [],
+    };
     lastOptions = opts;
     flow.launch(opts);
   },
@@ -101,14 +112,35 @@ export const flow = {
     engine.showcase.resetTheme();
   },
 
-  openLevelUp() {
+  /** `manual` = the player asked for it (Tab / HUD button) when auto-pause is off. */
+  openLevelUp(manual = false) {
     const run = engine.run;
-    if (!run || store().screen !== 'PLAYING') return;
+    if (!run || store().screen !== 'PLAYING' || run.pendingLevels <= 0) return;
+    if (!manual && !getSettings().pauseOnLevelUp) return;
     const count = CONFIG.levelUp.baseChoices + (run.stats.luck >= 30 ? 1 : 0);
     choices = generateChoices(run, count);
-    useGame.setState({ levelUp: { cards: choices.map((c, i) => choiceToCard(c, run, i)), rerolls: run.rerolls, level: run.level - run.pendingLevels + 1, pending: run.pendingLevels } });
+    flow.publishCards();
     go('LEVEL_UP');
     audio.play('levelup');
+    if (choices.some((c) => c.rarity === 'legendary' || c.rarity === 'evolution')) audio.play('rare');
+  },
+
+  publishCards(extra: Partial<NonNullable<ReturnType<typeof store>['levelUp']>> = {}) {
+    const run = engine.run!;
+    useGame.setState({ levelUp: { cards: choices.map((c, i) => choiceToCard(c, run, i)), rerolls: run.rerolls, banishes: run.banishes, level: run.level - run.pendingLevels + 1, pending: run.pendingLevels, ...extra } });
+  },
+
+  banish(i: number) {
+    const run = engine.run;
+    if (!run || store().screen !== 'LEVEL_UP' || run.banishes <= 0 || !choices[i] || choices[i].kind === 'evolution') { audio.play('deny'); return; }
+    const key = choiceKey(choices[i]);
+    run.banished.add(key);
+    run.banishes--;
+    const current = new Set(choices.map(choiceKey));
+    const fresh = generateChoices(run, 8).find((c) => !current.has(choiceKey(c)));
+    if (fresh) choices[i] = fresh; else choices.splice(i, 1);
+    flow.publishCards();
+    audio.play('whoosh');
   },
 
   chooseUpgrade(i: number) {
@@ -136,7 +168,7 @@ export const flow = {
     if (run.pendingLevels > 0) {
       const count = CONFIG.levelUp.baseChoices + (run.stats.luck >= 30 ? 1 : 0);
       choices = generateChoices(run, count);
-      useGame.setState({ levelUp: { cards: choices.map((c, i) => choiceToCard(c, run, i)), rerolls: run.rerolls, level: run.level - run.pendingLevels + 1, pending: run.pendingLevels } });
+      flow.publishCards();
     } else {
       useGame.setState({ levelUp: null });
       input.clearPresses();
@@ -150,9 +182,8 @@ export const flow = {
     run.rerolls--;
     const count = CONFIG.levelUp.baseChoices + (run.stats.luck >= 30 ? 1 : 0);
     choices = generateChoices(run, count);
-    const lu = store().levelUp!;
-    useGame.setState({ levelUp: { ...lu, cards: choices.map((c, i) => choiceToCard(c, run, i)), rerolls: run.rerolls } });
-    audio.play('click');
+    flow.publishCards();
+    audio.play('whoosh');
   },
 
   bossIntro(name: string, title: string) {

@@ -84,3 +84,9 @@ h1, h2, h3, h4 { font-family: var(--head); font-weight: 400; letter-spacing: .5p
 .chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; margin: 3px; border-radius: 999px; background: rgba(255,255,255,.08); font-size: 13px; font-weight: 800; }
 .chip.evo { background: linear-gradient(90deg, #ffd60a55, #ff9f1c55); border: 1px solid #ffd60a; }
 .chip.ach { background: rgba(199,125,255,.2); }
+.float-text.el-fire { color: #ffb36b; }
+.float-text.el-lightning { color: #9ff8ff; }
+.float-text.el-poison { color: #a7ff83; }
+.float-text.el-arcane { color: #e0aaff; }
+.float-text.el-frost { color: #c4f1ff; }
+.float-text.el-explosive { color: #ffcf8a; }

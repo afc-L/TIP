@@ -57,6 +57,8 @@ export class World {
     this.buildCrystals(Math.round(def.props.crystals * q.propMult));
     this.buildGrass(Math.round(7000 * q.grassMult * def.props.grass));
     if (def.props.flowers) this.buildFlowers(Math.round(500 * q.propMult));
+    this.buildLavaPools(def.props.lavaPools);
+    this.buildSpikes(Math.round(def.props.spikes * q.propMult));
     this.buildMotes();
     this.buildCloudShadows();
     for (const o of this.obstacles) this.insert(o);
@@ -481,7 +483,7 @@ export class World {
 
   private buildCrystals(n: number) {
     if (n <= 0) return;
-    const cols = ['#ff4ecd', '#4cc9f0', '#b388ff', '#72efdd'].map((c) => new THREE.Color(c));
+    const cols = this.def.palette.crystals.map((c) => new THREE.Color(c));
     const items: { x: number; z: number; s: number; a: number; tilt: number; cluster: number }[] = [];
     for (let i = 0; i < n; i++) {
       const s = 0.8 + this.rng() * 1.2;
@@ -530,7 +532,63 @@ export class World {
     });
   }
 
+  /** Lava pools: walkable but burning hazards (Lava Fields). */
+  lavaPools: { x: number; z: number; r: number }[] = [];
+  blizzard = false;
+  setBlizzard(on: boolean) { this.blizzard = on; }
+
+  private buildLavaPools(n: number) {
+    if (n <= 0) return;
+    const lavaMat = new THREE.MeshBasicMaterial({ color: '#ff5400' });
+    const crustMat = new THREE.MeshLambertMaterial({ color: '#1a0f0d', flatShading: true });
+    for (let i = 0; i < n; i++) {
+      const r = 2.2 + this.rng() * 2.8;
+      let p: { x: number; z: number } | null = null;
+      for (let k = 0; k < 30 && !p; k++) {
+        const a = this.rng() * Math.PI * 2, d = 14 + this.rng() * (this.radius - 18);
+        const x = Math.cos(a) * d, z = Math.sin(a) * d;
+        if (this.canPlace(x, z, r, 2.5) && this.lavaPools.every((l) => (l.x - x) ** 2 + (l.z - z) ** 2 > (l.r + r + 3) ** 2)) p = { x, z };
+      }
+      if (!p) continue;
+      const g = new THREE.Group();
+      const pool = new THREE.Mesh(new THREE.CircleGeometry(r, 18).rotateX(-Math.PI / 2), lavaMat);
+      pool.position.y = 0.05;
+      const crust = new THREE.Mesh(new THREE.RingGeometry(r * 0.95, r * 1.15, 18).rotateX(-Math.PI / 2), crustMat);
+      crust.position.y = 0.06;
+      g.add(pool, crust);
+      g.position.set(p.x, 0, p.z);
+      this.add(g);
+      this.lavaPools.push({ x: p.x, z: p.z, r });
+    }
+    this.animated.push((t) => { lavaMat.color.setHSL(0.05 + Math.sin(t * 1.5) * 0.015, 1, 0.5 + Math.sin(t * 2.3) * 0.06); });
+  }
+
+  /** Ice spikes (Frozen Wasteland) or obsidian spires (Lava Fields). */
+  private buildSpikes(n: number) {
+    if (n <= 0) return;
+    const ice = this.def.id === 'frozen';
+    const items: { x: number; z: number; s: number; a: number; tilt: number }[] = [];
+    for (let i = 0; i < n; i++) {
+      const s = 0.7 + this.rng() * 1.6;
+      const solid = s > 1.2;
+      const p = this.placeSolid(solid ? 0.5 * s : 0.1, solid ? 3 : 0.5, 11, this.radius + 8);
+      if (!p) continue;
+      items.push({ ...p, s, a: this.rng() * 6, tilt: (this.rng() - 0.5) * 0.4 });
+      if (solid && Math.hypot(p.x, p.z) < this.radius) this.obstacles.push({ x: p.x, z: p.z, r: 0.5 * s });
+    }
+    const mat = ice
+      ? occludable(new THREE.MeshLambertMaterial({ color: '#ffffff', emissive: '#5fa8d3', emissiveIntensity: 0.25, flatShading: true, transparent: true, opacity: 0.9 }))
+      : occludable(new THREE.MeshLambertMaterial({ color: '#ffffff', flatShading: true }));
+    const base = new THREE.Color(ice ? '#caf0f8' : '#2b2120');
+    this.instanced(cone(0.6, 2.6, { p: [0, 1.3, 0] }, 5), mat, items.length, (i, m, c) => {
+      const it = items[i];
+      m.compose(_p.set(it.x, 0, it.z), _q.setFromEuler(_e.set(it.tilt, it.a, it.tilt * 0.6)), _s.set(it.s, it.s * (1 + (i % 3) * 0.25), it.s));
+      c.copy(base).multiplyScalar(0.85 + this.rng() * 0.3);
+    }, true);
+  }
+
   private buildMotes() {
+    if (this.def.snow) { this.buildSnow(); return; }
     const n = 220;
     const geo = new THREE.BufferGeometry();
     const pos = new Float32Array(n * 3);
@@ -542,7 +600,7 @@ export class World {
       seeds[i] = this.rng() * 100;
     }
     geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    const color = this.def.id === 'forest' ? '#fff3b0' : this.def.id === 'canyon' ? '#ff9de2' : '#ffb347';
+    const color = this.def.id === 'forest' ? '#fff3b0' : this.def.id === 'canyon' ? '#ff9de2' : this.def.id === 'lava' ? '#ff7b00' : '#ffb347';
     const mat = new THREE.PointsMaterial({ color, size: 0.22, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false });
     const pts = new THREE.Points(geo, mat);
     pts.frustumCulled = false;
@@ -563,6 +621,38 @@ export class World {
     });
   }
   private center = { x: 0, z: 0 };
+
+  private buildSnow() {
+    const n = 900;
+    const geo = new THREE.BufferGeometry();
+    const pos = new Float32Array(n * 3);
+    const seeds = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      pos[i * 3] = (this.rng() - 0.5) * 60;
+      pos[i * 3 + 1] = this.rng() * 14;
+      pos[i * 3 + 2] = (this.rng() - 0.5) * 60;
+      seeds[i] = this.rng() * 100;
+    }
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const mat = new THREE.PointsMaterial({ color: '#ffffff', size: 0.2, transparent: true, opacity: 0.9, depthWrite: false });
+    const pts = new THREE.Points(geo, mat);
+    pts.frustumCulled = false;
+    this.add(pts);
+    const attr = geo.getAttribute('position') as THREE.BufferAttribute;
+    const wrap = (v: number, c: number) => c + ((((v - c) % 60) + 90) % 60) - 30;
+    let wind = 0;
+    this.animated.push((_t, dt) => {
+      const c = this.center;
+      wind += ((this.blizzard ? 9 : 1.2) - wind) * Math.min(1, dt);
+      mat.size = this.blizzard ? 0.28 : 0.2;
+      for (let i = 0; i < n; i++) {
+        let y = attr.getY(i) - dt * (1.5 + (seeds[i] % 1) * 1.5 + wind * 0.3);
+        if (y < 0) y += 14;
+        attr.setXYZ(i, wrap(attr.getX(i) + dt * wind, c.x), y, wrap(attr.getZ(i) + Math.sin(seeds[i] + y) * dt * 0.5, c.z));
+      }
+      attr.needsUpdate = true;
+    });
+  }
 
   private buildCloudShadows() {
     const cv = document.createElement('canvas');

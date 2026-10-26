@@ -29,6 +29,9 @@ export class Player {
   stamina: number = P.staminaMax;
   attackAnim = 0;
   lunge: { dx: number; dz: number; speed: number; t: number; onEnd?: () => void } | null = null;
+  friction = 1;          // < 1 on ice: slower acceleration and braking
+  dashMult = 1;
+  dodgeCooldownMult = 1;
   knockX = 0;
   knockZ = 0;
   deathT = 0;
@@ -37,9 +40,9 @@ export class Player {
   shieldMesh: THREE.Mesh;
   private animTime = 0;
 
-  constructor(scene: THREE.Scene, character: CharacterId, maxHp: number) {
+  constructor(scene: THREE.Scene, character: CharacterId, maxHp: number, tint?: string) {
     this.hp = maxHp;
-    this.rig = buildCharacter(character);
+    this.rig = buildCharacter(character, tint);
     scene.add(this.rig.root);
     this.shadow = new THREE.Mesh(new THREE.CircleGeometry(0.75, 20), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.3, depthWrite: false }));
     this.shadow.rotation.x = -Math.PI / 2;
@@ -59,8 +62,8 @@ export class Player {
     if (Math.hypot(dx, dz) < 0.1) { dx = Math.cos(this.facing); dz = Math.sin(this.facing); }
     const l = Math.hypot(dx, dz) || 1;
     this.dodgeDx = dx / l; this.dodgeDz = dz / l;
-    this.dodgeT = P.dodgeDuration;
-    this.dodgeCd = P.dodgeCooldown;
+    this.dodgeT = P.dodgeDuration * this.dashMult;
+    this.dodgeCd = P.dodgeCooldown * this.dodgeCooldownMult;
     this.invuln = Math.max(this.invuln, P.dodgeInvulnerability);
     return true;
   }
@@ -99,7 +102,7 @@ export class Player {
       this.dodgeT -= dt;
       this.vx = this.dodgeDx * P.dodgeSpeed; this.vz = this.dodgeDz * P.dodgeSpeed;
     } else {
-      const k = damp(moving ? 16 : 12, dt);
+      const k = damp((moving ? 16 : 12) * this.friction, dt);
       this.vx += (mx * speed - this.vx) * k;
       this.vz += (mz * speed - this.vz) * k;
       if (moving) this.facing = Math.atan2(mz, mx);

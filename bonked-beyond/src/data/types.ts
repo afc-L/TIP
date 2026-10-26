@@ -2,17 +2,28 @@
 
 export type WeaponId =
   | 'hammer' | 'blades' | 'orb' | 'boomerang' | 'lightning'
-  | 'rocket' | 'poison' | 'quake' | 'knives' | 'charge';
+  | 'rocket' | 'poison' | 'quake' | 'knives' | 'charge'
+  | 'meteor' | 'soulReaper' | 'tesla' | 'gravityWell' | 'boulder'
+  | 'drones' | 'fireTornado' | 'goldenCannon' | 'mirrorShards' | 'voidRift';
+
+/** Damage elements: drive hit effects, enemy resistances and build synergies. */
+export type Element = 'physical' | 'fire' | 'lightning' | 'poison' | 'arcane' | 'explosive' | 'frost';
+/** Weapon tags used by the synergy system. */
+export type WeaponTag = Element | 'melee' | 'projectile' | 'area' | 'summon' | 'heavy' | 'treasure';
 
 export type PassiveId =
   | 'powerCore' | 'runningShoes' | 'ironHeart' | 'magnet' | 'luckyCoin'
   | 'critLens' | 'coolingFan' | 'thorns' | 'regenSeed' | 'xpCrystal'
   | 'arcaneFocus' | 'longArm' | 'blastPowder' | 'ironShell';
 
-export type CharacterId = 'bonker' | 'runner' | 'scrapRat' | 'wizard' | 'moose';
-export type MapId = 'forest' | 'canyon' | 'arena';
-export type EnemyKind = 'slime' | 'bigSlime' | 'goblin' | 'brute' | 'shaman' | 'exploder';
-export type BossId = 'stumpKing' | 'scrapGolem';
+export type CharacterId = 'bonker' | 'runner' | 'scrapRat' | 'wizard' | 'moose'
+  | 'alchemist' | 'gunslinger' | 'engineer' | 'berserker' | 'frostKnight' | 'gambler';
+export type MapId = 'forest' | 'canyon' | 'arena' | 'frozen' | 'lava';
+export type EnemyKind = 'slime' | 'bigSlime' | 'goblin' | 'brute' | 'shaman' | 'exploder'
+  | 'swarmBug' | 'bombardier' | 'stalker' | 'shieldKnight' | 'healer' | 'phantom'
+  | 'burrower' | 'beetle' | 'archer' | 'ogre';
+export type BossId = 'stumpKing' | 'scrapGolem' | 'voidDevourer' | 'goldenExecutioner' | 'crystalColossus';
+export type EliteMod = 'enraged' | 'armored' | 'vampiric' | 'explosive' | 'swift' | 'regenerating' | 'summoner';
 export type RunMode = 'standard' | 'practice' | 'endless';
 export type Difficulty = 'easy' | 'normal' | 'hard';
 export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'evolution';
@@ -44,6 +55,11 @@ export interface StatBlock {
   goldGain: number;
   thorns: number;         // fraction reflected
   explosiveMult: number;
+  dotMult: number;        // poison / burn damage
+  statusDuration: number; // burn / slow / poison durations
+  summonMult: number;     // drones, turrets
+  healMult: number;       // healing received
+  dodgeCooldown: number;  // multiplier
 }
 
 export type StatMod = Partial<StatBlock>;
@@ -66,6 +82,8 @@ export interface WeaponDef {
   icon: string;
   color: string;
   description: string;
+  tags: WeaponTag[];      // first element tag is the hit element
+  element: Element;
   base: WeaponStats;
   /** Increments applied when reaching level index+2 (level 1 is base). */
   levels: { mod: Partial<WeaponStats>; text: string }[];
@@ -100,4 +118,7 @@ export interface CharacterDef {
   stats: StatMod;
   difficulty: 1 | 2 | 3;
   unlock?: string; // achievement id
+  playstyle: string;
+  /** Mechanical trait handled by the run (beyond plain stat changes). */
+  trait?: 'frostbite' | 'bloodRage' | 'loadedDice' | 'engineer' | 'gunslinger' | 'alchemist';
 }

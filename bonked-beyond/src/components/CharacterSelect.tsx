@@ -3,6 +3,7 @@ import { flow } from '../app/flow';
 import { ACHIEVEMENT_MAP } from '../data/achievements';
 import { CHARACTERS } from '../data/characters';
 import { WEAPON_MAP } from '../data/weapons';
+import { COSMETIC_MAP } from '../data/cosmetics';
 import { engine } from '../game/Engine';
 import { isUnlocked, useProgression } from '../store/progressionStore';
 import { Bar, Btn, PageHeader, Stars } from './ui';
@@ -13,7 +14,8 @@ export function CharacterSelect() {
   const selected = CHARACTERS.find((c) => c.id === save.selectedCharacter) ?? CHARACTERS[0];
   const unlocked = isUnlocked(selected.unlock, save);
 
-  useEffect(() => { engine.showcase.setCharacter(selected.id); }, [selected.id]);
+  const tint = COSMETIC_MAP[save.cosmetics.tint]?.value ?? '';
+  useEffect(() => { engine.showcase.setCharacter(selected.id, tint); }, [selected.id, tint]);
 
   const weapon = WEAPON_MAP[selected.weapon];
   return (
@@ -30,6 +32,7 @@ export function CharacterSelect() {
                 <span className="char-dot" />
                 <span className="char-tile-name">{c.name}</span>
                 {!ok && <span className="lock">🔒</span>}
+                {ok && (save.characterRuns[c.id] ?? 0) > 0 && <span className="runs" title="Runs played">{save.characterRuns[c.id]}</span>}
               </button>
             );
           })}
@@ -38,6 +41,7 @@ export function CharacterSelect() {
           <div className="char-title" style={{ color: selected.color }}>{selected.name}</div>
           <div className="char-sub">{selected.title}</div>
           <p className="char-desc">{selected.description}</p>
+          <p className="char-play">🎮 {selected.playstyle}</p>
           <div className="char-stats">
             <Bar label={`Health ${selected.baseHp}`} value={selected.baseHp} max={180} color="#ff4d6d" />
             <Bar label={`Speed ${selected.moveSpeed.toFixed(1)}`} value={selected.moveSpeed} max={8} color="#4cc9f0" />

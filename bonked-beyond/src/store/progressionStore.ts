@@ -5,6 +5,10 @@ import { MAPS } from '../data/maps';
 import { PERMANENT_UPGRADES, upgradeCost } from '../data/permanentUpgrades';
 import type { CharacterId, MapId, RunMode, WeaponId } from '../data/types';
 import { WEAPON_MAP } from '../data/weapons';
+import { CHALLENGE_MAP, CHALLENGES } from '../data/challenges';
+import { COSMETIC_MAP, DEFAULT_COSMETICS, type CosmeticSlot } from '../data/cosmetics';
+import { MODIFIER_MAP, rollModifiers, type ModifierId } from '../data/modifiers';
+import type { BossId } from '../data/types';
 import { bool, num, oneOf, readJSON, removeKey, writeJSON } from './storage';
 
 export const SAVE_KEY = 'bonked_beyond_save';
@@ -23,6 +27,8 @@ export interface LifetimeStats {
   highestHit: number;
   totalDamage: number;
   mostKills: number;
+  bestEndless: number;
+  totalEvolutions: number;
 }
 
 export interface SaveData {
@@ -38,11 +44,19 @@ export interface SaveData {
   selectedCharacter: CharacterId;
   selectedMap: MapId;
   selectedMode: RunMode;
+  challengeBest: Record<string, number>;
+  challengeClaimed: string[];
+  mapsPlayed: string[];
+  bossKills: Record<string, number>;
+  cosmeticsOwned: string[];
+  cosmetics: Record<CosmeticSlot, string>;
+  modifiersEnabled: boolean;
+  rolledModifiers: ModifierId[];
 }
 
 const DEFAULT_STATS: LifetimeStats = {
   totalRuns: 0, wins: 0, totalTime: 0, totalKills: 0, totalElites: 0, highestLevel: 0, bestTime: 0,
-  totalBosses: 0, totalCurrency: 0, highestHit: 0, totalDamage: 0, mostKills: 0,
+  totalBosses: 0, totalCurrency: 0, highestHit: 0, totalDamage: 0, mostKills: 0, bestEndless: 0, totalEvolutions: 0,
 };
 
 export function defaultSave(): SaveData {
@@ -50,6 +64,9 @@ export function defaultSave(): SaveData {
     version: SAVE_VERSION, currency: 0, upgrades: {}, purchasedAnyUpgrade: false, achievements: {},
     stats: { ...DEFAULT_STATS }, characterRuns: {}, bestTimeByMap: {}, discovered: [],
     selectedCharacter: 'bonker', selectedMap: 'forest', selectedMode: 'standard',
+    challengeBest: {}, challengeClaimed: [], mapsPlayed: [], bossKills: {},
+    cosmeticsOwned: Object.values(DEFAULT_COSMETICS), cosmetics: { ...DEFAULT_COSMETICS },
+    modifiersEnabled: false, rolledModifiers: rollModifiers(),
   };
 }
 
@@ -87,7 +104,29 @@ export function validateSave(raw: unknown): SaveData {
     selectedCharacter: oneOf(v.selectedCharacter, CHARACTERS.map((c) => c.id), 'bonker'),
     selectedMap: oneOf(v.selectedMap, MAPS.map((m) => m.id), 'forest'),
     selectedMode: oneOf(v.selectedMode, ['standard', 'practice', 'endless'] as const, 'standard'),
+    challengeBest: numRecord(v.challengeBest, Object.keys(CHALLENGE_MAP), 0, 1e12),
+    challengeClaimed: strList(v.challengeClaimed).filter((id) => CHALLENGE_MAP[id]),
+    mapsPlayed: strList(v.mapsPlayed).filter((id) => MAPS.some((m) => m.id === id)),
+    bossKills: numRecord(v.bossKills, ['stumpKing', 'scrapGolem', 'voidDevourer', 'goldenExecutioner', 'crystalColossus'] satisfies BossId[], 0, 1e9),
+    cosmeticsOwned: [...new Set([...Object.values(DEFAULT_COSMETICS), ...strList(v.cosmeticsOwned).filter((id) => COSMETIC_MAP[id])])],
+    cosmetics: validCosmetics(v.cosmetics, strList(v.cosmeticsOwned)),
+    modifiersEnabled: bool(v.modifiersEnabled, false),
+    rolledModifiers: (() => { const l = strList(v.rolledModifiers).filter((id): id is ModifierId => id in MODIFIER_MAP).slice(0, 2); return l.length ? l : rollModifiers(); })(),
   };
+}
+
+function strList(v: unknown): string[] {
+  return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string').slice(0, 500) : [];
+}
+
+function validCosmetics(v: unknown, owned: string[]): Record<CosmeticSlot, string> {
+  const out = { ...DEFAULT_COSMETICS };
+  if (typeof v !== 'object' || v == null) return out;
+  for (const slot of Object.keys(out) as CosmeticSlot[]) {
+    const id = (v as Record<string, unknown>)[slot];
+    if (typeof id === 'string' && COSMETIC_MAP[id]?.slot === slot && (owned.includes(id) || Object.values(DEFAULT_COSMETICS).includes(id))) out[slot] = id;
+  }
+  return out;
 }
 
 let saveWritable = true;
@@ -108,6 +147,9 @@ interface ProgressionStore {
   resetProgress: () => void;
   unlockAchievement: (id: string) => boolean;
   markDiscovered: (ids: string[]) => void;
+  claimChallenge: (id: string) => boolean;
+  buyCosmetic: (id: string) => boolean;
+  equipCosmetic: (id: string) => void;
 }
 
 export const useProgression = create<ProgressionStore>((set, get) => ({
@@ -124,6 +166,7 @@ export const useProgression = create<ProgressionStore>((set, get) => ({
   buyUpgrade: (id) => {
     const def = PERMANENT_UPGRADES.find((u) => u.id === id);
     if (!def) return false;
+    if (def.requires && !(get().save.upgrades[def.requires] ?? 0)) return false;
     const rank = get().save.upgrades[id] ?? 0;
     if (rank >= def.maxRank) return false;
     const cost = upgradeCost(def, rank);
@@ -152,10 +195,44 @@ export const useProgression = create<ProgressionStore>((set, get) => ({
   },
   markDiscovered: (ids) => {
     const cur = new Set(get().save.discovered);
-    const fresh = ids.filter((i) => !cur.has(i));
+    const fresh = [...new Set(ids)].filter((i) => !cur.has(i));
     if (fresh.length) get().update((s) => { s.discovered.push(...fresh); });
   },
+  claimChallenge: (id) => {
+    const def = CHALLENGE_MAP[id];
+    const save = get().save;
+    if (!def || save.challengeClaimed.includes(id) || challengeProgress(id, save) < def.target) return false;
+    get().update((s) => {
+      s.challengeClaimed.push(id);
+      if (def.reward.currency) { s.currency += def.reward.currency; s.stats.totalCurrency += def.reward.currency; }
+      if (def.reward.cosmetic && !s.cosmeticsOwned.includes(def.reward.cosmetic)) s.cosmeticsOwned.push(def.reward.cosmetic);
+    });
+    return true;
+  },
+  buyCosmetic: (id) => {
+    const def = COSMETIC_MAP[id];
+    const save = get().save;
+    if (!def || !def.cost || save.cosmeticsOwned.includes(id) || save.currency < def.cost) return false;
+    get().update((s) => { s.currency -= def.cost!; s.cosmeticsOwned.push(id); });
+    return true;
+  },
+  equipCosmetic: (id) => {
+    const def = COSMETIC_MAP[id];
+    if (!def || !get().save.cosmeticsOwned.includes(id)) return;
+    get().update((s) => { s.cosmetics[def.slot] = id; });
+  },
 }));
+
+export function challengeProgress(id: string, save: SaveData = getSave()): number {
+  const def = CHALLENGE_MAP[id];
+  if (!def) return 0;
+  if (def.scope === 'total') return def.metric(null, { totalKills: save.stats.totalKills, totalElites: save.stats.totalElites, mapsPlayed: save.mapsPlayed });
+  return save.challengeBest[id] ?? 0;
+}
+
+export function claimableChallenges(save: SaveData = getSave()): number {
+  return CHALLENGES.filter((c) => !save.challengeClaimed.includes(c.id) && challengeProgress(c.id, save) >= c.target).length;
+}
 
 export const getSave = () => useProgression.getState().save;
 

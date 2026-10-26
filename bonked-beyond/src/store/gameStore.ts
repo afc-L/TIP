@@ -23,6 +23,10 @@ export interface HudSnapshot {
   fps: number;
   enemies: number;
   objective: string;
+  synergies: { id: string; icon: string; name: string }[];
+  modifiers: { id: string; icon: string; name: string }[];
+  pendingLevels: number;
+  revive: boolean;
 }
 
 export interface BossBar { name: string; title: string; hp: number; maxHp: number; enraged: boolean }
@@ -62,6 +66,11 @@ export interface RunResult {
   previousBest: number;
   newRecord: boolean;
   achievements: { icon: string; name: string }[];
+  unlocks: string[];
+  challenges: { icon: string; name: string }[];
+  synergies: { icon: string; name: string }[];
+  modifiers: { icon: string; name: string }[];
+  rewardMult: number;
 }
 
 export interface Toast { id: number; icon: string; title: string; text: string; kind: 'achievement' | 'info' | 'evolution' }
@@ -72,7 +81,7 @@ interface GameStore {
   hud: HudSnapshot | null;
   boss: BossBar | null;
   announcement: { id: number; text: string; big: boolean } | null;
-  levelUp: { cards: UpgradeCard[]; rerolls: number; level: number; pending: number } | null;
+  levelUp: { cards: UpgradeCard[]; rerolls: number; banishes: number; level: number; pending: number } | null;
   bossIntro: { name: string; title: string } | null;
   result: RunResult | null;
   interact: string | null;

@@ -16,7 +16,7 @@ export class ScreenEffects {
   shake(amount: number) {
     const s = getSettings();
     if (!s.screenShake) return;
-    const scale = s.reducedEffects ? 0.4 : 1;
+    const scale = (s.reducedEffects ? 0.4 : 1) * s.shakeIntensity;
     this.shakeAmount = Math.min(1.2, Math.max(this.shakeAmount, amount * scale));
   }
 

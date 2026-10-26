@@ -2,7 +2,8 @@
 import * as THREE from 'three';
 import { CONFIG } from '../GameConfig';
 import { buildBarrel, buildChest, buildPowerup, buildShrine, POWERUP_INFO, type PowerupKind } from '../models/propModels';
-import { cyl, octa } from '../models/shapes';
+import { box, cone, cyl, dodeca, merge, octa, sphere, torus } from '../models/shapes';
+import { glow, mat } from '../models/materials';
 import type { Run } from '../Run';
 import { rand } from '../util';
 
@@ -12,6 +13,7 @@ interface Powerup { active: boolean; kind: PowerupKind; x: number; z: number; t:
 export interface Chest { x: number; z: number; golden: boolean; cost: number; opened: boolean; openT: number; group: THREE.Group; lid: THREE.Group; rewards: number }
 interface Shrine { x: number; z: number; used: boolean; group: THREE.Group; orb: THREE.Mesh }
 interface Barrel { x: number; z: number; alive: boolean; group: THREE.Group }
+interface Station { kind: 'spring' | 'altar' | 'totem'; x: number; z: number; used: boolean; group: THREE.Group; glow: THREE.Mesh }
 
 const _m = new THREE.Matrix4();
 const _q = new THREE.Quaternion();
@@ -28,6 +30,8 @@ export class PickupManager {
   chests: Chest[] = [];
   shrines: Shrine[] = [];
   barrels: Barrel[] = [];
+  stations: Station[] = [];
+  camps: THREE.Group[] = [];
   private gemMeshes: THREE.InstancedMesh[];
   private coinMesh: THREE.InstancedMesh;
   private gemCursor = 0;
@@ -123,6 +127,12 @@ export class PickupManager {
       this.shrines.push({ x: p.x, z: p.z, used: false, group, orb });
       run.world.obstacles.push({ x: p.x, z: p.z, r: 0.01 });
     }
+    const stationKinds: Station['kind'][] = ['spring', 'spring', 'altar', 'totem', 'totem'];
+    for (const kind of stationKinds) {
+      const p = w.openPoint(16, w.radius - 5, 2.5, rnd);
+      this.addStation(kind, p.x, p.z);
+      run.world.obstacles.push({ x: p.x, z: p.z, r: 0.01 });
+    }
     for (let i = 0; i < 28; i++) {
       const p = w.openPoint(7, w.radius - 3, 1.2, rnd);
       const group = buildBarrel();
@@ -131,6 +141,45 @@ export class PickupManager {
       this.group.add(group);
       this.barrels.push({ x: p.x, z: p.z, alive: true, group });
     }
+  }
+
+  private addStation(kind: Station['kind'], x: number, z: number) {
+    const group = new THREE.Group();
+    let g: THREE.Mesh;
+    if (kind === 'spring') {
+      group.add(new THREE.Mesh(merge([cyl(1.4, 1.6, 0.5, { p: [0, 0.25, 0] }, 10)]), mat('#8d99ae')));
+      g = new THREE.Mesh(cyl(1.15, 1.15, 0.1, { p: [0, 0.5, 0] }, 16), glow('#70e000'));
+      group.add(new THREE.Mesh(merge([sphere(0.25, { p: [-1, 0.7, 0.6] }), sphere(0.2, { p: [0.9, 0.7, -0.7] })]), mat('#52b788')));
+    } else if (kind === 'altar') {
+      group.add(new THREE.Mesh(merge([box(2.4, 0.5, 1.6, { p: [0, 0.25, 0] }), box(1.8, 0.9, 1.1, { p: [0, 0.95, 0] }), cone(0.2, 1.4, { p: [-0.8, 2.1, 0] }, 5), cone(0.2, 1.4, { p: [0.8, 2.1, 0] }, 5)]), mat('#3d2c2a')));
+      g = new THREE.Mesh(dodeca(0.45, { p: [0, 1.8, 0] }), glow('#ff3b30'));
+    } else {
+      group.add(new THREE.Mesh(merge([cyl(0.35, 0.5, 2.6, { p: [0, 1.3, 0] }, 6), torus(0.5, 0.1, { p: [0, 1.0, 0], r: [Math.PI / 2, 0, 0] }), torus(0.45, 0.1, { p: [0, 1.8, 0], r: [Math.PI / 2, 0, 0] })]), mat('#264653')));
+      g = new THREE.Mesh(octa(0.4, { p: [0, 3.0, 0] }), glow('#4cc9f0'));
+    }
+    group.add(g);
+    group.position.set(x, 0, z);
+    for (const m of group.children) m.castShadow = true;
+    this.group.add(group);
+    this.stations.push({ kind, x, z, used: false, group, glow: g });
+  }
+
+  /** Banner ring marking an elite encounter area. */
+  addCamp(x: number, z: number) {
+    const g = new THREE.Group();
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      const pole = new THREE.Mesh(merge([cyl(0.06, 0.06, 2.4, { p: [0, 1.2, 0] }, 5), box(0.6, 0.4, 0.04, { p: [0.3, 2.1, 0] })]), mat(i % 2 ? '#9d0208' : '#ffd166'));
+      pole.position.set(Math.cos(a) * 5, 0, Math.sin(a) * 5);
+      pole.rotation.y = -a;
+      g.add(pole);
+    }
+    const ring = new THREE.Mesh(new THREE.RingGeometry(4.8, 5.1, 40).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#ff3b30', transparent: true, opacity: 0.5, depthWrite: false }));
+    ring.position.y = 0.05;
+    g.add(ring);
+    g.position.set(x, 0, z);
+    this.group.add(g);
+    this.camps.push(g);
   }
 
   magnetAll() {
@@ -220,6 +269,17 @@ export class PickupManager {
       if (c.opened) continue;
       consider(c.x, c.z, c.golden ? 'Open Golden Chest' : `Open Chest (${c.cost} gold)`, () => run.openChest(c));
     }
+    for (const st of this.stations) {
+      if (st.used) continue;
+      const text = st.kind === 'spring' ? 'Healing Spring: restore 50% HP' : st.kind === 'altar' ? 'Risk Altar: summon a champion for big rewards' : 'Power Totem: 20s weapon overdrive';
+      consider(st.x, st.z, text, () => {
+        st.used = true;
+        (st.glow.material as THREE.MeshBasicMaterial).color.set('#555555');
+        if (st.kind === 'spring') run.useHealingShrine();
+        else if (st.kind === 'altar') run.useRiskAltar(st.x, st.z);
+        else run.usePowerTotem();
+      });
+    }
     for (const s of this.shrines) {
       if (s.used) continue;
       consider(s.x, s.z, 'Blood Shrine: sacrifice 25% HP for +12% damage', () => {
@@ -268,6 +328,7 @@ export class PickupManager {
       pu.group.visible = pu.life > 5 || Math.floor(time * 6) % 2 === 0;
     }
     for (const s of this.shrines) if (!s.used) { s.orb.rotation.y = time * 2; s.orb.position.y = 3.3 + Math.sin(time * 2) * 0.2; }
+    for (const st of this.stations) if (!st.used) { st.glow.rotation.y = time * 1.5; st.glow.scale.setScalar(1 + Math.sin(time * 3 + st.x) * 0.08); }
     for (const c of this.chests) if (c.golden && !c.opened) c.group.rotation.y = time * 0.8;
   }
 }

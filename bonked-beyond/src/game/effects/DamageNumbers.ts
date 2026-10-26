@@ -35,11 +35,12 @@ export class DamageNumbers {
     return f;
   }
 
-  damage(x: number, y: number, z: number, amount: number, crit: boolean, player = false) {
+  damage(x: number, y: number, z: number, amount: number, crit: boolean, player = false, element = 'physical') {
     if (!this.enabled && !player) return;
+    if (!player && !crit && amount < 1) return;
     const f = this.take();
     f.el.textContent = player ? `-${Math.round(amount)}` : crit ? `${Math.round(amount)}!` : `${Math.round(amount)}`;
-    f.el.className = 'float-text ' + (player ? 'ft-player' : crit ? 'ft-crit' : amount >= 100 ? 'ft-big' : 'ft-dmg');
+    f.el.className = 'float-text ' + (player ? 'ft-player' : crit ? 'ft-crit' : amount >= 100 ? 'ft-big' : 'ft-dmg') + (player || crit ? '' : ' el-' + element);
     this.spawn(f, x, y, z, crit ? 0.9 : 0.65, crit);
   }
 

@@ -3,7 +3,7 @@ import type { Telegraph } from '../effects/Vfx';
 import type { Run } from '../Run';
 
 export interface HazardSpec {
-  shape: 'circle' | 'rect';
+  shape: 'circle' | 'rect' | 'sector';
   x: number; z: number;
   r?: number;
   angle?: number; length?: number; width?: number;
@@ -16,20 +16,39 @@ export interface HazardSpec {
   lingerColor?: string;
   label: string;
   onTrigger?: (run: Run) => void;
+  /** Pulls the player toward the centre while active (strength in units/s). */
+  pull?: number;
+  /** Safe circles inside the hazard (Judgment). */
+  safe?: { x: number; z: number; r: number }[];
 }
 
-interface Hazard extends HazardSpec { t: number; tg: Telegraph; triggered: boolean; lingerT: number; tick: number }
+interface Hazard extends HazardSpec { t: number; tg: Telegraph; triggered: boolean; lingerT: number; tick: number; safeTg: Telegraph[] }
 
 export class HazardManager {
   private list: Hazard[] = [];
 
   add(spec: HazardSpec, run: Run) {
     const tg = run.vfx.telegraph(spec.shape, spec.color ?? '#ff2e2e');
-    this.list.push({ ...spec, t: 0, tg, triggered: false, lingerT: 0, tick: 0 });
+    const h: Hazard = { ...spec, t: 0, tg, triggered: false, lingerT: 0, tick: 0, safeTg: [] };
+    for (const s of spec.safe ?? []) {
+      const st = run.vfx.telegraph('circle', '#38b000');
+      run.vfx.setCircle(st, s.x, s.z, s.r, 1);
+      st.group.position.y = 0.02;
+      h.safeTg.push(st);
+    }
+    this.list.push(h);
   }
 
   private inside(h: Hazard, x: number, z: number, pad: number) {
+    if (h.safe) for (const s of h.safe) if ((x - s.x) ** 2 + (z - s.z) ** 2 < (s.r - pad) ** 2) return false;
     if (h.shape === 'circle') return (x - h.x) ** 2 + (z - h.z) ** 2 < ((h.r ?? 1) + pad) ** 2;
+    if (h.shape === 'sector') {
+      const dx = x - h.x, dz = z - h.z;
+      if (dx * dx + dz * dz > ((h.r ?? 1) + pad) ** 2) return false;
+      let d = Math.atan2(dz, dx) - (h.angle ?? 0);
+      d = Math.atan2(Math.sin(d), Math.cos(d));
+      return Math.abs(d) < 1.2;
+    }
     const a = h.angle ?? 0;
     const dx = x - h.x, dz = z - h.z;
     const along = dx * Math.cos(a) + dz * Math.sin(a);
@@ -42,9 +61,15 @@ export class HazardManager {
     for (let i = this.list.length - 1; i >= 0; i--) {
       const h = this.list[i];
       h.t += dt;
+      if (h.pull && p.alive && this.inside(h, p.x, p.z, 0) && !p.dodging) {
+        const dx = h.x - p.x, dz = h.z - p.z, d = Math.hypot(dx, dz) || 1;
+        p.x += (dx / d) * Math.min(d, h.pull * dt);
+        p.z += (dz / d) * Math.min(d, h.pull * dt);
+      }
       if (!h.triggered) {
         const prog = Math.min(1, h.t / h.warn);
         if (h.shape === 'circle') run.vfx.setCircle(h.tg, h.x, h.z, h.r ?? 1, prog);
+        else if (h.shape === 'sector') run.vfx.setSector(h.tg, h.x, h.z, h.angle ?? 0, h.r ?? 1, prog);
         else run.vfx.setRect(h.tg, h.x, h.z, h.angle ?? 0, h.length ?? 1, h.width ?? 1, prog);
         if (h.t >= h.warn) {
           h.triggered = true;
@@ -56,6 +81,7 @@ export class HazardManager {
             h.tg.outlineMat.color.set(h.lingerColor ?? '#ff7b00');
           } else {
             run.vfx.release(h.tg);
+            for (const s of h.safeTg) run.vfx.release(s);
             this.list.splice(i, 1);
           }
         }
@@ -75,6 +101,7 @@ export class HazardManager {
         if (h.lingerT <= 0) {
           h.tg.fillMat.opacity = 0.35;
           run.vfx.release(h.tg);
+          for (const s of h.safeTg) run.vfx.release(s);
           this.list.splice(i, 1);
         }
       }
@@ -82,7 +109,7 @@ export class HazardManager {
   }
 
   clear(run: Run) {
-    for (const h of this.list) { h.tg.fillMat.opacity = 0.35; run.vfx.release(h.tg); }
+    for (const h of this.list) { h.tg.fillMat.opacity = 0.35; run.vfx.release(h.tg); for (const s of h.safeTg) run.vfx.release(s); }
     this.list.length = 0;
   }
 }
