@@ -35,7 +35,6 @@ class Engine {
   run: Run | null = null;
   private hemi = new THREE.HemisphereLight('#ffffff', '#444444', 1.3);
   private sun = new THREE.DirectionalLight('#ffffff', 2.4);
-  private host!: HTMLElement;
   private started = false;
   private last = 0;
   private hudT = 0;
@@ -52,7 +51,6 @@ class Engine {
   init(host: HTMLElement) {
     if (this.started) return;
     this.started = true;
-    this.host = host;
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.shadowMap.enabled = true;
@@ -64,14 +62,12 @@ class Engine {
     const sc = this.sun.shadow.camera;
     sc.left = -30; sc.right = 30; sc.top = 30; sc.bottom = -30; sc.near = 1; sc.far = 80;
     this.sun.shadow.bias = -0.0008;
-    const q = CONFIG.quality[getSettings().quality];
     this.particles = new ParticleManager(this.scene, CONFIG.quality.high.particles);
     this.vfx = new Vfx(this.scene);
     this.numbers = new DamageNumbers(host);
     this.screen = new ScreenEffects(host);
     this.showcase = new Showcase();
     this.applySettings();
-    void q;
     useSettings.subscribe(() => this.applySettings());
     window.addEventListener('resize', () => this.resize());
     input.attach(host);
@@ -253,6 +249,7 @@ class Engine {
       ],
       fps: Math.round(this.fps),
       enemies: run.enemies.aliveCount,
+      objective: run.dead ? '' : run.director.objective(),
     };
     const b = run.boss;
     const boss = b && b.state !== 'dying' ? { name: b.def.name, title: b.def.title, hp: Math.max(0, b.entity.hp), maxHp: b.entity.maxHp, enraged: b.enraged } : null;

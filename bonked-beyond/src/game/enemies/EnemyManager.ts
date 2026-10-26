@@ -32,10 +32,7 @@ export class EnemyManager {
   private parts: Record<EnemyKind, PartMesh[]>;
   private aura: THREE.InstancedMesh;
   private shadows: THREE.InstancedMesh;
-  private scene: THREE.Scene;
-
   constructor(scene: THREE.Scene, cap: number, worldRadius: number) {
-    this.scene = scene;
     this.cap = cap;
     this.grid = new SpatialGrid<Enemy>(worldRadius + 12, 2.5);
     for (let i = 0; i < cap + 8; i++) this.pool.push(createEnemy());
@@ -134,7 +131,6 @@ export class EnemyManager {
 
   update(dt: number, run: Run) {
     const p = run.player;
-    const time = run.time;
     for (const e of this.pool) {
       if (!e.active) continue;
       if (!e.alive) {
@@ -360,6 +356,5 @@ export class EnemyManager {
     this.aura.instanceMatrix.needsUpdate = true;
     this.shadows.count = shN;
     this.shadows.instanceMatrix.needsUpdate = true;
-    void this.scene;
   }
 }

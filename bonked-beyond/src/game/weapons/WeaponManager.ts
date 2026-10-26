@@ -40,10 +40,8 @@ export class WeaponManager {
   private holeMeshes: THREE.Group[] = [];
   private storm: THREE.Group;
   private lungeSeq = 1;
-  private scene: THREE.Scene;
 
   constructor(scene: THREE.Scene) {
-    this.scene = scene;
     const blade = merge([box(0.9, 0.06, 0.18), box(0.18, 0.06, 0.9), box(0.6, 0.07, 0.6, { r: [0, Math.PI / 4, 0] })]);
     this.bladeMesh = new THREE.InstancedMesh(blade, new THREE.MeshLambertMaterial({ color: '#d8f3ff', emissive: '#3a86ff', emissiveIntensity: 0.35, flatShading: true }), 40);
     this.bladeMesh.count = 0;
@@ -140,12 +138,18 @@ export class WeaponManager {
 
   get plagueGarden() { return !!this.list.find((w) => w.id === 'poison' && w.evolved); }
 
+  /** Mouse aim when the player is actively aiming, otherwise the nearest enemy, otherwise facing. */
   aimDir(run: Run): { x: number; z: number } {
     const p = run.player;
     if (run.aimPoint && input.mouseRecentlyActive()) {
       const dx = run.aimPoint.x - p.x, dz = run.aimPoint.z - p.z;
       const l = Math.hypot(dx, dz);
       if (l > 0.5) return { x: dx / l, z: dz / l };
+    }
+    const t = this.bossInRange(run, 12) ?? run.enemies.grid.nearest(p.x, p.z, 14);
+    if (t) {
+      const dx = t.x - p.x, dz = t.z - p.z, l = Math.hypot(dx, dz) || 1;
+      return { x: dx / l, z: dz / l };
     }
     return { x: Math.cos(p.facing), z: Math.sin(p.facing) };
   }
@@ -165,7 +169,7 @@ export class WeaponManager {
         case 'poison': this.poison(w, run); break;
         case 'quake': this.quake(w, run); break;
         case 'knives': this.knives(w, run); break;
-        case 'charge': this.charge(w, run, dt); break;
+        case 'charge': this.charge(w, run); break;
       }
     }
     this.updateClouds(dt, run);
@@ -549,7 +553,7 @@ export class WeaponManager {
     run.sfx('knife');
   }
 
-  private charge(w: WeaponInstance, run: Run, dt: number) {
+  private charge(w: WeaponInstance, run: Run) {
     const p = run.player;
     const st = w.stats;
     if (p.lunge && w.lungeId) {
@@ -562,7 +566,6 @@ export class WeaponManager {
       });
       if (w.evolved) p.invuln = Math.max(p.invuln, 0.1);
       if (Math.random() < 0.8) run.particles.emit(p.x, 0.2, p.z, rand(-1, 1), 1.5, rand(-1, 1), 0.4, 0.3, '#ced4da', 3);
-      void dt;
       return;
     }
     if (w.timer > 0) return;
@@ -646,6 +649,5 @@ export class WeaponManager {
       g.children[2].scale.setScalar(2.2);
     });
     if (!this.list.some((w) => w.id === 'lightning' && w.evolved)) this.storm.visible = false;
-    void this.scene;
   }
 }

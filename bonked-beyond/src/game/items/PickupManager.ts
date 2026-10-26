@@ -30,13 +30,11 @@ export class PickupManager {
   barrels: Barrel[] = [];
   private gemMeshes: THREE.InstancedMesh[];
   private coinMesh: THREE.InstancedMesh;
-  private scene: THREE.Scene;
   private gemCursor = 0;
   private group = new THREE.Group();
   chestsOpened = 0;
 
   constructor(scene: THREE.Scene) {
-    this.scene = scene;
     scene.add(this.group);
     const cap = CONFIG.xp.gemCap;
     for (let i = 0; i < cap; i++) this.gems.push({ active: false, x: 0, z: 0, value: 1, magnet: false, speed: 0, t: 0 });
@@ -271,6 +269,5 @@ export class PickupManager {
     }
     for (const s of this.shrines) if (!s.used) { s.orb.rotation.y = time * 2; s.orb.position.y = 3.3 + Math.sin(time * 2) * 0.2; }
     for (const c of this.chests) if (c.golden && !c.opened) c.group.rotation.y = time * 0.8;
-    void this.scene;
   }
 }

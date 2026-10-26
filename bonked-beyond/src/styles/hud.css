@@ -74,3 +74,4 @@
   .announce.big { font-size: 40px; }
   .hud-top-center { top: 70px; }
 }
+.objective { margin-top: -6px; font-size: 13px; color: #ffe8a3; background: rgba(0,0,0,.45); padding: 3px 12px; border-radius: 999px; white-space: nowrap; }

@@ -114,7 +114,6 @@ export class Run {
   private delayed: { t: number; fn: () => void }[] = [];
   private achCheckT = 0;
   private evolvedAny = false;
-  private hadFlawless = false;
   unlockedThisRun: string[] = [];
   interactText: string | null = null;
   private interactAct: (() => void) | null = null;
@@ -201,7 +200,11 @@ export class Run {
     this.enemies.update(dt, this);
     if (this.boss) {
       this.boss.update(dt, this);
-      if (this.boss.dead) { this.boss.dispose(); this.boss = null; }
+      if (this.boss.dead) {
+        this.boss.dispose();
+        this.boss = null;
+        if (!this.victory) audio.music(this.map.music === 1 ? 'game1' : this.map.music === 2 ? 'game2' : 'game0');
+      }
     }
     this.weapons.update(dt, this);
     this.projectiles.update(dt, this);
@@ -609,7 +612,6 @@ export class Run {
     this.bossesDefeated++;
     const e = b.entity;
     this.announce(`${b.def.name} HAS FALLEN!`, true);
-    if (b.majorHits === 0) this.hadFlawless = true;
     for (let i = 0; i < 6; i++) this.pickups.gem(e.x + rand(-3, 3), e.z + rand(-3, 3), 30 + this.timelineMinutes * 6);
     for (let i = 0; i < 20; i++) this.pickups.coin(e.x + rand(-3, 3), e.z + rand(-3, 3), Math.round(b.def.rewardGold / 20));
     this.schedule(1.2, () => {
@@ -656,7 +658,6 @@ export class Run {
     const s = getSave().stats;
     if (s.totalKills + this.kills >= 1000) this.unlock('kills_1000_total');
     if (s.totalElites + this.elites >= 25) this.unlock('elites_25');
-    void this.hadFlawless;
   }
 
   /** Writes lifetime stats and rewards exactly once per run. */
@@ -666,7 +667,7 @@ export class Run {
     const prevBest = save.bestTimeByMap[this.map.id] ?? 0;
     const minutes = this.time / 60;
     const currency = this.finalized ? 0 : Math.round(
-      (this.gold * 0.6 + this.kills * 0.05 + minutes * 6 + this.bossesDefeated * 60 + (this.victory ? 150 : 0)) * this.difficulty.reward * RUN_MODES[this.mode].reward,
+      (this.gold * 0.4 + this.kills * 0.05 + minutes * 6 + this.bossesDefeated * 60 + (this.victory ? 150 : 0)) * this.difficulty.reward * RUN_MODES[this.mode].reward,
     );
     if (!this.finalized) {
       this.finalized = true;

@@ -44,6 +44,24 @@ export class SpawnDirector {
 
   constructor(private run: Run) {}
 
+  /** HUD objective text. */
+  objective(): string {
+    const run = this.run;
+    if (run.boss) return `Defeat ${run.boss.def.name}`;
+    const bosses = CONFIG.bosses;
+    if (this.bossIndex < bosses.length) {
+      const left = (bosses[this.bossIndex].at - run.timeline) / run.timelineScale;
+      const name = bosses[this.bossIndex].id === 'stumpKing' ? 'The Stump King' : 'The Scrap Golem';
+      const s = Math.max(0, Math.ceil(left));
+      return `${name} arrives in ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+    }
+    if (run.mode === 'endless') {
+      const s = Math.max(0, Math.ceil((this.nextEndlessBoss - run.timeline) / run.timelineScale));
+      return `Endless · next boss in ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+    }
+    return 'Survive!';
+  }
+
   update(dt: number) {
     const run = this.run;
     const t = run.timeline;

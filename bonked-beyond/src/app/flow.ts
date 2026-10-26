@@ -36,6 +36,10 @@ useGame.subscribe((s, prev) => {
 export const flow = {
   init() {
     input.onPause = () => flow.togglePause();
+    // never let the horde keep chewing on you in a background tab
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && store().screen === 'PLAYING') go('PAUSED');
+    });
     audio.music('menu');
   },
 

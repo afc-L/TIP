@@ -121,6 +121,7 @@ export function GameHUD() {
       </div>
       <div className="hud-top-center">
         <div className="timer">{formatTime(hud.time)}</div>
+        {hud.objective && <div className="objective">{hud.objective}</div>}
         <BossBar />
       </div>
       <div className="hud-top-right">

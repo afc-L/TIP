@@ -22,6 +22,7 @@ export interface HudSnapshot {
   buffs: { id: string; icon: string; left: number }[];
   fps: number;
   enemies: number;
+  objective: string;
 }
 
 export interface BossBar { name: string; title: string; hp: number; maxHp: number; enraged: boolean }

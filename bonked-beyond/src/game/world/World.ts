@@ -455,7 +455,6 @@ export class World {
 
   private buildMesas(n: number) {
     if (n <= 0) return;
-    const pal = this.def.palette;
     const mats = [new THREE.MeshLambertMaterial({ color: '#b5562c', flatShading: true }), new THREE.MeshLambertMaterial({ color: '#e07a4f', flatShading: true })];
     for (let i = 0; i < n; i++) {
       const r = 2.2 + this.rng() * 3;
@@ -478,7 +477,6 @@ export class World {
       this.add(g);
       this.obstacles.push({ x: p.x, z: p.z, r: r * 0.98 });
     }
-    void pal;
   }
 
   private buildCrystals(n: number) {

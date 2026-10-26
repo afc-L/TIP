@@ -21,7 +21,6 @@ class AudioManager {
   private wanted: MusicTrack = 'none';
   private step = 0;
   private nextStepTime = 0;
-  private timer: number | null = null;
 
   constructor() {
     useSettings.subscribe(() => this.applyVolumes());
@@ -48,7 +47,7 @@ class AudioManager {
         const d = this.noise.getChannelData(0);
         for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
         this.applyVolumes();
-        this.timer = window.setInterval(() => this.schedule(), 50);
+        window.setInterval(() => this.schedule(), 50);
       }
       if (this.ctx.state === 'suspended') void this.ctx.resume();
       if (this.wanted !== this.track) this.music(this.wanted);
