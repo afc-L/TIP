@@ -20,6 +20,7 @@ class InputManager {
   private padPrev: boolean[] = [];
   usingGamepad = false;
   onPause: (() => void) | null = null;
+  onZoom: ((dir: number) => void) | null = null;
 
   attach(canvasHost: HTMLElement) {
     if (this.attached) return;
@@ -50,6 +51,7 @@ class InputManager {
       if (e.pointerType === 'mouse' && e.button === 2) this.pressed.add('dodge');
     });
     canvasHost.addEventListener('contextmenu', (e) => e.preventDefault());
+    canvasHost.addEventListener('wheel', (e) => { this.onZoom?.(Math.sign(e.deltaY)); }, { passive: true });
   }
 
   press(a: Action) { this.pressed.add(a); }

@@ -11,7 +11,8 @@ export function StatisticsScreen({ onBack }: { onBack: () => void }) {
     ['Best survival time', formatTime(st.bestTime)], ['Total kills', formatNumber(st.totalKills)], ['Most kills in a run', formatNumber(st.mostKills)],
     ['Elites defeated', formatNumber(st.totalElites)], ['Highest level', String(st.highestLevel)], ['Bosses defeated', formatNumber(st.totalBosses)],
     ['Favorite character', favoriteCharacter(save)], ['Total currency earned', formatNumber(st.totalCurrency)], ['Highest single hit', formatNumber(st.highestHit)],
-    ['Total damage dealt', formatNumber(st.totalDamage)],
+    ['Total damage dealt', formatNumber(st.totalDamage)], ['Best Endless survival', formatTime(st.bestEndless)], ['Weapons evolved', formatNumber(st.totalEvolutions)],
+    ['Bosses beaten', `${Object.keys(save.bossKills).length}/5 kinds`], ['Maps played', `${save.mapsPlayed.length}/5`],
   ];
   const got = ACHIEVEMENTS.filter((a) => save.achievements[a.id]).length;
   return (

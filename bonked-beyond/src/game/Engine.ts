@@ -87,7 +87,7 @@ class Engine {
     const s = getSettings();
     const q = CONFIG.quality[s.quality];
     this.sun.castShadow = q.shadows;
-    this.particles.scale = s.reducedEffects ? 0.4 : s.quality === 'low' ? 0.6 : 1;
+    this.particles.scale = (s.reducedEffects ? 0.4 : s.quality === 'low' ? 0.6 : 1) * (0.15 + 0.85 * s.effectsIntensity);
     this.vfx.reduced = s.reducedEffects;
     this.numbers.enabled = s.damageNumbers;
     this.resScale = 1;

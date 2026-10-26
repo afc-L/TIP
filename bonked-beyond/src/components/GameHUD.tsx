@@ -99,6 +99,8 @@ export function GameHUD() {
   const hud = useGame((s) => s.hud);
   const interact = useGame((s) => s.interact);
   const showFps = useSettings((s) => s.showFps);
+  const autoPause = useSettings((s) => s.pauseOnLevelUp);
+  const screen = useGame((s) => s.screen);
   if (!hud) return null;
   const run = engine.run;
   const ch = run ? CHARACTER_MAP[run.characterId] : null;
@@ -140,7 +142,7 @@ export function GameHUD() {
           {hud.synergies.map((s) => <span key={s.id} className="hud-tag syn" title={`Synergy: ${s.name}`}>{s.icon} {s.name}</span>)}
         </div>
       )}
-      {hud.pendingLevels > 0 && <button className="levelup-ready" onClick={() => flow.openLevelUp(true)}>⬆ {hud.pendingLevels} LEVEL UP{hud.pendingLevels > 1 ? 'S' : ''} READY <kbd>TAB</kbd></button>}
+      {hud.pendingLevels > 0 && !autoPause && screen === 'PLAYING' && <button className="levelup-ready" onClick={() => flow.openLevelUp(true)}>⬆ {hud.pendingLevels} LEVEL UP{hud.pendingLevels > 1 ? 'S' : ''} READY <kbd>TAB</kbd></button>}
       <div className="hud-bottom">
         <div className="abilities">
           <div className={`ability ${hud.dodgeReady >= 1 ? 'ready' : ''}`} title="Dodge (Space / Right-click)">

@@ -65,15 +65,21 @@ export function SettingsMenu({ onBack, embedded }: { onBack?: () => void; embedd
           <h4>Gameplay</h4>
           <Choice label="Difficulty" value={s.difficulty} options={(Object.keys(DIFFICULTY) as (keyof typeof DIFFICULTY)[]).map((d) => ({ v: d, l: DIFFICULTY[d].label }))} onChange={(v) => s.set('difficulty', v)} />
           <Toggle k="mouseAim" label="Mouse aiming" />
-          <Slider k="cameraDistance" label="Camera distance" />
+          <Toggle k="pauseOnLevelUp" label="Pause on level up" />
+          <Slider k="cameraDistance" label="Camera zoom (wheel)" />
           <Slider k="cameraSmoothing" label="Camera smoothing" />
         </div>
         <div>
           <h4>Graphics</h4>
           <Choice<Quality> label="Quality" value={s.quality} options={[{ v: 'low', l: 'Low' }, { v: 'medium', l: 'Medium' }, { v: 'high', l: 'High' }]} onChange={(v) => s.set('quality', v)} />
           <p className="hint">Quality changes resolution and shadows immediately; foliage density and enemy cap apply on the next run.</p>
+          {s.difficulty && <p className="hint">Difficulty: Easy (−25% enemy HP, −40% damage, rewards x0.75) · Normal · Hard (+30% HP, +40% damage, rewards x1.4). Endless mode is chosen on the map screen.</p>}
           <Toggle k="screenShake" label="Screen shake & hit-stop" />
+          <Slider k="shakeIntensity" label="Shake intensity" />
+          <Slider k="effectsIntensity" label="Particle intensity" />
           <Toggle k="damageNumbers" label="Damage numbers" />
+          <Toggle k="enemyHealthBars" label="Enemy health bars" />
+          <Toggle k="highContrast" label="High-contrast enemy outlines" />
           <Toggle k="reducedEffects" label="Reduced visual effects" />
           <Toggle k="showFps" label="Show FPS" />
           <div className="set-row"><span>Fullscreen</span><Btn onClick={toggleFs}>{fs ? 'Exit fullscreen' : 'Go fullscreen'}</Btn></div>

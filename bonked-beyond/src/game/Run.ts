@@ -699,7 +699,8 @@ export class Run {
     }
     let armor = this.stats.armor;
     if (this.synergyFlags.has('survivor') && this.hpRatio < 0.4) armor += 6;
-    const dmg = armorReduce(amount, armor);
+    // fairness cap: no single hit can take more than 40% of max HP (60% for boss major attacks)
+    const dmg = Math.min(armorReduce(amount, armor), this.stats.maxHp * (src.major ? 0.6 : 0.4));
     p.hp -= dmg;
     this.damageTaken += dmg;
     p.invuln = CONFIG.player.hurtInvulnerability;

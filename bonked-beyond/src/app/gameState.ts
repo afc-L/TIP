@@ -11,7 +11,7 @@ export type GameScreen =
   | 'GAME_OVER'
   | 'VICTORY';
 
-export type MenuPage = 'home' | 'upgrades' | 'collection' | 'stats' | 'settings' | 'credits';
+export type MenuPage = 'home' | 'upgrades' | 'collection' | 'stats' | 'settings' | 'credits' | 'challenges' | 'cosmetics';
 
 const TRANSITIONS: Record<GameScreen, GameScreen[]> = {
   MAIN_MENU: ['CHARACTER_SELECT'],

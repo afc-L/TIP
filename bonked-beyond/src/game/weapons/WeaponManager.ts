@@ -143,7 +143,7 @@ export class WeaponManager {
     let m = this.riftPool.find((t) => !t.visible);
     if (!m) {
       const geo = new THREE.PlaneGeometry(1, 1).translate(0.5, 0, 0).rotateX(-Math.PI / 2);
-      m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: '#c77dff', transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
+      m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: '#5a189a', transparent: true, opacity: 0.6, depthWrite: false, side: THREE.DoubleSide }));
       m.position.y = 0.08;
       m.renderOrder = 3;
       this.scene.add(m);
@@ -1120,7 +1120,7 @@ export class WeaponManager {
     if (w.evolved) {
       // ABYSSAL GATE: four rotating spokes
       if (!this.rifts.some((r) => r.weapon === w)) {
-        for (let k = 0; k < 4; k++) this.rifts.push({ x: p.x, z: p.z, angle: (k / 4) * Math.PI * 2, len: st.area * 1.2, width: 1.6, life: Infinity, max: Infinity, tick: 0, weapon: w, mesh: this.riftMesh(), spin: 1 });
+        for (let k = 0; k < 4; k++) this.rifts.push({ x: p.x, z: p.z, angle: (k / 4) * Math.PI * 2, len: st.area, width: 1.2, life: Infinity, max: Infinity, tick: 0, weapon: w, mesh: this.riftMesh(), spin: 1 });
       }
       return;
     }
@@ -1142,7 +1142,7 @@ export class WeaponManager {
       const r = this.rifts[i];
       const w = r.weapon;
       r.life -= dt;
-      if (r.spin) { r.x = p.x; r.z = p.z; r.angle += dt * 1.6; r.len = w.stats.area * 1.2; }
+      if (r.spin) { r.x = p.x; r.z = p.z; r.angle += dt * 1.6; r.len = w.stats.area; }
       r.tick -= dt;
       const dx = Math.cos(r.angle), dz = Math.sin(r.angle);
       if (r.tick <= 0) {
@@ -1162,7 +1162,7 @@ export class WeaponManager {
       r.mesh.position.set(r.x, 0.08, r.z);
       r.mesh.rotation.y = -r.angle;
       r.mesh.scale.set(r.len, 1, r.width * fade * (0.85 + Math.sin(run.time * 30 + i) * 0.15));
-      (r.mesh.material as THREE.MeshBasicMaterial).opacity = 0.75 * fade;
+      (r.mesh.material as THREE.MeshBasicMaterial).opacity = 0.6 * fade;
       if (Math.random() < 0.5) {
         const t = Math.random() * r.len;
         run.particles.emit(r.x + dx * t, 0.2, r.z + dz * t, 0, 2.5, 0, 0.4, 0.14, Math.random() < 0.5 ? '#c77dff' : '#240046', -1);

@@ -41,6 +41,7 @@ export class BossController {
   private waves: { r: number; max: number; speed: number; hit: boolean }[] = [];
   private repeat = 0;
   private blinkTo = { x: 0, z: 0 };
+  private farT = 0;
 
   constructor(id: BossId, run: Run, tier: number, final = false) {
     this.id = id;
@@ -136,6 +137,19 @@ export class BossController {
     const dist = Math.hypot(dx, dz) || 1;
     const want = Math.atan2(dz, dx);
     this.contactT -= dt;
+    // never leave the fight: leap back into range if stranded far from the player
+    this.farT = dist > 22 && this.state === 'chase' ? this.farT + dt : 0;
+    if (this.farT > 4) {
+      this.farT = 0;
+      const a = Math.atan2(-dz, -dx) + rand(-0.6, 0.6);
+      const pos = { x: p.x - Math.cos(a) * -12, z: p.z - Math.sin(a) * -12 };
+      run.world.resolve(pos, this.def.radius);
+      run.particles.burst(e.x, 2, e.z, 20, '#adb5bd', 6, 0.3, 0.6);
+      e.x = pos.x; e.z = pos.z;
+      run.vfx.ring(e.x, e.z, 1, 6, this.def.color, 0.5);
+      run.sfx('bossSlam');
+      run.screen.shake(0.3);
+    }
 
     switch (this.state) {
       case 'chase': {

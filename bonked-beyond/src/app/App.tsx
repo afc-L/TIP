@@ -10,12 +10,19 @@ import { ResultsScreen } from '../components/ResultsScreen';
 import { audio } from '../game/effects/AudioManager';
 import { engine } from '../game/Engine';
 import { useGame } from '../store/gameStore';
+import { useProgression } from '../store/progressionStore';
+import { COSMETIC_MAP } from '../data/cosmetics';
 import { flow } from './flow';
 import { IN_RUN } from './gameState';
 
 export function App() {
   const host = useRef<HTMLDivElement>(null);
   const screen = useGame((s) => s.screen);
+  const theme = useProgression((s) => s.save.cosmetics.theme);
+  useEffect(() => {
+    const c = COSMETIC_MAP[theme]?.value ?? '#ffb627';
+    document.documentElement.style.setProperty('--gold', c);
+  }, [theme]);
 
   useEffect(() => {
     if (!host.current) return;

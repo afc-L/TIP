@@ -8,7 +8,7 @@ import { rollModifiers } from '../data/modifiers';
 import type { RunOptions } from '../game/Run';
 import { useGame } from '../store/gameStore';
 import { getSave, useProgression } from '../store/progressionStore';
-import { getSettings } from '../store/settingsStore';
+import { getSettings, useSettings } from '../store/settingsStore';
 import type { GameScreen } from './gameState';
 
 let choices: Choice[] = [];
@@ -37,6 +37,11 @@ useGame.subscribe((s, prev) => {
 export const flow = {
   init() {
     input.onPause = () => flow.togglePause();
+    input.onZoom = (dir) => {
+      if (store().screen !== 'PLAYING') return;
+      const s = useSettings.getState();
+      s.set('cameraDistance', Math.max(0, Math.min(1, s.cameraDistance + dir * 0.08)));
+    };
     window.addEventListener('keydown', (e) => {
       if (e.code === 'Tab' && store().screen === 'PLAYING') { e.preventDefault(); flow.openLevelUp(true); }
     });

@@ -28,7 +28,9 @@ Use a desktop browser. Audio starts after your first click or key press (autopla
 | Space / Right-click | Dodge roll (short invulnerability, 1.6 s cooldown) |
 | Shift | Sprint (uses stamina) |
 | Q / Left-click | **Super Bonk**: huge blast, charged by kills |
-| E | Interact: open chests (gold) and use Blood Shrines |
+| E | Interact: chests, shrines, springs, altars, totems |
+| Tab | Open waiting level-ups (when auto-pause is off) |
+| Mouse wheel | Camera zoom |
 | Esc / P | Pause (resume, restart, inventory, controls, settings, quit) |
 | 1–4, R | Pick a level-up card / reroll |
 | Gamepad | Left stick move · A dodge · X super · B interact · Start pause · LT sprint |
@@ -36,41 +38,42 @@ Use a desktop browser. Audio starts after your first click or key press (autopla
 
 ## What's in the game
 
-- **5 characters** with different HP, speed, starting weapons and passives: Bonker, The Runner,
-  Scrap Rat, The Wizard and Iron Moose. Four of them unlock through achievements.
-- **3 maps**, all playable: Bonk Forest, Crystal Canyon (faster enemies, more casters) and
-  The Forgotten Arena (aggressive spawns, double gold). Each has its own palette, props,
-  enemy weighting and modifiers.
-- **3 modes**: Standard (beat both bosses, about 13 minutes), Practice (2× timeline,
-  about 7 minutes) and Endless (bosses keep returning stronger).
-- **6 enemy types**: Slime, Mega Slime (splits when killed), Stab Goblin (flanks you),
-  Armored Brute (resists knockback), Hex Shaman (keeps its distance and casts) and Boom Bug
-  (telegraphed explosion). Any of them can spawn as an **elite**: golden, bigger, with a
-  telegraphed dash or triple shot. Scheduled elites drop golden chests.
-- **2 bosses** with telegraphed, avoidable attacks:
-  - *The Stump King*: Ground Slam, Root Eruption, Sapling Summon, Trunk Charge.
-  - *The Scrap Golem*: Bolt Volley, Piston Charge, lingering Oil Fire, and an Overdrive
-    enrage below 40% HP.
-- **10 weapons**, each with 8 levels and an evolution: Bonk Hammer → Thunder Bonker,
-  Spinning Blades → Vortex Engine, Magic Orb → Black Hole Orb, Boomerang → Infinite Return,
-  Lightning Strike → Storm God, Rocket Launcher → Apocalypse Cannon, Poison Cloud →
-  Plague Garden, Earthquake → Tectonic Rift, Throwing Knives → Thousand Edges,
-  Antler Charge → Juggernaut. A weapon evolves at level 8 once you hold its paired item at
-  level 3 or higher. The requirements are listed in the Collection and in the pause-menu inventory.
-- **14 passive items** (Power Core, Running Shoes, Iron Heart, Magnet, Lucky Coin,
-  Critical Lens, Cooling Fan, Thorns, Regeneration Seed, XP Crystal, Arcane Focus, Long Arm,
-  Blast Powder, Iron Shell).
-- **Level-up cards** are randomized from valid options only and rolled by rarity (rare or epic
-  weapon cards grant +2/+3 levels). You get rerolls and a skip option. When everything is
-  maxed, you're offered heal, gold or adrenaline cards instead.
-- **Pickups and world objects**: XP gems in 4 tiers, gold, health fruit, Rage Pepper, Frenzy,
-  Shield, Magnet Burst, Bomb, gold piles, breakable barrels, gold-cost chests and Blood Shrines.
-- **Progression**: Bonk Coins earned every run (even on a loss), 11 permanent upgrades,
-  18 achievements (unlocking characters, maps and weapons), lifetime statistics and a
-  personal best per map. Everything is saved to LocalStorage.
-- **Settings**: master, music and SFX volume and mute; screen shake and hit-stop; damage numbers;
-  graphics quality; reduced effects; FPS counter; camera distance and smoothing; mouse aim;
-  difficulty; fullscreen; and a controls guide.
+- **11 characters** with their own starting weapon, base stats, passive and playstyle:
+  Bonker, The Runner, Scrap Rat, The Wizard, Iron Moose, The Alchemist (stronger damage over time), The Gunslinger
+  (+1 projectile), The Engineer (stronger summons), The Berserker (stronger at low health), The Frost Knight (every
+  hit slows) and The Gambler (random blessings every 25s). Ten of them unlock through achievements.
+- **5 maps**, each with its own palette, props, enemy mix, boss pair and environmental hazard:
+  Bonk Forest (healing fruit), Crystal Canyon (crystal eruptions), The Forgotten Arena (fire jets, early bosses),
+  Frozen Wasteland (slippery ice, blizzards) and Lava Fields (burning lava pools, eruptions).
+- **Modes**: Standard (beat the map's final boss), Practice (2× timeline) and Endless (bosses keep cycling,
+  best time recorded). Difficulty: Easy / Normal / Hard.
+- **Run modifiers** (optional, rolled before the run, rerollable): Double Trouble, Glass Bonk, Rich Run, Fast Paced,
+  Magnetic, Elite Hunt, Chaos Magic, Boss Rush, Low Gravity, Survival Instinct. Rewards scale with the challenge.
+- **16 enemy types**: Slime, Mega Slime, Stab Goblin, Armored Brute, Hex Shaman, Boom Bug, Swarm Bug, Bombardier,
+  Shadow Stalker, Shield Knight (blocks hits from the front), Moss Healer, Phantom (resists physical, weak to
+  elements), Burrower, Giant Beetle, Cursed Archer and the mini-boss Grunk the Ogre. **Elite modifiers** (Enraged,
+  Armored, Vampiric, Explosive, Swift, Regenerating, Summoner) each have their own aura colour and health bar.
+  Elite camps guard chests out in the world.
+- **5 bosses** with telegraphed, multi-phase attacks: The Stump King, The Scrap Golem, The Void Devourer (gravity wells,
+  radial barrages, blink strikes, inhale), The Golden Executioner (axe sweeps, Judgment safe zones, summoned elites)
+  and The Crystal Colossus (spike fields, resonance waves you dodge through, phases at 60% and 30%).
+- **20 weapons**, each mechanically distinct with 8 levels and an evolution. The 10 new ones are Meteor Storm,
+  Soul Reaper, Tesla Coil, Gravity Well, Boulder Roller, Drone Swarm, Fire Tornado, Golden Cannon, Mirror Shards
+  and Void Rift. Damage elements (physical, fire, lightning, poison, arcane, explosive, frost) bring status
+  effects: burn, shock (+20% damage taken), slow and poison.
+- **12 build synergies** (data-driven, shown in the inventory and HUD), e.g. Storm Build, Pyromaniac, Glass Cannon,
+  Full Metal, Swarm Lord, Treasure Hunter, Survivor.
+- **Level-ups**: five rarities (common → legendary) that scale how strong a card is. You also get stat training cards,
+  8 run-changing legendary traits (One-Punch Mode, Unstable Core, Last Stand…), rerolls and banishes.
+  If you turn off "Pause on level up", level-ups wait until you press Tab.
+- **World**: gold chests, golden chests, Blood Shrines, Healing Springs, Risk Altars (summon a champion), Power Totems,
+  breakable barrels, power-ups and elite camps.
+- **Meta progression**: a four-branch skill tree (Offense, Survival, Utility, Luck) with prerequisites,
+  16 challenges with claimable rewards, cosmetics (character colours, trails, titles, UI themes) with a 3D preview,
+  30 achievements, lifetime statistics and a codex that tracks discovery of every character, weapon, evolution,
+  item, enemy, boss, map, modifier and synergy.
+- **Accessibility**: shake intensity, particle intensity, reduced effects, damage numbers, enemy health bars,
+  high-contrast enemy outlines, camera zoom (mouse wheel), separate volumes, pause on level up, FPS counter.
 
 ## Architecture
 

@@ -82,3 +82,7 @@
 .syn { display: flex; gap: 8px; align-items: flex-start; padding: 5px 8px; border-radius: 8px; background: rgba(255,255,255,.03); opacity: .55; font-size: 13px; }
 .syn.on { opacity: 1; background: rgba(255,214,10,.1); border: 1px solid rgba(255,214,10,.4); }
 .stat-grid div[title] { cursor: help; }
+.results-unlocks { padding: 10px; border-radius: 12px; background: rgba(128,255,114,.08); border: 1px solid rgba(128,255,114,.4); }
+.results-unlocks h4 { color: var(--green); margin-bottom: 4px; }
+.chip.unlock { background: rgba(128,255,114,.18); }
+.victory .results-panel { box-shadow: 0 0 60px rgba(255,214,10,.35); border-color: rgba(255,214,10,.5); }

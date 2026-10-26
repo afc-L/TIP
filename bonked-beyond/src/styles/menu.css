@@ -150,3 +150,49 @@
 .mod-reward { font-size: 12px; color: var(--gold2); font-weight: 800; }
 .small { font-size: 12px; }
 @media (max-width: 1100px) { .map-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.tree { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.branch { display: flex; flex-direction: column; gap: 10px; position: relative; }
+.branch::before { content: ''; position: absolute; left: 50%; top: 40px; bottom: 20px; width: 3px; background: color-mix(in srgb, var(--b) 40%, transparent); z-index: -1; }
+.branch-head { font-family: var(--head); font-size: 22px; color: var(--b); text-align: center; padding: 6px; border-bottom: 3px solid var(--b); }
+.node { padding: 12px; display: grid; gap: 7px; border-color: color-mix(in srgb, var(--b) 35%, transparent); }
+.node.maxed { border-color: var(--gold2); }
+.node.locked { opacity: .5; }
+.node-top { display: flex; gap: 10px; align-items: flex-start; }
+.node .uc-icon { font-size: 28px; }
+.node .uc-name { font-size: 17px; }
+.node .uc-desc { min-height: 0; text-align: left; }
+.node .uc-effect { min-height: 0; text-align: left; }
+.node-lock { font-size: 12px; color: var(--dim); font-weight: 800; }
+@media (max-width: 1000px) { .tree { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 600px) { .tree { grid-template-columns: 1fr; } }
+.tab-count { font-size: 11px; opacity: .7; margin-left: 2px; }
+.cx-icon.silhouette { filter: brightness(0) drop-shadow(0 0 2px rgba(255,255,255,.4)); }
+.cx-stats { font-size: 12px; color: #ffe8a3; line-height: 1.5; }
+.codex-card.legend { border-color: rgba(255,159,28,.5); }
+.badge { margin-left: auto; background: var(--pink); color: #fff; border-radius: 999px; font-size: 12px; padding: 1px 8px; animation: pulse .7s infinite alternate; }
+.player-title { margin-left: 8px; color: var(--dim); font-style: italic; font-weight: 700; }
+.challenge-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 10px; }
+.challenge { display: flex; gap: 12px; align-items: center; padding: 12px 14px; }
+.challenge.complete { border-color: var(--green); box-shadow: 0 0 16px rgba(128,255,114,.2); }
+.challenge.claimed { opacity: .6; }
+.ch-icon { font-size: 30px; }
+.ch-body { flex: 1; display: grid; gap: 4px; min-width: 0; }
+.ch-name { font-family: var(--head); font-size: 17px; }
+.ch-name .dim { font-family: var(--body); font-size: 11px; font-weight: 800; }
+.ch-desc { font-size: 13px; color: var(--dim); }
+.ch-foot { display: flex; justify-content: space-between; font-size: 12px; font-weight: 800; }
+.ch-reward { color: var(--gold2); }
+.ch-done { color: var(--green); font-weight: 900; font-size: 13px; }
+.cosmetics-page { background: linear-gradient(90deg, rgba(18,13,31,.95) 0%, rgba(18,13,31,.85) 60%, rgba(18,13,31,.35)); }
+.cos-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 360px)); gap: 14px; }
+.cos-slot { padding: 14px; display: grid; gap: 6px; align-content: start; }
+.cos-slot h3 { font-size: 20px; color: var(--gold); }
+.cos-item { display: flex; gap: 10px; align-items: center; padding: 6px 8px; border-radius: 10px; background: rgba(255,255,255,.04); border: 1px solid transparent; }
+.cos-item.equipped { border-color: var(--gold2); background: rgba(255,214,10,.08); }
+.cos-item.locked { opacity: .65; }
+.cos-item .btn { padding: 6px 12px; font-size: 13px; }
+.swatch { width: 28px; height: 28px; border-radius: 8px; border: 2px solid rgba(255,255,255,.3); flex: none; }
+.cos-name { flex: 1; font-weight: 800; font-size: 14px; }
+.title-chip { flex: 1; font-style: italic; font-weight: 800; }
+@media (max-width: 800px) { .cos-cols { grid-template-columns: 1fr; } }
+.map-card .map-lock { position: static; order: 5; font-size: 11px; padding: 4px 8px; margin-top: 4px; }

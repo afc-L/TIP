@@ -1,6 +1,9 @@
 import { flow } from '../app/flow';
 import { useGame } from '../store/gameStore';
-import { useProgression } from '../store/progressionStore';
+import { claimableChallenges, useProgression } from '../store/progressionStore';
+import { COSMETIC_MAP } from '../data/cosmetics';
+import { ChallengesScreen } from './ChallengesScreen';
+import { CosmeticsScreen } from './CosmeticsScreen';
 import { CollectionScreen } from './CollectionScreen';
 import { Credits } from './Credits';
 import { PermanentUpgrades } from './PermanentUpgrades';
@@ -20,7 +23,9 @@ export function Logo({ small = false }: { small?: boolean }) {
 export function MainMenu() {
   const page = useGame((s) => s.menuPage);
   const setPage = useGame((s) => s.setMenuPage);
-  const currency = useProgression((s) => s.save.currency);
+  const save = useProgression((s) => s.save);
+  const currency = save.currency;
+  const claimable = claimableChallenges(save);
   const back = () => setPage('home');
 
   if (page === 'upgrades') return <PermanentUpgrades onBack={back} />;
@@ -28,6 +33,8 @@ export function MainMenu() {
   if (page === 'stats') return <StatisticsScreen onBack={back} />;
   if (page === 'settings') return <div className="screen menu-page"><SettingsMenu onBack={back} /></div>;
   if (page === 'credits') return <Credits onBack={back} />;
+  if (page === 'challenges') return <ChallengesScreen onBack={back} />;
+  if (page === 'cosmetics') return <CosmeticsScreen onBack={back} />;
 
   return (
     <div className="screen main-menu">
@@ -36,13 +43,15 @@ export function MainMenu() {
         <p className="tagline">A chaotic survival roguelike. Bonk everything. Survive the horde.</p>
         <div className="menu-buttons">
           <Btn variant="primary" big onClick={() => flow.toCharacterSelect()}>▶ PLAY</Btn>
-          <Btn onClick={() => setPage('upgrades')}>⬆ Permanent Upgrades</Btn>
-          <Btn onClick={() => setPage('collection')}>📖 Collection</Btn>
+          <Btn onClick={() => setPage('upgrades')}>⬆ Skill Tree</Btn>
+          <Btn onClick={() => setPage('challenges')}>🏁 Challenges {claimable > 0 && <span className="badge">{claimable}</span>}</Btn>
+          <Btn onClick={() => setPage('cosmetics')}>🎨 Cosmetics</Btn>
+          <Btn onClick={() => setPage('collection')}>📖 Codex</Btn>
           <Btn onClick={() => setPage('stats')}>📊 Statistics</Btn>
           <Btn onClick={() => setPage('settings')}>⚙ Settings</Btn>
           <Btn onClick={() => setPage('credits')}>★ Credits</Btn>
         </div>
-        <div className="wallet">🪙 <b>{currency.toLocaleString()}</b> Bonk Coins</div>
+        <div className="wallet">🪙 <b>{currency.toLocaleString()}</b> Bonk Coins <span className="player-title">“{COSMETIC_MAP[save.cosmetics.title]?.value}”</span></div>
       </div>
       <div className="menu-hint">WASD to move · Weapons fire automatically · Space to dodge</div>
     </div>
