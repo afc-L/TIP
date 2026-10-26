@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Elden Bling: The Quest for the Last Brain Cell</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='26' fill='%23ff88bb'/%3E%3Ccircle cx='24' cy='28' r='5' fill='%23fff'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="css/style.css" />
+  <script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
+</head>
+<body>
+  <canvas id="game"></canvas>
+  <div id="float-layer"></div>
+  <div id="vignette"></div>
+  <div id="poison-vignette"></div>
+  <div id="low-hp"></div>
+
+  <!-- ===== HUD ===== -->
+  <div id="hud" class="hidden">
+    <div id="bars">
+      <div class="bar-row"><span id="hud-level" class="lvl">Lv 1</span>
+        <div id="hp-bar" class="bar hp"><div id="hp-lag" class="lag"></div><div id="hp-fill" class="fill"></div><span id="hp-text" class="bar-text"></span></div>
+      </div>
+      <div id="sta-bar" class="bar sta"><div id="sta-fill" class="fill"></div></div>
+      <div class="bar xp"><div id="xp-fill" class="fill"></div></div>
+      <div id="hud-levelup" class="hidden">Level up ready! Rest at a shrine.</div>
+      <div id="buffs"></div>
+    </div>
+
+    <div id="quick">
+      <div class="slot flask"><kbd>Q</kbd><span class="ico flask-ico"></span><b id="q-flask">3</b></div>
+      <div class="slot"><kbd>1</kbd><span class="ico garlic-ico"></span><b id="q-garlic">0</b></div>
+      <div class="slot"><kbd>2</kbd><span class="ico dignity-ico"></span><b id="q-dignity">0</b></div>
+      <div class="slot"><kbd>3</kbd><span class="ico pepper-ico"></span><b id="q-pepper">0</b></div>
+      <div class="slot coins"><span class="ico coin-ico"></span><b id="coins">0</b></div>
+    </div>
+
+    <div id="quest">
+      <h4>Quest</h4>
+      <div id="quest-main"></div>
+      <div id="quest-side"></div>
+    </div>
+
+    <div id="controls-guide">
+      <b>Controls</b> <span class="dim">(H to hide)</span><br />
+      <kbd>WASD</kbd> Move · <kbd>Shift</kbd> Sprint · <kbd>Mouse</kbd> Camera<br />
+      <kbd>LMB</kbd> Light · <kbd>RMB</kbd> Heavy · <kbd>Space</kbd> Roll<br />
+      <kbd>E</kbd> Interact · <kbd>Q</kbd> Flask · <kbd>1-3</kbd> Items<br />
+      <kbd>F</kbd> Lock-on · <kbd>Tab</kbd> Inventory · <kbd>Esc</kbd> Pause · <kbd>M</kbd> Mute
+    </div>
+
+    <div id="prompt"></div>
+    <div id="boss-bar" class="hidden">
+      <div id="boss-name"></div>
+      <div class="bar"><div id="boss-lag" class="lag"></div><div id="boss-fill" class="fill"></div></div>
+    </div>
+    <div id="toasts"></div>
+    <div id="banner"></div>
+    <div id="subtitle"></div>
+    <div id="tip"></div>
+    <div id="lock-reticle"></div>
+    <div id="fps" class="hidden"></div>
+    <div id="click-to-play" class="hidden">Click to capture the mouse</div>
+    <div id="skip-hint" class="hidden">Press E / Space to skip</div>
+  </div>
+  <div id="boss-title"></div>
+
+  <!-- ===== Main menu ===== -->
+  <div id="main-menu" class="screen menu-screen hidden">
+    <div class="menu-box">
+      <div class="logo">
+        <div class="logo-top">ELDEN</div>
+        <div class="logo-main">BLING</div>
+        <div class="logo-sub">The Quest for the Last Brain Cell</div>
+      </div>
+      <div class="menu-buttons">
+        <button id="btn-continue" class="hidden">Continue</button>
+        <button id="btn-play">Play</button>
+        <button id="btn-settings">Settings</button>
+        <button id="btn-credits">Credits</button>
+      </div>
+      <p class="menu-foot">A very short, very silly Soulslike. Best with a mouse and keyboard.</p>
+    </div>
+  </div>
+
+  <!-- ===== Settings ===== -->
+  <div id="settings" class="screen hidden">
+    <div class="panel wide">
+      <h2>Settings</h2>
+      <div class="settings-grid">
+        <section>
+          <h3>Sound</h3>
+          <label class="row">Master<input id="set-master" type="range" min="0" max="1" step="0.05" /><output></output></label>
+          <label class="row">Music<input id="set-music" type="range" min="0" max="1" step="0.05" /><output></output></label>
+          <label class="row">Effects<input id="set-sfx" type="range" min="0" max="1" step="0.05" /><output></output></label>
+          <label class="row check"><input id="set-mute" type="checkbox" /> Mute all sound (M)</label>
+          <h3>Controls</h3>
+          <label class="row">Mouse sensitivity<input id="set-sens" type="range" min="0.2" max="3" step="0.1" /><output></output></label>
+          <label class="row check"><input id="set-invert" type="checkbox" /> Invert vertical camera</label>
+          <label class="row check"><input id="set-guide" type="checkbox" /> Show on-screen controls</label>
+        </section>
+        <section>
+          <h3>Graphics</h3>
+          <div class="row">Preset <div id="set-preset" class="seg"></div></div>
+          <label class="row">Render resolution<input id="set-scale" type="range" min="0.4" max="1" step="0.05" /><output></output></label>
+          <label class="row check"><input id="set-shadows" type="checkbox" /> Real-time shadows (slower)</label>
+          <label class="row check"><input id="set-auto" type="checkbox" /> Auto-lower resolution if FPS drops</label>
+          <label class="row check"><input id="set-fps" type="checkbox" /> Show FPS counter</label>
+          <p class="small">Medium: shadows &amp; more trees. Low: blob shadows, fewer props (recommended for school laptops). Very Low: 60% resolution, short view distance, minimal props.</p>
+          <p id="restart-note" class="small warn hidden">Some changes (props, shadows, particles) apply after restarting: quit to the main menu or reload the page.</p>
+        </section>
+      </div>
+      <div class="actions"><button id="btn-settings-back">Back</button></div>
+    </div>
+  </div>
+
+  <!-- ===== Credits ===== -->
+  <div id="credits" class="screen hidden">
+    <div class="panel"><div id="credits-body"></div><div class="actions"><button id="btn-credits-back">Back</button></div></div>
+  </div>
+
+  <!-- ===== Pause ===== -->
+  <div id="pause" class="screen hidden">
+    <div class="panel narrow">
+      <h2>Paused</h2>
+      <p class="small center">Even legends need a snack break.</p>
+      <div class="menu-buttons">
+        <button id="btn-resume">Resume</button>
+        <button id="btn-pause-settings">Settings</button>
+        <button id="btn-pause-controls">Controls</button>
+        <button id="btn-quit">Save &amp; Quit to Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="controls-screen" class="screen hidden">
+    <div class="panel">
+      <h2>Controls</h2>
+      <table class="controls">
+        <tr><td><kbd>W A S D</kbd></td><td>Move</td></tr>
+        <tr><td><kbd>Mouse</kbd> / <kbd>Arrow keys</kbd></td><td>Rotate camera</td></tr>
+        <tr><td><kbd>Left click</kbd></td><td>Light attack (press again to combo)</td></tr>
+        <tr><td><kbd>Right click</kbd></td><td>Heavy attack (staggers enemies)</td></tr>
+        <tr><td><kbd>Space</kbd></td><td>Dodge roll (invincible mid-roll)</td></tr>
+        <tr><td><kbd>Shift</kbd></td><td>Sprint</td></tr>
+        <tr><td><kbd>E</kbd></td><td>Interact, open chests, rest at shrines</td></tr>
+        <tr><td><kbd>Q</kbd></td><td>Drink healing flask</td></tr>
+        <tr><td><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></td><td>Garlic Bread / Dignity Potion / Ghost Pepper</td></tr>
+        <tr><td><kbd>F</kbd> / <kbd>Middle click</kbd></td><td>Lock on to enemy</td></tr>
+        <tr><td><kbd>Tab</kbd></td><td>Inventory &amp; stats</td></tr>
+        <tr><td><kbd>Esc</kbd></td><td>Pause</td></tr>
+        <tr><td><kbd>M</kbd> · <kbd>H</kbd></td><td>Mute · Toggle controls guide</td></tr>
+      </table>
+      <p class="small">Tips: hitting enemies from behind does extra damage. Some walls are fake. Stamina regenerates when you stop attacking.</p>
+      <div class="actions"><button id="btn-controls-back">Back</button></div>
+    </div>
+  </div>
+
+  <!-- ===== Inventory ===== -->
+  <div id="inventory" class="screen hidden">
+    <div class="panel wide inv">
+      <h2>Inventory</h2>
+      <div class="inv-layout">
+        <div class="inv-left">
+          <div class="tabs">
+            <button data-tab="equip">Equipped</button><button data-tab="weapons">Weapons</button><button data-tab="armor">Armor</button><button data-tab="items">Items</button>
+          </div>
+          <div id="inv-list"></div>
+        </div>
+        <div class="inv-right"><h3>Stats</h3><div id="inv-stats"></div></div>
+      </div>
+      <div class="actions"><button id="btn-inv-close">Close (Tab)</button></div>
+    </div>
+  </div>
+
+  <!-- ===== Shrine ===== -->
+  <div id="shrine" class="screen hidden">
+    <div class="panel">
+      <h2 id="shrine-name">Shrine</h2>
+      <p class="small center">You touched the grass. Health and flasks restored. Enemies have respawned (they also touched grass).</p>
+      <h3>Level Up</h3>
+      <div id="shrine-level"></div>
+      <h3>Travel</h3>
+      <div id="shrine-travel" class="travel"></div>
+      <div class="actions"><button id="btn-shrine-leave">Leave</button></div>
+    </div>
+  </div>
+
+  <!-- ===== Shop ===== -->
+  <div id="shop" class="screen hidden">
+    <div class="panel">
+      <h2>Barry's Bargain Bin</h2>
+      <p class="small center">"No refunds. No returns. No questions. Especially about the pepper."</p>
+      <div id="shop-list"></div>
+      <div class="actions"><button id="btn-shop-leave">Leave</button></div>
+    </div>
+  </div>
+
+  <!-- ===== Dialogue ===== -->
+  <div id="dialogue" class="screen dim-none hidden">
+    <div class="dialogue-box">
+      <div id="dlg-name"></div>
+      <div id="dlg-text"></div>
+      <div id="dlg-choices"></div>
+    </div>
+  </div>
+
+  <!-- ===== Death ===== -->
+  <div id="death" class="screen death hidden">
+    <div class="death-text">YOU DIED</div>
+    <div id="death-line"></div>
+    <button id="btn-death-skip">Respawn now</button>
+  </div>
+
+  <!-- ===== Victory ===== -->
+  <div id="victory" class="screen hidden">
+    <div class="panel victory">
+      <div class="logo-top">THE LAST BRAIN CELL IS YOURS</div>
+      <h2>Victory!</h2>
+      <p>Lord Touchgrass has finally gone inside. You are now the ultimate ruler of the kingdom.<br />
+        Your first royal decree: <i>"Going outside is optional. Touching grass is encouraged."</i></p>
+      <div id="victory-stats"></div>
+      <div class="actions"><button id="btn-victory-continue">Keep Exploring</button><button id="btn-victory-menu">Main Menu</button></div>
+    </div>
+  </div>
+
+  <div id="loading"><div>Polishing the bling…</div></div>
+  <div id="fatal" class="screen hidden"><div class="panel"><h2>Uh oh.</h2><p></p></div></div>
+
+  <script>
+    // Fallback checks for browsers that can't run the game at all.
+    (function () {
+      function fatal(msg) {
+        document.getElementById('loading').classList.add('hidden');
+        var f = document.getElementById('fatal');
+        f.querySelector('p').textContent = msg;
+        f.classList.remove('hidden');
+      }
+      var c = document.createElement('canvas');
+      var gl = null;
+      try { gl = c.getContext('webgl2'); } catch (e) {}
+      if (!gl) fatal('This game needs WebGL 2, which your browser or graphics driver does not provide. Try an up-to-date Chrome, Edge or Firefox, and make sure "Use hardware acceleration" is enabled in the browser settings.');
+      window.addEventListener('error', function (e) {
+        if (!window.game && /import|module|Failed to fetch/i.test(e.message || '')) fatal('The game files failed to load (' + e.message + '). Make sure you are running a local web server — see README.md.');
+      });
+    })();
+  </script>
+  <script type="module" src="js/main.js"></script>
+  <script nomodule>document.getElementById('loading').textContent = 'Your browser is too old to run this game. Please use a recent Chrome, Edge, Firefox or Safari.';</script>
+</body>
+</html>
