@@ -124,6 +124,43 @@ function buildHead(rig, o) {
     mesh(cyl(0.42, 0.42, 0.04, 8), mat(0xe8cc66), 0, 0.42, 0, h);
     mesh(cone(0.22, 0.26, 8), mat(0xe8cc66), 0, 0.56, 0, h);
     mesh(box(0.24, 0.08, 0.04), mat(0x8a5a2a), 0, 0.1, 0.18, h); // moustache
+  } else if (type === 'mummy') {
+    mesh(box(0.36, 0.4, 0.36), mat(0xe0d8b8), 0, 0.2, 0, h);
+    for (let i = 0; i < 3; i++) mesh(box(0.38, 0.05, 0.38), mat(0xc8bf98), 0, 0.08 + i * 0.12, 0, h).rotation.z = (i - 1) * 0.15;
+    for (const s of [-1, 1]) mesh(box(0.06, 0.04, 0.02), mat(0xffdd33, { emissive: 0x886600 }), s * 0.08, 0.26, 0.19, h);
+  } else if (type === 'pirate' || type === 'captain') {
+    mesh(box(0.36, 0.38, 0.36), skin, 0, 0.2, 0, h);
+    mesh(box(0.06, 0.06, 0.02), mat(0x111111), 0.08, 0.24, 0.18, h);
+    mesh(box(0.1, 0.08, 0.02), mat(0x111111), -0.08, 0.24, 0.19, h); // eyepatch
+    mesh(box(0.37, 0.02, 0.02), mat(0x111111), 0, 0.27, 0.185, h).rotation.z = 0.3;
+    if (type === 'captain') {
+      const beard = mesh(cone(0.28, 0.7, 6), mat(0x3a7a4a), 0, -0.12, 0.14, h); beard.rotation.x = Math.PI;
+      mesh(box(0.7, 0.1, 0.45), mat(0x222222), 0, 0.44, 0, h);
+      mesh(cone(0.3, 0.3, 3), mat(0x222222), 0, 0.6, 0, h).rotation.y = Math.PI;
+      mesh(box(0.1, 0.1, 0.02), mat(0xffffff), 0, 0.55, 0.24, h);
+    } else {
+      mesh(box(0.39, 0.12, 0.39), mat(o.bandana ?? 0xcc2222), 0, 0.38, 0, h);
+      mesh(box(0.08, 0.2, 0.06), mat(o.bandana ?? 0xcc2222), 0.0, 0.3, -0.22, h);
+    }
+  } else if (type === 'yeti') {
+    mesh(box(0.5, 0.48, 0.48), mat(o.fur ?? 0xf4f4f8), 0, 0.24, 0, h);
+    mesh(box(0.32, 0.26, 0.04), mat(0x7a9ac8), 0, 0.22, 0.24, h);
+    for (const s of [-1, 1]) mesh(box(0.06, 0.06, 0.02), mat(0x111111), s * 0.08, 0.27, 0.265, h);
+    mesh(box(0.16, 0.05, 0.02), mat(0xffffff), 0, 0.13, 0.265, h);
+    if (o.curlers) for (let i = 0; i < 4; i++) mesh(cyl(0.06, 0.06, 0.2, 6), mat([0xff66aa, 0x66ccff, 0xffdd44, 0x88ee66][i]), -0.18 + i * 0.12, 0.52, 0, h).rotation.z = 1.57;
+  } else if (type === 'pharaoh') {
+    mesh(box(0.38, 0.4, 0.36), mat(0xc89060), 0, 0.2, 0, h);
+    for (const s of [-1, 1]) mesh(box(0.08, 0.04, 0.02), mat(0x111111), s * 0.08, 0.26, 0.185, h);
+    const gold = mat(0xffcc22, { emissive: 0x332200 }), blue = mat(0x2244aa);
+    mesh(box(0.5, 0.2, 0.42), gold, 0, 0.42, -0.02, h);
+    for (const s of [-1, 1]) { mesh(box(0.12, 0.5, 0.2), gold, s * 0.26, 0.12, 0.02, h); mesh(box(0.125, 0.05, 0.205), blue, s * 0.26, 0.2, 0.02, h); mesh(box(0.125, 0.05, 0.205), blue, s * 0.26, 0.02, 0.02, h); }
+    mesh(box(0.08, 0.3, 0.06), gold, 0, -0.05, 0.18, h); // beard
+    mesh(cone(0.06, 0.16, 4), gold, 0, 0.6, 0.15, h);
+  } else if (type === 'philosopher') {
+    mesh(box(0.36, 0.38, 0.36), skin, 0, 0.2, 0, h);
+    for (const s of [-1, 1]) mesh(box(0.06, 0.06, 0.02), mat(0x111111), s * 0.08, 0.24, 0.18, h);
+    const beard = mesh(cone(0.22, 0.5, 6), mat(0xf4f4f4), 0, -0.08, 0.12, h); beard.rotation.x = Math.PI;
+    mesh(box(0.39, 0.08, 0.39), mat(0x88cc66), 0, 0.4, 0, h); // laurel
   } else {
     mesh(box(0.36, 0.38, 0.36), skin, 0, 0.2, 0, h);
     for (const s of [-1, 1]) mesh(box(0.06, 0.06, 0.02), mat(0x111111), s * 0.08, 0.24, 0.18, h);
@@ -179,6 +216,52 @@ export function weaponModel(id, scale = 1) {
       mesh(cyl(0.08, 0.08, 1.2, 6), mat(0xd9a05a), 0, 0.5, 0, g);
       for (let i = 0; i < 4; i++) mesh(box(0.1, 0.03, 0.06), mat(0xb87a3a), 0, 0.1 + i * 0.28, 0.06, g).rotation.x = 0.4;
       break;
+    case 'umbrella':
+      mesh(cyl(0.03, 0.03, 1.2, 5), dark, 0, 0.55, 0, g);
+      mesh(cone(0.45, 0.35, 8), mat(0x3a7ad8), 0, 1.0, 0, g);
+      break;
+    case 'fish':
+      mesh(sph(0.16, 7, 5), mat(0x6a9ab8), 0, 0.45, 0, g).scale.set(0.5, 2.4, 1);
+      mesh(cone(0.16, 0.25, 4), mat(0x5a8aa8), 0, 0.04, 0, g).rotation.x = Math.PI;
+      mesh(box(0.03, 0.03, 0.02), mat(0x000000), 0.06, 0.75, 0.08, g);
+      break;
+    case 'lance':
+      mesh(cyl(0.07, 0.07, 1.9, 7), mat(0xff66cc), 0, 0.85, 0, g);
+      break;
+    case 'spatula':
+      mesh(cyl(0.03, 0.03, 0.7, 5), dark, 0, 0.3, 0, g);
+      mesh(box(0.34, 0.42, 0.03), mat(0xc8ccd4), 0, 0.82, 0, g);
+      break;
+    case 'cutlass':
+      mesh(box(0.06, 0.22, 0.06), dark, 0, 0, 0, g);
+      mesh(box(0.22, 0.05, 0.12), gold, 0, 0.12, 0, g);
+      mesh(box(0.14, 0.85, 0.03), mat(0x8aa0a0), 0.03, 0.58, 0, g).rotation.z = -0.12;
+      mesh(box(0.12, 0.08, 0.035), mat(0x4a8a5a), 0.08, 0.7, 0, g); // seaweed
+      break;
+    case 'scepter':
+      mesh(cyl(0.04, 0.04, 1.3, 6), gold, 0, 0.55, 0, g);
+      mesh(sph(0.14, 7, 5), mat(0x33aaff, { emissive: 0x113355 }), 0, 1.25, 0, g);
+      mesh(cyl(0.18, 0.06, 0.12, 6), gold, 0, 1.12, 0, g);
+      break;
+    case 'icicle':
+      mesh(cyl(0.05, 0.05, 0.3, 5), mat(0x5a7aa8), 0, 0.05, 0, g);
+      mesh(cone(0.13, 1.4, 6), mat(0xbfe8ff, { emissive: 0x224466 }), 0, 0.9, 0, g);
+      break;
+    case 'rollingpin':
+      mesh(cyl(0.04, 0.04, 0.5, 5), wood, 0, 0.1, 0, g);
+      mesh(cyl(0.14, 0.14, 0.9, 8), mat(0xd8b080), 0, 0.75, 0, g);
+      mesh(cyl(0.04, 0.04, 0.3, 5), wood, 0, 1.3, 0, g);
+      break;
+    case 'sockpuppet':
+      mesh(cyl(0.11, 0.1, 0.9, 7), mat(0xee5555), 0, 0.4, 0, g);
+      for (let i = 0; i < 3; i++) mesh(cyl(0.115, 0.115, 0.06, 7), mat(0xffffff), 0, 0.15 + i * 0.25, 0, g);
+      for (const s of [-1, 1]) mesh(sph(0.04, 5, 4), mat(0xffffff), s * 0.05, 0.8, 0.09, g);
+      break;
+    case 'hammer':
+      mesh(cyl(0.05, 0.05, 1.4, 5), wood, 0, 0.6, 0, g);
+      mesh(box(0.7, 0.4, 0.4), mat(0x555a66), 0, 1.35, 0, g);
+      mesh(box(0.72, 0.1, 0.42), mat(0xdd2222), 0, 1.35, 0, g);
+      break;
     case 'rake':
       mesh(cyl(0.05, 0.05, 2.4, 5), wood, 0, 1.0, 0, g);
       mesh(box(0.9, 0.08, 0.08), dark, 0, 2.2, 0, g);
@@ -186,7 +269,7 @@ export function weaponModel(id, scale = 1) {
       break;
   }
   g.scale.setScalar(scale);
-  return g;
+  return optimize(g);
 }
 
 // Attach a weapon to the right hand so it points forward when the arm hangs down.
@@ -207,10 +290,17 @@ export function makeHero() {
     colander: (() => { const g = new THREE.Group(); mesh(sph(0.24, 8, 4), mat(0xc0c4cc), 0, 0.36, 0, g).scale.set(1, 0.7, 1); mesh(cyl(0.28, 0.28, 0.03, 8), mat(0xc0c4cc), 0, 0.33, 0, g); mesh(box(0.1, 0.04, 0.06), mat(0xc0c4cc), 0.3, 0.33, 0, g); h.add(g); return g; })(),
     crown: (() => { const g = new THREE.Group(); const gold = mat(0xffcc22, { emissive: 0x332200 }); mesh(cyl(0.21, 0.2, 0.1, 8), gold, 0, 0.47, 0, g); for (let i = 0; i < 5; i++) { const a = (i / 5) * Math.PI * 2; mesh(cone(0.04, 0.12, 4), gold, Math.sin(a) * 0.18, 0.57, Math.cos(a) * 0.18, g); } h.add(g); return g; })(),
     pizza: (() => { const g = new THREE.Group(); mesh(box(0.6, 0.6, 0.4), mat(0xc79a5a), 0, 0.38, 0, g); mesh(box(0.42, 0.18, 0.01), mat(0xcc2222), 0, 0.45, 0.205, g); rig.torso.add(g); return g; })(),
+    cone: (() => { const g = new THREE.Group(); mesh(cone(0.2, 0.5, 8), mat(0xff7a22), 0, 0.62, 0, g); mesh(cyl(0.2, 0.2, 0.06, 8), mat(0xffffff), 0, 0.55, 0, g); mesh(box(0.42, 0.04, 0.42), mat(0xff7a22), 0, 0.39, 0, g); h.add(g); return g; })(),
+    tricorn: (() => { const g = new THREE.Group(); mesh(box(0.6, 0.08, 0.4), mat(0x222222), 0, 0.42, 0, g); mesh(cone(0.26, 0.24, 3), mat(0x222222), 0, 0.56, 0, g).rotation.y = Math.PI; mesh(box(0.08, 0.08, 0.02), mat(0xffffff), 0, 0.5, 0.21, g); h.add(g); return g; })(),
+    pyramidhat: (() => { const g = new THREE.Group(); const p = mesh(cone(0.32, 0.45, 4), mat(0xffcc22, { emissive: 0x332200 }), 0, 0.6, 0, g); p.rotation.y = Math.PI / 4; h.add(g); return g; })(),
+    wraps: (() => { const g = new THREE.Group(); for (let i = 0; i < 5; i++) mesh(box(0.58, 0.07, 0.36), mat(i % 2 ? 0xe0d8b8 : 0xc8bf98), 0, 0.08 + i * 0.15, 0, g).rotation.z = (i % 2 ? 0.1 : -0.1); rig.torso.add(g); return g; })(),
+    parka: (() => { const g = new THREE.Group(); mesh(box(0.7, 0.8, 0.48), mat(0x3a8ad8), 0, 0.36, 0, g); mesh(box(0.72, 0.16, 0.5), mat(0xf4f4f4), 0, 0.72, 0, g); for (let i = 0; i < 3; i++) mesh(box(0.71, 0.03, 0.49), mat(0x2a6ab8), 0, 0.15 + i * 0.2, 0, g); rig.torso.add(g); return g; })(),
+    goldsuit: (() => { const g = new THREE.Group(); mesh(box(0.62, 0.78, 0.4), mat(0xffcc22, { emissive: 0x443300 }), 0, 0.36, 0, g); mesh(box(0.1, 0.5, 0.01), mat(0x222222), 0, 0.45, 0.205, g); rig.torso.add(g); return g; })(),
     bathrobe: (() => { const g = new THREE.Group(); mesh(box(0.6, 0.85, 0.38), mat(0xf4b6c8), 0, 0.3, 0, g); mesh(box(0.08, 0.6, 0.01), mat(0xffffff), 0, 0.4, 0.195, g); rig.torso.add(g); return g; })(),
   };
   for (const k in rig.cos) rig.cos[k].visible = false;
   shadowAll(rig.root);
+  optimize(rig.root);
   return rig;
 }
 
@@ -238,6 +328,44 @@ export function makeEnemyModel(type) {
     sign.children[0].rotation.y = Math.PI;
     holdWeapon(rig, weaponModel('severance', 1));
     rig.root.scale.setScalar(1.45);
+  } else if (type === 'mummy') {
+    const wrap = 0xe0d8b8;
+    rig = humanoid({ skin: wrap, body: wrap, arms: wrap, legs: 0xd0c8a4, head: 'mummy', width: 0.46 });
+    for (let i = 0; i < 4; i++) mesh(box(0.48, 0.05, 0.3), mat(0xc8bf98), 0, 0.12 + i * 0.17, 0, rig.torso).rotation.z = (i % 2 ? 0.12 : -0.12);
+    mesh(box(0.08, 0.5, 0.02), mat(0xe8e0c0), 0.15, 0.2, 0.16, rig.torso); // loose wrap
+  } else if (type === 'pirate') {
+    rig = humanoid({ skin: 0xd8a880, body: 0xeeeeee, arms: 0xcc3333, legs: 0x2a3a6a, head: 'pirate', boots: 0x2a1a10, belt: 0x6a3a1a });
+    for (let i = 0; i < 3; i++) mesh(box(0.53, 0.06, 0.32), mat(0xcc3333), 0, 0.15 + i * 0.22, 0, rig.torso);
+    holdWeapon(rig, weaponModel('cutlass', 1));
+  } else if (type === 'yeti') {
+    rig = humanoid({ skin: 0xf4f4f8, body: 0xf4f4f8, arms: 0xf4f4f8, legs: 0xe8e8f0, head: 'yeti', width: 0.75, armLen: 0.85, belly: true });
+    rig.root.scale.setScalar(1.45);
+  } else if (type === 'gary') {
+    rig = humanoid({ skin: 0x66aa44, body: 0xeeeeee, arms: 0x66aa44, legs: 0x5a4632, head: 'goblin', legH: 0.55, torsoH: 0.6, width: 0.6, armLen: 0.6, belly: true });
+    mesh(box(0.5, 0.5, 0.02), mat(0xdd4444), 0, 0.3, 0.2, rig.torso); // apron
+    holdWeapon(rig, weaponModel('spatula', 1.4));
+    rig.root.scale.setScalar(2.4);
+  } else if (type === 'pharaoh') {
+    rig = humanoid({ skin: 0xc89060, body: 0xf4f0e0, arms: 0xc89060, legs: 0xf4f0e0, head: 'pharaoh', belt: 0xffcc22, pauldrons: 0x2244aa, boots: 0xffcc22 });
+    mesh(box(0.6, 0.18, 0.36), mat(0xffcc22, { emissive: 0x221100 }), 0, 0.62, 0, rig.torso); // collar
+    holdWeapon(rig, weaponModel('scepter', 1.3));
+    rig.root.scale.setScalar(2.4);
+  } else if (type === 'snowmom') {
+    rig = humanoid({ skin: 0xf4f0f4, body: 0xf4f0f4, arms: 0xf4f0f4, legs: 0xe8e4ec, head: 'yeti', curlers: true, width: 0.8, armLen: 0.85, belly: true });
+    mesh(box(0.62, 0.7, 0.02), mat(0xff88bb), 0, 0.3, 0.3, rig.torso); // apron
+    mesh(box(0.3, 0.2, 0.01), mat(0xffffff), 0, 0.25, 0.315, rig.torso);
+    holdWeapon(rig, weaponModel('rollingpin', 1.2));
+    rig.root.scale.setScalar(2.4);
+  } else if (type === 'sogbeard') {
+    rig = humanoid({ skin: 0xc8a888, body: 0x2a3a5a, arms: 0x2a3a5a, legs: 0x3a2a1a, head: 'captain', belt: 0xffcc22, pauldrons: 0xffcc22, boots: 0x1a1a1a, belly: true });
+    mesh(cyl(0.05, 0.05, 0.5, 5), mat(0x8a5a2a), 0, -0.6, 0, rig.legL); // peg leg
+    const parrot = new THREE.Group();
+    mesh(sph(0.1, 6, 5), mat(0x33cc44), 0, 0, 0, parrot).scale.set(0.8, 1.2, 0.8);
+    mesh(cone(0.04, 0.08, 4), mat(0xffaa22), 0, 0.05, 0.1, parrot).rotation.x = 1.57;
+    parrot.position.set(0.32, 0.8, 0);
+    rig.torso.add(parrot);
+    holdWeapon(rig, weaponModel('cutlass', 1.5));
+    rig.root.scale.setScalar(2.3);
   } else if (type === 'king') {
     rig = humanoid({ skin: 0xf0c8a0, body: 0x6a2a8a, arms: 0x6a2a8a, legs: 0x4a1a5a, head: 'king', belly: true, width: 0.7, boots: 0x332211, belt: 0xffcc22, pauldrons: 0xffffff });
     // Royal cape.
@@ -246,6 +374,7 @@ export function makeEnemyModel(type) {
     rig.root.scale.setScalar(3.0);
   }
   shadowAll(rig.root);
+  optimize(rig.root);
   return rig;
 }
 
@@ -270,7 +399,83 @@ export function makeFrog() {
   // Tiny crown of shame for comedic effect.
   mesh(cone(0.12, 0.2, 4), mat(0xffcc22), 0, 1.2, 0.2, body).rotation.x = -0.2;
   shadowAll(root);
+  optimize(root, [throat]);
   return { root, body, throat, isFrog: true };
+}
+
+export function makeCactus() {
+  const root = new THREE.Group(), body = new THREE.Group();
+  root.add(body);
+  const green = mat(0x4f9a4a);
+  mesh(cyl(0.45, 0.5, 1.8, 7), green, 0, 0.9, 0, body);
+  mesh(sph(0.45, 7, 5), green, 0, 1.8, 0, body);
+  const arms = [];
+  for (const s of [-1, 1]) {
+    const a = new THREE.Group();
+    a.position.set(s * 0.45, 1.1, 0);
+    mesh(cyl(0.16, 0.16, 0.5, 5), green, s * 0.25, 0, 0, a).rotation.z = 1.57;
+    mesh(cyl(0.16, 0.16, 0.6, 5), green, s * 0.5, 0.3, 0, a);
+    body.add(a);
+    arms.push(a);
+  }
+  for (const s of [-1, 1]) { mesh(sph(0.11, 6, 4), mat(0xffffff), s * 0.16, 1.55, 0.4, body); mesh(sph(0.05, 5, 4), mat(0x000000), s * 0.16, 1.55, 0.5, body); }
+  mesh(box(0.22, 0.05, 0.02), mat(0x223311), 0, 1.32, 0.46, body);
+  mesh(ico(0.16, 0), mat(0xff66aa), 0, 2.25, 0, body);
+  shadowAll(root);
+  optimize(root);
+  return { root, body, arms, isSimple: true, kind: 'cactus' };
+}
+
+export function makeCrab() {
+  const root = new THREE.Group(), body = new THREE.Group();
+  root.add(body);
+  const red = mat(0xdd4a2a);
+  mesh(sph(0.55, 8, 5), red, 0, 0.45, 0, body).scale.set(1.2, 0.55, 0.9);
+  for (const s of [-1, 1]) {
+    mesh(cyl(0.03, 0.03, 0.3, 4), red, s * 0.18, 0.75, 0.3, body);
+    mesh(sph(0.08, 5, 4), mat(0xffffff), s * 0.18, 0.92, 0.3, body);
+    mesh(sph(0.04, 4, 3), mat(0x000000), s * 0.18, 0.93, 0.37, body);
+    for (let i = 0; i < 3; i++) { const l = mesh(box(0.5, 0.06, 0.06), red, s * 0.7, 0.25, -0.25 + i * 0.22, body); l.rotation.z = s * -0.5; }
+  }
+  const arms = [];
+  for (const s of [-1, 1]) {
+    const a = new THREE.Group();
+    a.position.set(s * 0.5, 0.5, 0.35);
+    mesh(box(0.12, 0.12, 0.4), red, 0, 0, 0.2, a);
+    mesh(box(0.25, 0.18, 0.28), red, 0, 0.05, 0.5, a);
+    if (s > 0) mesh(box(0.03, 0.03, 0.3), mat(0xc8ccd4), 0, 0.15, 0.6, a); // tiny knife
+    body.add(a);
+    arms.push(a);
+  }
+  shadowAll(root);
+  optimize(root);
+  return { root, body, arms, isSimple: true, kind: 'crab' };
+}
+
+export function makeSnowman() {
+  const root = new THREE.Group(), body = new THREE.Group();
+  root.add(body);
+  const snow = mat(0xffffff);
+  mesh(sph(0.6, 8, 6), snow, 0, 0.55, 0, body);
+  mesh(sph(0.45, 8, 6), snow, 0, 1.3, 0, body);
+  mesh(sph(0.33, 8, 6), snow, 0, 1.85, 0, body);
+  mesh(cone(0.06, 0.35, 5), mat(0xff8822), 0, 1.85, 0.45, body).rotation.x = 1.57;
+  for (const s of [-1, 1]) mesh(box(0.06, 0.06, 0.02), mat(0x111111), s * 0.1, 1.95, 0.3, body);
+  for (const s of [-1, 1]) mesh(box(0.2, 0.04, 0.02), mat(0x111111), s * 0.1, 2.03, 0.3, body).rotation.z = s * -0.4; // angry brows
+  mesh(cyl(0.22, 0.22, 0.32, 8), mat(0x222222), 0, 2.27, 0, body);
+  mesh(cyl(0.32, 0.32, 0.04, 8), mat(0x222222), 0, 2.12, 0, body);
+  mesh(box(0.7, 0.1, 0.1), mat(0xcc3333), 0, 1.6, 0.05, body); // scarf
+  const arms = [];
+  for (const s of [-1, 1]) {
+    const a = new THREE.Group();
+    a.position.set(s * 0.4, 1.4, 0);
+    mesh(cyl(0.03, 0.03, 0.8, 4), mat(0x6a4a2a), s * 0.35, 0.2, 0, a).rotation.z = s * -1.1;
+    body.add(a);
+    arms.push(a);
+  }
+  shadowAll(root);
+  optimize(root);
+  return { root, body, arms, isSimple: true, kind: 'snowman' };
 }
 
 export function makeChicken() {
@@ -473,4 +678,52 @@ export function blobShadow(r) {
   m.scale.set(r * 2.4, 1, r * 2.4);
   m.renderOrder = 1;
   return m;
+}
+
+// Projectile models (handle the 'kind' names used by effects.js).
+export function projectileModel(kind) {
+  const g = new THREE.Group();
+  if (kind === 'slime') mesh(sph(0.28, 6, 5), mat(0x66ff44, { emissive: 0x228811 }), 0, 0, 0, g);
+  else if (kind === 'snowball') mesh(sph(0.3, 6, 5), mat(0xffffff, { emissive: 0x334455 }), 0, 0, 0, g);
+  else if (kind === 'needle') { const n = mesh(cone(0.06, 0.6, 4), mat(0xd8e890, { emissive: 0x334400 }), 0, 0, 0, g); n.rotation.x = Math.PI / 2; }
+  else if (kind === 'coin') { const c = mesh(cyl(0.3, 0.3, 0.08, 10), mat(0xffcc22, { emissive: 0x664400 }), 0, 0, 0, g); c.rotation.x = Math.PI / 2; }
+  else if (kind === 'cannon') mesh(sph(0.45, 8, 6), mat(0x222222), 0, 0, 0, g);
+  else if (kind === 'pan') { mesh(cyl(0.45, 0.4, 0.08, 10), mat(0x2a2a2a), 0, 0, 0, g); mesh(box(0.08, 0.06, 0.6), mat(0x333333), 0, 0, 0.7, g); }
+  else if (kind === 'bomb') { mesh(cyl(0.14, 0.16, 0.45, 7), mat(0x3aa8ff, { emissive: 0x113355 }), 0, 0, 0, g); mesh(cyl(0.05, 0.08, 0.15, 5), mat(0x3aa8ff), 0, 0.3, 0, g); }
+  else if (kind === 'resume') mesh(box(0.5, 0.02, 0.65), mat(0xffffff), 0, 0, 0, g);
+  else if (kind === 'gnome') g.add(makeGnome(1.6));
+  return g;
+}
+
+// Merge each group's plain child meshes into one vertex-coloured mesh. Pivot groups stay,
+// so procedural animation still works, but a character costs a handful of draw calls.
+let mergedMat = null;
+export function optimize(root, keep = []) {
+  if (!mergedMat) mergedMat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+  const groups = [];
+  root.traverse((o) => { if (o.isGroup || o === root) groups.push(o); });
+  for (const g of groups) {
+    const meshes = g.children.filter((c) => c.isMesh && !c.isInstancedMesh && !c.children.length && !keep.includes(c)
+      && c.material && c.material.isMeshLambertMaterial && !c.material.transparent && c.material.emissive.getHex() === 0 && !c.material.vertexColors);
+    if (meshes.length < 2) continue;
+    const pos = [], nor = [], col = [];
+    let shadow = false;
+    for (const m of meshes) {
+      m.updateMatrix();
+      const geo = (m.geometry.index ? m.geometry.toNonIndexed() : m.geometry.clone()).applyMatrix4(m.matrix);
+      if (!geo.attributes.normal) geo.computeVertexNormals();
+      const pa = geo.attributes.position, na = geo.attributes.normal, c = m.material.color;
+      for (let i = 0; i < pa.count; i++) { pos.push(pa.getX(i), pa.getY(i), pa.getZ(i)); nor.push(na.getX(i), na.getY(i), na.getZ(i)); col.push(c.r, c.g, c.b); }
+      shadow = shadow || m.castShadow;
+      g.remove(m);
+    }
+    const out = new THREE.BufferGeometry();
+    out.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    out.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+    out.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    const mm = new THREE.Mesh(out, mergedMat);
+    mm.castShadow = shadow;
+    g.add(mm);
+  }
+  return root;
 }

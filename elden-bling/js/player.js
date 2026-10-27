@@ -36,10 +36,18 @@ export class Player {
   get maxSta() { return 100 + this.stats.end * 10; }
   get weapon() { return WEAPONS[this.equip.weapon]; }
   get defense() {
-    let d = 0;
+    let d = this.weapon.def || 0;
     for (const s of ['head', 'body']) if (this.equip[s]) d += ARMOR[this.equip[s]].def;
-    return d;
+    return Math.min(0.6, d);
   }
+  armorStat(key) {
+    let v = 0;
+    for (const s of ['head', 'body']) if (this.equip[s]) v += ARMOR[this.equip[s]][key] || 0;
+    return v;
+  }
+  get dmgBonus() { return this.armorStat('dmgBonus'); }
+  get coinBonus() { return this.armorStat('coinBonus'); }
+  get poisonResist() { return this.armorStat('poisonResist') > 0; }
   get xpNeed() { return 60 + (this.stats.level - 1) * 40; }
   get xpBonus() { return this.equip.head ? ARMOR[this.equip.head].xpBonus || 0 : 0; }
   get rolling() { return this.state === 'roll' && this.stateT > 0.04 && this.stateT < 0.42; }
@@ -52,6 +60,7 @@ export class Player {
     this.alive = true;
     this.staDelay = 0;
     this.poison = 0;
+    this.chill = 0;
     this.hurtFlash = 0;
     this.knock.set(0, 0, 0);
     this.root.rotation.set(0, this.yaw, 0);
@@ -104,7 +113,8 @@ export class Player {
     }
     const moving = len > 0;
     const inPoison = g.world.inPoison(this.pos.x, this.pos.z);
-    if (inPoison) this.poison = Math.max(this.poison, 1.5);
+    if (inPoison && !this.poisonResist) this.poison = Math.max(this.poison, 1.5);
+    if (this.chill > 0) this.chill -= dt;
     if (this.poison > 0) {
       this.poison -= dt;
       this.hp -= 5 * dt;
@@ -126,6 +136,7 @@ export class Player {
         if (sprinting && this.sta <= 0.5) sprinting = false;
         speed = moving ? (sprinting ? SPRINT : WALK) : 0;
         if (inPoison) speed *= 0.7;
+        if (this.chill > 0) speed *= 0.6;
         if (sprinting) { this.sta -= COST.sprint * dt; this.staDelay = 0.5; }
         if (moving) {
           const target = g.lockTarget && !sprinting ? Math.atan2(g.lockTarget.pos.x - this.pos.x, g.lockTarget.pos.z - this.pos.z) : Math.atan2(mx, mz);

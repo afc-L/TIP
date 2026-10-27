@@ -1,6 +1,6 @@
 // Pooled effects: particles, shockwave rings, ground telegraphs, projectiles, floating text.
 import * as THREE from 'three';
-import { mat, mesh, sph, box, makeGnome } from './models.js';
+import { projectileModel } from './models.js';
 import { groundHeight } from './collision.js';
 
 class Particles {
@@ -100,12 +100,8 @@ export class Effects {
       this.teles.push({ group: g, fill, active: false });
     }
 
+    // Projectiles are pooled per kind and created on first use (max 10 of each kind).
     this.projectiles = [];
-    const slimeM = mat(0x66ff44, { emissive: 0x228811 });
-    const paperM = mat(0xffffff);
-    for (let i = 0; i < 8; i++) this.addProjectile('slime', mesh(sph(0.28, 6, 5), slimeM));
-    for (let i = 0; i < 6; i++) this.addProjectile('resume', (() => { const g = new THREE.Group(); mesh(box(0.5, 0.02, 0.65), paperM, 0, 0, 0, g); return g; })());
-    for (let i = 0; i < 8; i++) this.addProjectile('gnome', makeGnome(1.6));
 
     // DOM floating text pools.
     this.layer = document.getElementById('float-layer');
@@ -175,12 +171,17 @@ export class Effects {
   }
 
   spawnProjectile(kind, from, vel, opts) {
-    const p = this.projectiles.find((o) => o.kind === kind && !o.active);
-    if (!p) return null;
+    let p = this.projectiles.find((o) => o.kind === kind && !o.active);
+    if (!p) {
+      if (this.projectiles.filter((o) => o.kind === kind).length >= 10) return null;
+      this.addProjectile(kind, projectileModel(kind));
+      p = this.projectiles[this.projectiles.length - 1];
+    }
     p.active = true;
     p.pos.copy(from); p.vel.copy(vel);
     p.dmg = opts.dmg; p.grav = opts.grav ?? 9.8; p.radius = opts.radius ?? 0.5; p.poison = opts.poison || 0;
     p.splash = opts.splash || 0; p.life = opts.life ?? 4; p.tele = opts.tele || null; p.spin = Math.random() * 6;
+    p.chill = opts.chill || 0; p.friendly = !!opts.friendly;
     p.obj.visible = true;
     p.obj.position.copy(from);
     return p;
@@ -255,16 +256,22 @@ export class Effects {
       p.pos.addScaledVector(p.vel, dt);
       p.obj.position.copy(p.pos);
       p.spin += dt * 8;
-      if (p.kind === 'resume') { p.obj.rotation.y = p.spin; p.obj.rotation.x = Math.sin(p.spin) * 0.4; }
-      if (p.kind === 'gnome') { p.obj.rotation.x = p.spin; }
+      if (p.kind === 'resume' || p.kind === 'coin' || p.kind === 'pan') { p.obj.rotation.y = p.spin; p.obj.rotation.x = Math.sin(p.spin) * 0.4; }
+      else if (p.kind === 'needle') p.obj.rotation.y = Math.atan2(p.vel.x, p.vel.z);
+      else if (p.kind !== 'slime' && p.kind !== 'snowball') p.obj.rotation.x = p.spin;
+      if (p.friendly) {
+        // The player's soda bomb: explodes on landing.
+        if (p.pos.y <= groundHeight(p.pos.x, p.pos.z) || p.life <= 0) { g.explodeAt(p.pos.x, p.pos.z, p.splash, p.dmg); this.kill(p); }
+        continue;
+      }
       if (p.kind === 'slime' && Math.random() < 0.3) this.chunks.emit(p.pos.x, p.pos.y, p.pos.z, 0, 0, 0, 0x66ee44, 0.3, 1);
       const gy = groundHeight(p.pos.x, p.pos.z);
       // Direct hit (not for splash projectiles: they hurt where they land).
       if (!p.splash && player.alive) {
         const dx = player.pos.x - p.pos.x, dy = player.pos.y + 1 - p.pos.y, dz = player.pos.z - p.pos.z;
         if (dx * dx + dy * dy + dz * dz < (p.radius + 0.45) ** 2) {
-          g.damagePlayer(p.dmg, p.pos.x - p.vel.x, p.pos.z - p.vel.z, { poison: p.poison, knock: 3 });
-          this.burst(p.pos.x, p.pos.y, p.pos.z, p.kind === 'slime' ? 0x66ff44 : 0xffffff, 8, { glow: false });
+          g.damagePlayer(p.dmg, p.pos.x - p.vel.x, p.pos.z - p.vel.z, { poison: p.poison, chill: p.chill, knock: 3 });
+          this.burst(p.pos.x, p.pos.y, p.pos.z, p.kind === 'slime' ? 0x66ff44 : p.kind === 'coin' ? 0xffcc22 : 0xffffff, 8, { glow: false });
           g.audio.play('splat');
           this.kill(p);
           continue;

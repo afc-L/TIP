@@ -116,23 +116,60 @@ function segCircle(ax, az, dx, dz, cx, cz, r) {
 }
 
 // Rolling hills, a damp swamp dip and flattened arenas. Used by terrain AND characters.
+// Arenas that get flattened: [x, z, inner radius, outer radius, height].
+export const ARENAS = [
+  [0, -88, 16, 22, 0], [0, -32, 10, 15, -0.6], [-122, 10, 18, 25, 0.6], [120, 8, 18, 25, 1.2], [55, 132, 16, 22, 0.2], [45, 42, 10, 15, 0.1],
+];
+export const WATER_LEVEL = -0.9;
+
+// Region blend weights (0..1).
+export const wDesert = (x) => smooth(-58, -68, x);
+export const wPeaks = (x) => smooth(58, 68, x);
+export const wBeach = (z) => smooth(100, 108, z);
+
+// Rolling hills, desert dunes, snowy hills, a beach sloping into the sea, flattened arenas
+// and mountains beyond the playable edge. Used by terrain AND characters.
 export function groundHeight(x, z) {
   let h = 0.45 * Math.sin(x * 0.11) * Math.cos(z * 0.09) + 0.25 * Math.sin(x * 0.23 + z * 0.17);
+  const wd = wDesert(x), wp = wPeaks(x), wb = wBeach(z);
+  const side = 1 - Math.max(wd, wp);
   // Swamp sits lower.
-  const sw = smooth(34, 26, z) * smooth(-50, -42, z);
+  const sw = smooth(34, 26, z) * smooth(-50, -42, z) * side;
   h -= 0.6 * sw;
-  // Flatten the two boss arenas.
-  const d1 = Math.hypot(x, z + 88);
-  h *= smooth(16, 22, d1);
-  const d2 = Math.hypot(x, z + 32);
-  h = h * smooth(10, 15, d2) + (-0.6) * (1 - smooth(10, 15, d2));
-  // Mountains rise beyond the playable edge.
-  const ex = Math.max(0, Math.abs(x) - 60), ez = Math.max(0, z - 102, -110 - z);
-  h += (ex * ex + ez * ez) * 0.08;
+  // Desert dunes and snowy hills.
+  h += wd * (1 - wb) * (1.4 * (Math.sin(x * 0.06 + z * 0.025) * 0.5 + 0.5) + 0.5 * Math.sin(z * 0.11));
+  h += wp * (1 - wb) * (2.6 * (Math.sin(x * 0.045 + 1) * Math.cos(z * 0.05) * 0.5 + 0.5) + 0.4 * Math.sin(x * 0.2) * Math.sin(z * 0.17));
+  // The beach slopes into the sea.
+  if (z > 128) h -= (z - 128) * 0.07;
+  // Flatten arenas.
+  for (let i = 0; i < ARENAS.length; i++) {
+    const a = ARENAS[i];
+    const dx = x - a[0], dz = z - a[1];
+    const d2 = dx * dx + dz * dz;
+    if (d2 > a[3] * a[3]) continue;
+    const t = smooth(a[2], a[3], Math.sqrt(d2));
+    h = h * t + a[4] * (1 - t);
+  }
+  // Mountains rise beyond the playable edge (union of the centre, the side regions and the beach).
+  const d = edgeDistance(x, z);
+  if (d > 0) h += d * d * 0.08;
   return h;
 }
 
-function smooth(e0, e1, x) {
+// How far (m) a point lies outside the playable area (0 inside).
+export function edgeDistance(x, z) {
+  const dA = rectDist(x, z, -60, -108, 60, 101);
+  const dB = rectDist(x, z, -158, -62, 158, 101);
+  const dC = Math.hypot(Math.max(0, Math.abs(x) - 100), Math.max(0, 101 - z));
+  return Math.min(dA, dB, dC);
+}
+
+function rectDist(x, z, x0, z0, x1, z1) {
+  const dx = Math.max(x0 - x, 0, x - x1), dz = Math.max(z0 - z, 0, z - z1);
+  return Math.hypot(dx, dz);
+}
+
+export function smooth(e0, e1, x) {
   let t = (x - e0) / (e1 - e0);
   t = t < 0 ? 0 : t > 1 ? 1 : t;
   return t * t * (3 - 2 * t);

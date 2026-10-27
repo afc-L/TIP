@@ -1,7 +1,7 @@
 # Steel & Blood
 
 > **Also in this repo:** [`elden-bling/`](elden-bling/README.md) — *Elden Bling: The Quest for the
-> Last Brain Cell*, a short, silly, low-poly Soulslike for the browser. It is fully self-contained
+> Last Brain Cell*, a silly, low-poly, open-world Soulslike for the browser. It is fully self-contained
 > (no npm needed): `cd elden-bling && python3 -m http.server 8000`, then open http://localhost:8000.
 
 A browser-based, physics-driven medieval sword fighting game inspired by *Half Sword*.

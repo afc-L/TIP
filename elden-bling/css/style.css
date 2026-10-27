@@ -195,3 +195,18 @@ hr { border: 0; border-top: 1px solid rgba(242,199,92,0.2); }
 #loading, #fatal { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: #120d08; font-size: 22px; z-index: 50; }
 #fatal { z-index: 60; }
 #fatal p { font-size: 16px; line-height: 1.5; }
+
+/* ---------- Open-world additions ---------- */
+.coconut-ico { background: radial-gradient(circle at 40% 35%, #a07a50, #5a3a1a); }
+.bomb-ico { background: linear-gradient(#7ad0ff, #1a78c8); border-radius: 6px 6px 8px 8px; width: 16px; height: 28px; }
+.medal-ico { background: radial-gradient(circle at 40% 35%, #fff2a0, #e0a020); box-shadow: 0 0 0 3px #8a5a10 inset, 0 0 10px rgba(255,210,80,0.7); }
+.slot.medal { border-color: var(--gold); }
+.buff.chill { color: #a8e0ff; }
+.map-panel { width: min(980px, 96vw); }
+.map-wrap { overflow: hidden; border: 1px solid var(--edge); background: #222; text-align: center; }
+#map-canvas { display: block; margin: 0 auto; max-width: 100%; max-height: 62vh; width: auto; height: auto; }
+#map-legend { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; margin-top: 10px; font: 13px system-ui, sans-serif; }
+#map-legend b { color: var(--gold); }
+.lg { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; border: 1px solid #000; }
+.lg.shrine { background: #7dff8a; } .lg.boss { background: #d8342a; } .lg.npc { background: #4ab0ff; } .lg.bag { background: #ffcc22; }
+@media (max-width: 900px) { #quick .slot { width: 46px; height: 46px; } }

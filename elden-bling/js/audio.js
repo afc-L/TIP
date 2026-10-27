@@ -125,6 +125,10 @@ const SONGS = {
   backyard: { bpm: 100, pad: 'triangle', chords: [[62, 66, 69], [59, 62, 66], [55, 59, 62], [57, 61, 64]], bass: [0, null, 7, null, 0, null, 7, null, 0, null, 7, null, 5, null, 4, null], lead: [7, null, null, 4, null, null, 2, null, 0, null, null, null, null, null, null, null] },
   miniboss: { bpm: 140, pad: 'sawtooth', chords: [[52, 55, 59], [53, 57, 60], [52, 55, 59], [50, 53, 57]], bass: [0, 0, null, 0, 12, null, 0, null, 0, 0, null, 0, 10, null, 7, null], drum: [1, 0, 2, 0, 1, 0, 2, 0, 1, 0, 2, 0, 1, 1, 2, 2] },
   boss: { bpm: 150, pad: 'sawtooth', chords: [[50, 53, 57], [46, 50, 53], [48, 52, 55], [45, 49, 52]], bass: [0, 0, 12, 0, 0, 12, 0, 10, 0, 0, 12, 0, 7, 7, 5, 3], lead: [12, null, 10, null, 7, null, 5, null, 3, null, 5, null, 7, null, null, null], drum: [1, 2, 2, 2, 1, 2, 1, 2, 1, 2, 2, 2, 1, 2, 1, 1] },
+  desert: { bpm: 88, pad: 'triangle', chords: [[57, 61, 64], [58, 62, 65], [57, 61, 64], [55, 58, 62]], bass: [0, null, null, 1, null, null, 0, null, 7, null, null, 8, null, 7, null, null], lead: [12, null, 13, null, 16, null, 13, null, 12, null, null, 10, null, 8, null, null] },
+  peaks: { bpm: 76, pad: 'sine', chords: [[64, 67, 71], [60, 64, 67], [62, 66, 69], [59, 62, 66]], bass: [0, null, null, null, 7, null, null, null, 0, null, null, null, 12, null, null, null], lead: [null, null, 7, null, null, null, 12, null, null, null, 11, null, null, null, 7, null] },
+  beach: { bpm: 104, pad: 'triangle', chords: [[65, 69, 72], [70, 74, 77], [72, 76, 79], [65, 69, 72]], bass: [0, null, 0, 7, null, 7, 0, null, 0, null, 0, 7, null, 7, 12, null], lead: [7, null, 9, null, 12, null, 9, null, 7, null, 4, null, 2, null, 0, null], drum: [1, 0, 2, 0, 0, 1, 2, 0, 1, 0, 2, 0, 0, 1, 2, 2] },
+  regionboss: { bpm: 144, pad: 'sawtooth', chords: [[52, 55, 59], [48, 52, 55], [50, 53, 57], [47, 50, 54]], bass: [0, 12, 0, 12, 0, 12, 0, 10, 0, 12, 0, 12, 7, 7, 5, 5], lead: [12, null, 11, null, 7, null, 4, null, 7, null, 11, null, 12, null, 14, null], drum: [1, 2, 2, 1, 1, 2, 1, 2, 1, 2, 2, 1, 1, 2, 1, 1] },
   victory: { bpm: 110, pad: 'triangle', chords: [[60, 64, 67], [65, 69, 72], [67, 71, 74], [60, 64, 67]], bass: [0, null, 7, null, 12, null, 7, null, 0, null, 7, null, 12, null, 7, null], lead: [0, null, 4, null, 7, null, 12, null, 7, null, 4, null, 7, null, 12, null] },
 };
 
@@ -157,6 +161,7 @@ const SOUNDS = {
   death: (a) => { [67, 63, 60, 55].forEach((n, i) => a.tone(midi(n), 0.45, { type: 'sawtooth', vol: 0.08, delay: i * 0.22 })); },
   victory: (a) => { [60, 64, 67, 72, 67, 72, 76, 79].forEach((n, i) => a.tone(midi(n), 0.3, { type: 'square', vol: 0.07, delay: i * 0.12 })); },
   ui: (a) => a.tone(660, 0.05, { type: 'square', vol: 0.05 }),
+  slap: (a) => { a.noiseBurst(0.08, { vol: 0.45, freq: 2200, q: 0.8 }); a.tone(300, 0.06, { type: 'square', vol: 0.1, slide: 0.5 }); },
   chicken: (a) => { a.tone(700, 0.1, { type: 'sawtooth', vol: 0.08, slide: 1.4 }); a.tone(900, 0.18, { type: 'sawtooth', vol: 0.08, slide: 0.8, delay: 0.12 }); },
   perfect: (a) => { a.tone(1567, 0.2, { type: 'triangle', vol: 0.1 }); a.tone(2093, 0.3, { type: 'triangle', vol: 0.08, delay: 0.06 }); },
 };

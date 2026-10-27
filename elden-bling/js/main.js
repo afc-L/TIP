@@ -3,12 +3,15 @@ import * as THREE from 'three';
 import { loadSettings, saveSettings, applyPreset, PRESETS, loadGame, saveGame, clearGame } from './settings.js';
 import { Audio } from './audio.js';
 import { Input } from './input.js';
-import { World, SHRINES, START, ENEMY_SPAWNS, zoneAt, ZONES } from './world.js';
+import { World, SHRINES, START, ENEMY_SPAWNS, BOSS_SPOTS, zoneAt, ZONES } from './world.js';
 import { Player, turnTo } from './player.js';
-import { Enemy, Dummy, UnemployedKnight, LordTouchgrass, NPC, Chicken } from './enemies.js';
+import { Enemy, Dummy, UnemployedKnight, LordTouchgrass, RegionBoss, NPC, Chicken } from './enemies.js';
 import { Effects } from './effects.js';
 import { UI } from './ui.js';
-import { WEAPONS, ARMOR, CONSUMABLES, DEATH_LINES, TIPS } from './data.js';
+import { WEAPONS, ARMOR, CONSUMABLES, DEATH_LINES, TIPS, SOCKS, SOCKRATES, SHOP, SHOP_COUPON, REGION_BOSSES } from './data.js';
+
+const MEDALLIONS_NEEDED = 3;
+const DAY_LENGTH = 600; // seconds for a full day/night cycle
 import { groundHeight } from './collision.js';
 import { makeLoot, makeBrainCell } from './models.js';
 
@@ -26,7 +29,7 @@ class Game {
     if (!this.initRenderer()) return;
 
     this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(60, 1, 0.1, this.preset.viewDist + 60);
+    this.camera = new THREE.PerspectiveCamera(60, 1, 0.1, this.preset.viewDist * 1.4 + 10);
     this.audio = new Audio(this.settings);
     this.input = new Input(this.canvas);
     this.input.onKey = (code, e) => this.onKey(code, e);
@@ -37,6 +40,8 @@ class Game {
     this.ui = new UI(this);
     this.player = new Player(this);
     this.player.place(START.x, START.z, Math.PI);
+    this.loots = [];
+    this.coinBag = null;
     this.spawnActors();
 
     this.camYaw = 0;
@@ -53,8 +58,6 @@ class Game {
     this.fpsFrames = 0; this.fpsTime = 0; this.fps = 60;
     this.perfTime = 0; this.perfFrames = 0;
     this.zone = null;
-    this.loots = [];
-    this.coinBag = null;
 
     window.addEventListener('resize', () => this.resize());
     document.addEventListener('pointerlockchange', () => this.onPointerLock());
@@ -101,7 +104,7 @@ class Game {
   }
 
   resetProgress() {
-    this.flags = { shrines: {}, opened: {}, walls: {}, gates: {}, tips: {}, bought: {}, lastShrine: 's1' };
+    this.flags = { shrines: {}, opened: {}, walls: {}, gates: {}, tips: {}, bought: {}, bosses: {}, socks: {}, lastShrine: 's1', socksGiven: 0, medallions: 0, dayT: 0.3 };
     this.stats = { deaths: 0, kills: 0, time: 0, coins: 0 };
   }
 
@@ -111,15 +114,22 @@ class Game {
     this.world.col.addCircle(0, 76, 0.35);
     this.mini = new UnemployedKnight(this, 0, -34);
     this.king = new LordTouchgrass(this, 0, -103.6);
-    this.allEnemies = [...this.enemies, this.mini, this.king];
+    this.regionBosses = Object.entries(BOSS_SPOTS).map(([id, [x, z]]) => new RegionBoss(this, id, x, z));
+    this.allEnemies = [...this.enemies, this.mini, this.king, ...this.regionBosses];
     this.dennis = new NPC(this, 'dennis', -9, 84, 0);
     this.barry = new NPC(this, 'barry', 14, 80.5, 0);
+    this.sockrates = new NPC(this, 'sockrates', -8, 66, 0.4);
+    this.coupon = new NPC(this, 'coupon', 18, 112, Math.PI);
     this.chicken = new Chicken(this, -51, -38);
-    this.npcs = [this.dennis, this.barry];
+    this.npcs = [this.dennis, this.barry, this.sockrates, this.coupon];
+    // Lost socks scattered around the world.
+    this.sockLoots = SOCKS.map(([x, z], i) => this.spawnLoot({ kind: 'sock', id: i, label: 'Pick up a lost sock', color: [0xff6666, 0x66aaff, 0x66ff88, 0xffdd44, 0xcc77ff][i % 5] }, x, z));
 
     const W = this.world;
     W.interact({ pos: this.dennis.pos, r: 2.4, label: () => 'Talk to Farmer Dennis', act: () => this.talkDennis() });
-    W.interact({ pos: this.barry.pos, r: 2.4, label: () => 'Shop with Bargain Barry', act: () => this.openShop() });
+    W.interact({ pos: this.barry.pos, r: 2.4, label: () => 'Shop with Bargain Barry', act: () => this.openShop('barry') });
+    W.interact({ pos: this.coupon.pos, r: 2.4, label: () => 'Shop with Captain Coupon', act: () => this.openShop('coupon') });
+    W.interact({ pos: this.sockrates.pos, r: 2.4, label: () => 'Talk to Sockrates', act: () => this.talkSockrates() });
     W.interact({ pos: this.chicken.pos, r: 1.8, label: () => (this.chicken.carried || this.flags.chickenReturned ? null : 'Pick up the chicken'), act: () => this.pickChicken() });
   }
 
@@ -140,7 +150,7 @@ class Game {
     const p = PRESETS[name];
     this.preset.viewDist = p.viewDist;
     this.preset.pixelCap = p.pixelCap;
-    this.camera.far = p.viewDist + 60;
+    this.camera.far = p.viewDist * 1.4 + 10;
     this.camera.updateProjectionMatrix();
     if (before.deco !== p.deco || before.particles !== p.particles || p.shadows !== this.useShadows || before.grass !== p.grass) this.needsReload = true;
     this.applySettings();
@@ -217,7 +227,7 @@ class Game {
   }
 
   closeMenus() {
-    for (const id of ['inventory', 'shrine', 'shop', 'dialogue', 'pause', 'settings', 'controls-screen']) this.ui.close(id);
+    for (const id of ['inventory', 'shrine', 'shop', 'dialogue', 'pause', 'settings', 'controls-screen', 'map']) this.ui.close(id);
     if (this.state === 'paused') this.state = 'playing';
     if (this.state === 'playing') {
       this.input.enabled = true;
@@ -242,10 +252,15 @@ class Game {
   }
 
   onKey(code, e) {
-    if (code === 'KeyM' && !e.repeat) {
+    if (code === 'KeyK' && !e.repeat) {
       this.settings.muted = !this.settings.muted;
       this.applySettings('muted');
-      if (this.state === 'playing') this.ui.toast(this.settings.muted ? 'Sound muted (M)' : 'Sound on (M)');
+      if (this.state === 'playing') this.ui.toast(this.settings.muted ? 'Sound muted (K)' : 'Sound on (K)');
+      return true;
+    }
+    if (code === 'KeyM' && !e.repeat && this.state === 'playing') {
+      if (this.ui.isOpen('map')) this.closeMenus();
+      else if (!this.ui.blocking && this.player.alive) { this.ui.renderMap(); this.openMenu('map'); }
       return true;
     }
     if (code === 'Escape') {
@@ -296,7 +311,7 @@ class Game {
 
     const running = this.state === 'playing' && !this.ui.blocking || this.state === 'dead' || this.state === 'cutscene' || this.state === 'victory';
     if (running) {
-      if (this.state === 'playing') this.stats.time += dt;
+      if (this.state === 'playing') { this.stats.time += dt; this.flags.dayT = (this.flags.dayT + dt / DAY_LENGTH) % 1; }
       let gdt = dt;
       if (this.hitStop > 0) { this.hitStop -= dt; gdt = dt * 0.08; }
       this.update(gdt, dt);
@@ -338,6 +353,8 @@ class Game {
       if (this.input.consume('item1')) this.useItem('garlic');
       if (this.input.consume('item2')) this.useItem('dignity');
       if (this.input.consume('item3')) this.useItem('pepper');
+      if (this.input.consume('item4')) this.useItem('coconut');
+      if (this.input.consume('item5')) this.useItem('bomb');
     } else if (!p.alive) p.update(dt, this.input, this.camYaw);
     else { p.stateT += dt; p.animate(dt, 0); }
 
@@ -381,11 +398,13 @@ class Game {
   refreshActive() {
     const p = this.player.pos;
     const vd = this.preset.viewDist;
+    this.world.cull(p.x, p.z);
+    for (const n of this.npcs) n.root.visible = Math.hypot(n.pos.x - p.x, n.pos.z - p.z) < vd * 0.8;
     const cand = [];
     for (const e of this.allEnemies) {
       const d = e.distTo(p);
       // Render culling for far away enemies.
-      if (!e.hidden) e.root.visible = d < vd;
+      if (!e.hidden) { const v = d < vd * 0.75 || e === this.boss; e.root.visible = v; if (e.blob) e.blob.visible = v; }
       if (e.hidden) continue;
       if (e === this.boss || (d < ACTIVE_RANGE && !(e.dead && e.deadT > 3))) cand.push([d, e]);
     }
@@ -471,6 +490,7 @@ class Game {
   shake(a) { this.shakeAmt = Math.min(1, this.shakeAmt + a); }
 
   menuCamera() {
+    if (!this.menuCulled) { this.menuCulled = true; this.world.cull(0, 66); }
     const t = this.elapsed * 0.05;
     this.camera.position.set(Math.sin(t) * 26, 9 + Math.sin(t * 2) * 1.5, 70 + Math.cos(t) * 26);
     this.camera.lookAt(0, 2, 62);
@@ -480,7 +500,8 @@ class Game {
   // ---------- Zones, quests, tips ----------
   zoneMusic() {
     if (this.boss === this.king) return 'boss';
-    if (this.boss === this.mini) return 'miniboss';
+    if (this.boss === this.mini || (this.boss && this.boss.def.optional)) return 'miniboss';
+    if (this.boss) return 'regionboss';
     if (this.state === 'victory') return 'victory';
     const z = this.zone || 'grass';
     return z === 'arena' ? 'backyard' : z;
@@ -488,13 +509,14 @@ class Game {
 
   checkZones() {
     const p = this.player.pos;
-    this.world.atmosphere(p.x, p.z);
+    this.world.atmosphere(p.x, p.z, this.nightAmount());
     const z = zoneAt(p.x, p.z);
     if (z !== this.zone) {
       const first = this.zone === null;
       this.zone = z;
       if (z !== 'arena' && !first) this.ui.banner(ZONES[z]);
       if (z === 'swamp' && !this.flags.enteredSwamp) { this.flags.enteredSwamp = true; this.updateQuest(); }
+      if ((z === 'desert' || z === 'peaks' || z === 'beach') && !this.flags.exploredOut) { this.flags.exploredOut = true; this.showTip('medallion'); }
       if ((z === 'backyard' || z === 'arena') && !this.flags.enteredYard) { this.flags.enteredYard = true; this.updateQuest(); }
       if (!this.boss) this.audio.setMusic(this.zoneMusic());
     }
@@ -502,6 +524,7 @@ class Game {
     if (!this.flags.tips.attack && this.dummy.distTo(p) < 9) this.showTip('attack');
     if (!this.flags.tips.shrine && Math.hypot(p.x - SHRINES[0].x, p.z - SHRINES[0].z) < 8 && this.flags.tips.attack) this.showTip('shrine');
     if (!this.flags.tips.heal && this.player.hp < this.player.maxHp * 0.6) this.showTip('heal');
+    if (!this.flags.tips.map && this.flags.tips.shrine && p.z < 74) this.showTip('map');
   }
 
   showTip(key) {
@@ -513,16 +536,25 @@ class Game {
   updateQuest() {
     const f = this.flags;
     let main;
+    const med = f.medallions || 0;
+    const medTxt = `Bling Medallions: <b>${med} / ${MEDALLIONS_NEEDED}</b>`;
     if (!f.rested) main = 'Rest at the glowing <b>Touch Grass Shrine</b> nearby';
-    else if (!f.enteredSwamp) main = 'Head north-west into <b>the Cursed Swamp</b>';
-    else if (!f.miniDead) main = 'Defeat <b>the Unemployed Knight</b> at the Backyard Gate (north)';
-    else if (!f.enteredYard) main = 'Enter <b>the King\'s Backyard</b>';
-    else if (!f.bossDead) main = 'Defeat <b>Lord Touchgrass</b> beyond the fog';
+    else if (med < MEDALLIONS_NEEDED) {
+      const left = [];
+      if (!f.miniDead) left.push('the Unemployed Knight (swamp)');
+      for (const b of this.regionBosses) if (REGION_BOSSES[b.bossId].medallion && !f.bosses[b.bossId]) left.push(`${REGION_BOSSES[b.bossId].name} (${{ pharaoh: 'desert, west', snowmom: 'peaks, east', sogbeard: 'beach, south' }[b.bossId]})`);
+      main = `${medTxt}. Defeat bosses to earn them: ${left.join(', ')}. <span class="dim">(M for map)</span>`;
+    }
+    else if (!f.miniDead) main = 'Defeat <b>the Unemployed Knight</b> to open the Backyard Gate';
+    else if (!f.bossDead) main = `${medTxt}. The fog will part: defeat <b>Lord Touchgrass</b> in the King's Backyard`;
     else if (!f.brainCell) main = 'Claim <b>the Last Brain Cell</b>';
     else main = 'You did it! Now go touch some actual grass.';
     let side = '';
     if (!f.talkedDennis) side = 'Optional: talk to <b>Farmer Dennis</b>';
     else if (!f.chickenReturned) side = f.hasChicken ? 'Return <b>Nugget</b> to Farmer Dennis' : 'Find <b>Nugget the chicken</b> (last seen in the swamp\'s south-west)';
+    const found = Object.keys(f.socks || {}).length;
+    if (f.metSockrates && f.socksGiven < SOCKS.length) side += `${side ? '<br>' : ''}Lost socks for Sockrates: <b>${found} / ${SOCKS.length}</b>`;
+    if (!this.regionBosses.find((b) => b.bossId === 'gary').dead && f.rested && !f.bosses.gary) side += `${side ? '<br>' : ''}<span class="dim">Rumour: a giant goblin cooks in the eastern field</span>`;
     this.ui.quest(main, side);
   }
 
@@ -564,6 +596,7 @@ class Game {
       a.hits.add(e);
       let dmg = w.dmg * (1 + pl.stats.str * 0.08) * a.mult * (0.92 + Math.random() * 0.16);
       if (pl.buffs.pepper > 0) dmg *= 1.35;
+      dmg *= 1 + pl.dmgBonus;
       // Backstab-ish bonus when hitting from behind.
       const toPlayer = Math.atan2(-dx, -dz);
       let rel = toPlayer - e.yaw;
@@ -571,8 +604,10 @@ class Game {
       const behind = Math.abs(rel) > 2.3 && !e.isDummy;
       if (behind) dmg *= 1.25;
       e.takeDamage(dmg, pl.pos.x, pl.pos.z, a.kind === 'heavy', a.stagger);
+      if (w.lifesteal && !e.isDummy) pl.hp = Math.min(pl.maxHp, pl.hp + dmg * w.lifesteal);
+      if (w.frost && !e.isDummy) { e.slowT = 3; this.fx.burst(e.pos.x, e.pos.y + 1, e.pos.z, 0x99ddff, 6, { speed: 2 }); }
       this.hitStop = a.kind === 'heavy' ? 0.09 : 0.05;
-      this.audio.play(w.squeak ? 'squeak' : a.kind === 'heavy' ? 'heavyhit' : 'hit');
+      this.audio.play(w.squeak ? 'squeak' : w.slap ? 'slap' : a.kind === 'heavy' ? 'heavyhit' : 'hit');
       if (this.player.equip.weapon === 'pan') this.audio.play('bonk');
       if (a.kind === 'heavy') this.shake(0.15);
     }
@@ -605,7 +640,8 @@ class Game {
     }
     const amt = Math.max(1, Math.round(dmg * (1 - p.defense)));
     p.hp -= amt;
-    if (opts.poison) p.poison = Math.max(p.poison, opts.poison);
+    if (opts.poison && !p.poisonResist) p.poison = Math.max(p.poison, opts.poison);
+    if (opts.chill) p.chill = Math.max(p.chill, opts.chill);
     this.fx.number(new THREE.Vector3(p.pos.x, p.pos.y + 2, p.pos.z), amt, 'player');
     this.fx.burst(p.pos.x, p.pos.y + 1.1, p.pos.z, 0xff5544, 8, { speed: 3 });
     this.ui.flashDamage();
@@ -649,6 +685,7 @@ class Game {
     if (this.boss) this.endBossFight(this.boss, false);
     if (!this.mini.dead) this.mini.reset();
     if (!this.king.dead) this.king.reset();
+    for (const b of this.regionBosses) if (!b.dead) b.reset();
     if (!this.flags.bossDead) this.world.closeFog();
     this.fx.clearHostile();
     this.fx.clearBubbles();
@@ -680,7 +717,7 @@ class Game {
     const xp = Math.round(e.def.xp * (1 + p.xpBonus));
     p.stats.xp += xp;
     const [lo, hi] = e.def.coins;
-    const coins = Math.round(lo + Math.random() * (hi - lo));
+    const coins = Math.round((lo + Math.random() * (hi - lo)) * (1 + p.coinBonus));
     p.coins += coins;
     this.stats.coins += coins;
     this.fx.number(new THREE.Vector3(e.pos.x, e.pos.y + e.height + 0.4, e.pos.z), `+${xp} XP`, 'xp');
@@ -703,7 +740,7 @@ class Game {
 
   onPlayerHeal() {
     this.stats.heals = (this.stats.heals || 0) + 1;
-    if (this.boss === this.king) this.king.onPlayerHeal();
+    if (this.boss === this.king || (this.boss && this.boss.bossId)) this.boss.onPlayerHeal();
   }
 
   onDummyHit() {
@@ -724,8 +761,20 @@ class Game {
   endBossFight(boss, won) {
     if (this.boss === boss) { this.boss = null; this.ui.bossBar(null); }
     if (!won) { this.audio.setMusic(this.zoneMusic()); return; }
-    if (boss === this.mini) {
+    if (boss.bossId) {
+      const cfg = REGION_BOSSES[boss.bossId];
+      this.flags.bosses[boss.bossId] = true;
+      this.spawnLoot({ kind: 'weapon', id: cfg.drop, label: 'Pick up ' + WEAPONS[cfg.drop].name, color: 0xcc66ff }, boss.pos.x, boss.pos.z);
+      setTimeout(() => {
+        this.ui.banner('GREAT ENEMY FELLED', cfg.name);
+        if (cfg.medallion) this.gainMedallion();
+        this.audio.setMusic(this.zoneMusic());
+        this.updateQuest();
+        this.save();
+      }, 2500);
+    } else if (boss === this.mini) {
       this.flags.miniDead = true;
+      setTimeout(() => this.gainMedallion(), 3600);
       this.spawnLoot({ kind: 'weapon', id: 'severance', label: 'Pick up Severance Package', color: 0xcc66ff }, boss.pos.x, boss.pos.z);
       setTimeout(() => {
         this.world.openGate('yardgate');
@@ -750,10 +799,24 @@ class Game {
     }
   }
 
+  gainMedallion() {
+    this.flags.medallions = (this.flags.medallions || 0) + 1;
+    const n = this.flags.medallions;
+    this.audio.play('levelup');
+    this.ui.toast(`Obtained a <b>Bling Medallion</b>! (${n} / ${MEDALLIONS_NEEDED}${n > MEDALLIONS_NEEDED ? ', extra bling' : ''})`, 'gold');
+    if (n === MEDALLIONS_NEEDED) setTimeout(() => this.ui.toast('The fog in the King\'s Backyard is shimmering. Lord Touchgrass awaits.', 'gold'), 1500);
+    this.updateQuest();
+    this.save();
+  }
+
   enterFog() {
     if (this.flags.bossDead || this.state !== 'playing') return;
     const p = this.player;
     if (p.pos.z < -66.9) { this.ui.toast('The fog won\'t let you leave. Lord Touchgrass insists you stay for dinner.'); return; }
+    if ((this.flags.medallions || 0) < MEDALLIONS_NEEDED) {
+      this.ui.dialogue('The Fog', `The fog has ${MEDALLIONS_NEEDED} medallion-shaped holes in it. You have <b>${this.flags.medallions || 0}</b> Bling Medallions. Defeat the great enemies of the kingdom to earn more: the Unemployed Knight, Pharaoh Pyramid-Scheme in the desert (west), the Abominable Snowmom in the peaks (east), and Captain Sogbeard on the beach (south).`);
+      return;
+    }
     this.world.closeFog();
     p.place(0, -70, Math.PI);
     p.state = 'move';
@@ -902,12 +965,24 @@ class Game {
     for (const l of this.loots) {
       l.mesh.rotation.y += dt * 1.5;
       l.mesh.children[0].position.y = 0.5 + Math.sin(this.elapsed * 3) * 0.1 + (l.kind === 'brain' ? 0.7 : 0);
-      if (Math.random() < dt * 4) this.fx.rise(l.x, groundHeight(l.x, l.z) + 0.3, l.z, l.color || 0xffee66, 1, 0.3);
+      const dx = Math.abs(l.x - this.player.pos.x), dz = Math.abs(l.z - this.player.pos.z);
+      const near = dx < 40 && dz < 40;
+      l.mesh.visible = dx < 60 && dz < 60;
+      if (!l.mesh.visible) continue;
+      if (near && Math.random() < dt * 4) this.fx.rise(l.x, groundHeight(l.x, l.z) + 0.3, l.z, l.color || 0xffee66, 1, 0.3);
     }
   }
 
   pickLoot(l) {
     this.removeLoot(l);
+    if (l.kind === 'sock') {
+      this.flags.socks[l.id] = true;
+      const n = Object.keys(this.flags.socks).length;
+      this.audio.play('pickup');
+      this.ui.toast(`Found a <b>lost sock</b>! (${n} / ${SOCKS.length})${this.flags.metSockrates ? '' : ' Somebody in the grasslands must be missing these.'}`, 'gold');
+      this.updateQuest();
+      return;
+    }
     if (l.kind === 'bag') {
       this.player.coins += l.amount;
       this.coinBag = null;
@@ -970,6 +1045,17 @@ class Game {
     const v = new THREE.Vector3(p.pos.x, p.pos.y + 2.2, p.pos.z);
     if (id === 'garlic') { p.hp = Math.min(p.maxHp, p.hp + 45); this.fx.number(v, '+45', 'heal'); this.fx.rise(p.pos.x, p.pos.y, p.pos.z, 0xffee88, 12); this.onPlayerHeal(); this.audio.play('drink'); }
     if (id === 'dignity') { p.hp = Math.min(p.maxHp, p.hp + 25); p.buffs.dignity = 30; this.ui.toast('Dignity restored to 100%! (It was 2%.)'); this.fx.rise(p.pos.x, p.pos.y, p.pos.z, 0x88ccff, 14); this.onPlayerHeal(); this.audio.play('drink'); }
+    if (id === 'coconut') { p.hp = Math.min(p.maxHp, p.hp + 70); p.poison = 0; this.fx.number(v, '+70', 'heal'); this.fx.rise(p.pos.x, p.pos.y, p.pos.z, 0xffffff, 14); this.onPlayerHeal(); this.audio.play('drink'); }
+    if (id === 'bomb') {
+      // Lob it ahead (at the lock target if there is one).
+      const t = this.lockTarget;
+      const tx = t ? t.pos.x : p.pos.x + Math.sin(p.yaw) * 7, tz = t ? t.pos.z : p.pos.z + Math.cos(p.yaw) * 7;
+      const from = new THREE.Vector3(p.pos.x, p.pos.y + 1.6, p.pos.z);
+      const T = 0.8, ty = groundHeight(tx, tz);
+      const vel = new THREE.Vector3((tx - from.x) / T, (ty - from.y + 0.5 * 9.8 * T * T) / T, (tz - from.z) / T);
+      this.fx.spawnProjectile('bomb', from, vel, { dmg: 70, splash: 3.2, friendly: true, life: 3 });
+      this.audio.play('swing');
+    }
     if (id === 'pepper') { p.buffs.pepper = 30; this.ui.toast('Your mouth is on fire. So is your sword arm. +35% damage!'); this.fx.rise(p.pos.x, p.pos.y, p.pos.z, 0xff5522, 16); this.audio.play('levelup'); }
     if (this.ui.isOpen('inventory')) this.ui.renderInventory();
   }
@@ -1005,10 +1091,52 @@ class Game {
     this.updateQuest();
   }
 
-  openShop() {
-    if (!this.flags.metBarry) { this.flags.metBarry = true; this.ui.toast('Barry: "Welcome to Barry\'s Bargain Bin! Everything is handcrafted. By me. Today. In a hurry."'); }
-    this.ui.renderShop();
+  openShop(who = 'barry') {
+    if (who === 'barry' && !this.flags.metBarry) { this.flags.metBarry = true; this.ui.toast('Barry: "Welcome to Barry\'s Bargain Bin! Everything is handcrafted. By me. Today. In a hurry."'); }
+    if (who === 'coupon' && !this.flags.metCoupon) { this.flags.metCoupon = true; this.ui.toast('Captain Coupon: "Arr! Everything\'s 0% off! That\'s a pirate discount!"'); }
+    this.shopWho = who;
+    this.ui.renderShop(who === 'coupon' ? SHOP_COUPON : SHOP, who === 'coupon' ? "Captain Coupon's Coconut Cove" : "Barry's Bargain Bin");
     this.openMenu('shop');
+  }
+
+  talkSockrates() {
+    const f = this.flags;
+    const d = (t, c) => this.ui.dialogue('Sockrates', t, c);
+    if (!f.metSockrates) { f.metSockrates = true; this.updateQuest(); return d(SOCKRATES.intro); }
+    const found = Object.keys(f.socks).length;
+    const before = f.socksGiven || 0;
+    f.socksGiven = found;
+    const rewards = [];
+    if (before < 3 && found >= 3) rewards.push(['consumable', 'coconut', 3]);
+    if (before < 6 && found >= 6) rewards.push(['flask']);
+    if (before < SOCKS.length && found >= SOCKS.length) rewards.push(['weapon', 'sockpuppet']);
+    let text = SOCKRATES.progress(found);
+    if (found > before) text = `Ah! ${found - before} sock${found - before > 1 ? 's' : ''}! The sock that returns is wiser than the sock that left. ` + text;
+    if (rewards.length) text += ' <br><br>For your trouble, take this. Rewards come at 3, 6 and 10 socks.';
+    else if (found < SOCKS.length) text += ' <br><br>Rewards come at 3, 6 and 10 socks.';
+    else text += ' <br><br>You have found every sock. There is nothing left to teach you. Go, and be warm of foot.';
+    d(text, rewards.length ? [{ label: 'Accept reward', fn: () => { for (const r of rewards) this.grant(...r); this.updateQuest(); this.save(); } }] : null);
+  }
+
+  explodeAt(x, z, r, dmg) {
+    this.audio.play('stomp');
+    this.shake(0.25);
+    const y = groundHeight(x, z);
+    this.fx.burst(x, y + 0.5, z, 0x66ccff, 26, { speed: 7, up: 4 });
+    this.fx.burst(x, y + 0.5, z, 0xffffff, 14, { speed: 5, glow: false });
+    for (const e of this.activeEnemies) {
+      if (e.dead || e.hidden || (e === this.king && !e.engaged)) continue;
+      if (Math.hypot(e.pos.x - x, e.pos.z - z) < r + e.radius) e.takeDamage(dmg, x, z, true, true);
+    }
+    for (const wl of this.world.illusory) {
+      if (!wl.broken && Math.hypot(wl.x - x, wl.z - z) < r + wl.r) { this.world.breakWall(wl); this.flags.walls[wl.id] = true; }
+    }
+  }
+
+  // 0 at midday, 1 at midnight.
+  nightAmount() {
+    const a = Math.cos(this.flags.dayT * Math.PI * 2); // dayT 0 = midnight, 0.5 = noon
+    return Math.max(0, Math.min(1, a * 0.9 + 0.2));
   }
 
   buy(item) {
@@ -1036,7 +1164,11 @@ class Game {
   applySave(d) {
     try {
       this.flags = { ...this.flags, ...d.flags };
-      for (const k of ['shrines', 'opened', 'walls', 'gates', 'tips', 'bought']) this.flags[k] = this.flags[k] || {};
+      for (const k of ['shrines', 'opened', 'walls', 'gates', 'tips', 'bought', 'bosses', 'socks']) this.flags[k] = this.flags[k] || {};
+      if (typeof this.flags.dayT !== 'number') this.flags.dayT = 0.3;
+      if (typeof this.flags.medallions !== 'number') this.flags.medallions = this.flags.miniDead ? 1 : 0;
+      for (const id in this.flags.socks) { const l = this.sockLoots[id]; if (l) this.removeLoot(l); }
+      for (const b of this.regionBosses) if (this.flags.bosses[b.bossId]) { b.dead = true; b.hidden = true; b.root.visible = false; if (b.blob) b.blob.visible = false; }
       this.stats = { ...this.stats, ...d.stats };
       const p = this.player;
       Object.assign(p.stats, d.player.stats);

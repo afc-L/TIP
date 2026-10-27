@@ -1,5 +1,7 @@
 // DOM-based HUD and menus.
-import { WEAPONS, ARMOR, CONSUMABLES, FLASK, SHOP, CREDITS } from './data.js';
+import { WEAPONS, ARMOR, CONSUMABLES, FLASK, SHOP, CREDITS, SOCKS, REGION_BOSSES } from './data.js';
+import { groundHeight, edgeDistance } from './collision.js';
+import { SHRINES, BOSS_SPOTS } from './world.js';
 import { PRESETS } from './settings.js';
 
 const $ = (id) => document.getElementById(id);
@@ -59,6 +61,7 @@ export class UI {
     click('btn-inv-close', () => g.closeMenus());
     click('btn-shrine-leave', () => g.closeMenus());
     click('btn-shop-leave', () => g.closeMenus());
+    click('btn-map-close', () => g.closeMenus());
     click('btn-victory-continue', () => g.keepExploring());
     click('btn-victory-menu', () => g.quitToMenu());
     click('btn-death-skip', () => g.respawn());
@@ -161,11 +164,13 @@ export class UI {
     $('hud-levelup').classList.toggle('hidden', p.stats.xp < p.xpNeed);
     this.setText('coins', String(p.coins));
     this.setText('q-flask', String(p.flasks));
-    for (const k of ['garlic', 'dignity', 'pepper']) this.setText('q-' + k, String(p.inv.items[k] || 0));
+    for (const k of ['garlic', 'dignity', 'pepper', 'coconut', 'bomb']) this.setText('q-' + k, String(p.inv.items[k] || 0));
+    this.setText('q-medal', String(g.flags.medallions || 0));
     let buffs = '';
     if (p.buffs.pepper > 0) buffs += `<span class="buff pepper">Rage ${Math.ceil(p.buffs.pepper)}s</span>`;
     if (p.buffs.dignity > 0) buffs += `<span class="buff dignity">Dignity ${Math.ceil(p.buffs.dignity)}s</span>`;
     if (p.poison > 0) buffs += '<span class="buff poison">Poisoned</span>';
+    if (p.chill > 0) buffs += '<span class="buff chill">Chilled</span>';
     this.setHTML('buffs', buffs);
 
     if (g.boss) {
@@ -340,6 +345,9 @@ export class UI {
         item(`${c.name} ×${n}`, c.desc, `Key ${c.key}`, 'Use', () => g.useItem(id), false);
       }
       if (g.flags.hasChicken && !g.flags.chickenReturned) item('Nugget (Chicken)', 'Currently sitting on your head. Judging you. Return her to Farmer Dennis.', 'Quest', null, null, false);
+      if (g.flags.medallions) item(`Bling Medallion ×${g.flags.medallions}`, 'Heavy, shiny, and slightly sticky. Three of them open the fog to Lord Touchgrass.', 'Key item', null, null, false);
+      const socks = Object.keys(g.flags.socks || {}).length;
+      if (socks) item(`Lost Socks ×${socks}`, 'None of them match. Sockrates, in the grasslands, collects them.', 'Key item', null, null, false);
       if (!any) list.insertAdjacentHTML('afterbegin', '<p class="empty">No consumables. Barry sells some, allegedly.</p>');
     }
   }
@@ -373,11 +381,13 @@ export class UI {
   }
 
   // ---------- Shop ----------
-  renderShop() {
+  renderShop(list = SHOP, title = "Barry's Bargain Bin") {
     const g = this.game, p = g.player;
-    const list = $('shop-list');
-    list.innerHTML = `<p class="lvl-info">Your coins: <b>${p.coins}</b></p>`;
-    for (const s of SHOP) {
+    this.shopArgs = [list, title];
+    $('shop-title').textContent = title;
+    const box = $('shop-list');
+    box.innerHTML = `<p class="lvl-info">Your coins: <b>${p.coins}</b></p>`;
+    for (const s of list) {
       const sold = s.once && g.flags.bought[s.id];
       const data = s.kind === 'consumable' ? CONSUMABLES[s.id] : s.kind === 'armor' ? ARMOR[s.id] : s;
       const d = document.createElement('div');
@@ -387,10 +397,86 @@ export class UI {
         const b = document.createElement('button');
         b.textContent = 'Buy';
         b.disabled = p.coins < s.price;
-        b.addEventListener('click', () => { g.buy(s); this.renderShop(); });
+        b.addEventListener('click', () => { g.buy(s); this.renderShop(...this.shopArgs); });
         d.querySelector('.item-h').appendChild(b);
       }
-      list.appendChild(d);
+      box.appendChild(d);
     }
+  }
+
+  // ---------- World map ----------
+  renderMap() {
+    const g = this.game, W = g.world;
+    const X0 = -160, X1 = 160, Z0 = -112, Z1 = 152, S = 1.5; // metres per pixel
+    const w = Math.round((X1 - X0) / S), h = Math.round((Z1 - Z0) / S);
+    const cv = $('map-canvas');
+    if (!this.mapBase) {
+      // Paint the terrain once and keep it.
+      const base = document.createElement('canvas');
+      base.width = w; base.height = h;
+      const ctx = base.getContext('2d');
+      const img = ctx.createImageData(w, h);
+      const c = { setHex(v) { this.r = (v >> 16) / 255; this.g = ((v >> 8) & 255) / 255; this.b = (v & 255) / 255; return this; }, offsetHSL() { return this; }, lerp(o, t) { this.r += (o.r - this.r) * t; this.g += (o.g - this.g) * t; this.b += (o.b - this.b) * t; return this; } };
+      for (let py = 0; py < h; py++) for (let px = 0; px < w; px++) {
+        const x = X0 + px * S, z = Z0 + py * S;
+        const y = groundHeight(x, z);
+        const k = (py * w + px) * 4;
+        if (y < -0.9 && z > 120) { img.data[k] = 50; img.data[k + 1] = 130; img.data[k + 2] = 190; img.data[k + 3] = 255; continue; }
+        const e = edgeDistance(x, z);
+        if (e > 1) { const v = Math.max(40, 110 - e * 2); img.data[k] = v; img.data[k + 1] = v * 0.95; img.data[k + 2] = v * 0.85; img.data[k + 3] = 255; continue; }
+        W.groundColor(x, y, z, c, 0.5);
+        const shade = 0.85 + Math.min(0.25, y * 0.05);
+        img.data[k] = c.r * 255 * shade; img.data[k + 1] = c.g * 255 * shade; img.data[k + 2] = c.b * 255 * shade; img.data[k + 3] = 255;
+      }
+      ctx.putImageData(img, 0, 0);
+      // Walls and big obstacles.
+      ctx.fillStyle = 'rgba(40,30,20,0.85)';
+      for (const b of W.col.boxes) {
+        if (!b.cam || b.maxX - b.minX > 200) continue;
+        ctx.fillRect((b.minX - X0) / S, (b.minZ - Z0) / S, Math.max(1, (b.maxX - b.minX) / S), Math.max(1, (b.maxZ - b.minZ) / S));
+      }
+      this.mapBase = base;
+    }
+    cv.width = w * 2; cv.height = h * 2;
+    const ctx = cv.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(this.mapBase, 0, 0, w * 2, h * 2);
+    const P = (x, z) => [((x - X0) / S) * 2, ((z - Z0) / S) * 2];
+    // Gates that are now open.
+    for (const id in W.gates) {
+      const gt = W.gates[id];
+      if (!gt.open) continue;
+      const [a, b] = P(gt.box.minX, gt.box.minZ), [c2, d2] = P(gt.box.maxX, gt.box.maxZ);
+      ctx.fillStyle = '#e8d8a0'; ctx.fillRect(a, b, c2 - a, d2 - b);
+    }
+    ctx.font = 'bold 20px Georgia, serif';
+    ctx.textAlign = 'center';
+    const label = (t, x, z) => { let [px, pz] = P(x, z); const hw = ctx.measureText(t).width / 2 + 4; px = Math.max(hw, Math.min(cv.width - hw, px)); ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.strokeText(t, px, pz); ctx.fillStyle = '#fff4d0'; ctx.fillText(t, px, pz); };
+    label('GRASSLANDS', 0, 50); label('CURSED SWAMP', 0, 0); label("KING'S BACKYARD", 0, -56);
+    label('CRUNCHY DESERT', -110, 72); label('CHILLY PEAKS', 110, 72); label('BEACH OF REGRET', 0, 128);
+    const dot = (x, z, color, r, ring) => { const [px, pz] = P(x, z); ctx.beginPath(); ctx.arc(px, pz, r, 0, Math.PI * 2); ctx.fillStyle = color; ctx.fill(); if (ring) { ctx.lineWidth = 2; ctx.strokeStyle = ring; ctx.stroke(); } };
+    // Shrines: bright when discovered.
+    for (const sh of SHRINES) dot(sh.x, sh.z, g.flags.shrines[sh.id] ? '#7dff8a' : 'rgba(120,160,120,0.6)', 7, '#0a2a0a');
+    // Bosses.
+    const bossDot = (x, z, dead, name) => {
+      dot(x, z, dead ? '#666' : '#d8342a', 10, '#000');
+      const [px, pz] = P(x, z);
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 13px system-ui, sans-serif'; ctx.fillText(dead ? '✓' : '!', px, pz + 5);
+      ctx.font = '13px system-ui, sans-serif'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.strokeText(name, px, pz - 15); ctx.fillStyle = dead ? '#bbb' : '#ffd0c0'; ctx.fillText(name, px, pz - 15);
+    };
+    for (const id in BOSS_SPOTS) bossDot(BOSS_SPOTS[id][0], BOSS_SPOTS[id][1], !!g.flags.bosses[id], REGION_BOSSES[id].name);
+    bossDot(0, -34, !!g.flags.miniDead, 'The Unemployed Knight');
+    bossDot(0, -90, !!g.flags.bossDead, 'Lord Touchgrass');
+    // People.
+    for (const n of g.npcs) dot(n.pos.x, n.pos.z, '#4ab0ff', 5, '#002');
+    if (g.coinBag) dot(g.coinBag.x, g.coinBag.z, '#ffcc22', 7, '#000');
+    // Player arrow.
+    const pl = g.player;
+    const [px, pz] = P(pl.pos.x, pl.pos.z);
+    ctx.save(); ctx.translate(px, pz); ctx.rotate(-pl.yaw + Math.PI);
+    ctx.beginPath(); ctx.moveTo(0, -13); ctx.lineTo(9, 10); ctx.lineTo(0, 5); ctx.lineTo(-9, 10); ctx.closePath();
+    ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = '#000'; ctx.stroke(); ctx.restore();
+    const socks = Object.keys(g.flags.socks || {}).length;
+    $('map-legend').innerHTML = `<span><i class="lg shrine"></i>Shrine</span><span><i class="lg boss"></i>Boss</span><span><i class="lg npc"></i>Person</span><span><i class="lg bag"></i>Your dropped coins</span><span>Medallions <b>${g.flags.medallions || 0} / 3</b></span><span>Socks <b>${socks} / ${SOCKS.length}</b></span>`;
   }
 }

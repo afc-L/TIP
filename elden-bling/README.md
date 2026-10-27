@@ -1,10 +1,11 @@
 # Elden Bling: The Quest for the Last Brain Cell
 
-A short, silly, low-poly 3D Soulslike that runs in the browser. Explore a tiny kingdom, bonk
-ridiculous enemies, loot questionable gear, rescue a chicken, defeat the Unemployed Knight and
-finally take down **Lord Touchgrass**, who has guarded his backyard for 500 years.
+A silly, low-poly, open-world 3D Soulslike that runs in the browser. Explore a kingdom of six
+regions, bonk ridiculous enemies, loot questionable gear, rescue a chicken, return lost socks to a
+philosopher, defeat the great enemies of the realm in any order you like and finally take down
+**Lord Touchgrass**, who has guarded his backyard for 500 years.
 
-A first playthrough takes roughly 20–40 minutes.
+A first playthrough takes roughly 1–2 hours; finding every secret takes longer.
 
 - Plain HTML, CSS and JavaScript (ES modules), no build step, no backend.
 - [Three.js](https://threejs.org) r186 is included in `vendor/` so the game works offline.
@@ -52,11 +53,12 @@ everything uses relative paths.
 | `Shift` | Sprint |
 | `E` | Interact, open chests, rest at shrines |
 | `Q` | Drink a Flask of Questionable Juice (heal) |
-| `1` `2` `3` | Garlic Bread / Potion of 100% Dignity / Ghost Pepper of Rage |
+| `1` – `5` | Garlic Bread / Potion of 100% Dignity / Ghost Pepper / Coconut / Soda Bomb (thrown) |
 | `F` or middle click | Lock on to an enemy |
+| `M` | World map |
 | `Tab` | Inventory, equipment and stats |
 | `Esc` | Pause menu |
-| `M` / `H` | Mute all sound / toggle the on-screen controls guide |
+| `K` / `H` | Mute all sound / toggle the on-screen controls guide |
 
 Click the game once to capture the mouse. `Esc` releases it and pauses.
 
@@ -73,15 +75,30 @@ Click the game once to capture the mouse. `Esc` releases it and pauses.
 - Some walls are fake. Hit suspicious walls. Some gates only open from one side.
 - Coins buy things from **Bargain Barry** in the starting village.
 
-### The map
+### The open world
 
-1. **The Grasslands**: the safe start. Dummy Dave for practice, goblins with frying pans, angry
-   knights, chests, Farmer Dennis (who has lost his chicken) and Barry's shop.
-2. **The Cursed Swamp**: poison puddles, poison frogs that spit slime, skeletons that trip over
-   themselves, hidden loot, and the Unemployed Knight guarding the Backyard Gate.
-3. **The King's Backyard**: lawn gnomes, flamingos, a suspicious shed, and the fog wall to
-   Lord Touchgrass. He has three attacks (rake sweep, shockwave stomp, gnome barrage), gets a second
-   phase below 40% HP, and he *really* hates it when you heal in front of him.
+The kingdom is open: after the tutorial you can go anywhere, in any order. Press `M` for the map.
+
+| Region | Where | Enemies | Boss |
+| --- | --- | --- | --- |
+| **The Grasslands** | Centre (start) | Goblins with frying pans, Angry Knights | *Gary the Enormous Goblin* (optional field boss) |
+| **The Cursed Swamp** | North of the start | Poison frogs, clumsy skeletons | *The Unemployed Knight* (guards the Backyard Gate) |
+| **The Crunchy Desert** | West | Unwrapped Mummies, Hostile Cacti (needle volleys) | *Pharaoh Pyramid-Scheme* |
+| **The Slightly Chilly Peaks** | East | Snowmen (snowballs slow you), Yeti Bouncers | *The Abominable Snowmom* |
+| **The Beach of Regret** | South | Crabs with tiny knives, Seasick Pirates | *Captain Sogbeard* |
+| **The King's Backyard** | Far north | Lawn guards | **Lord Touchgrass** (final boss) |
+
+- **Bling Medallions**: the Unemployed Knight, the Pharaoh, the Snowmom and Captain Sogbeard each drop
+  one. Any **three** open the fog to Lord Touchgrass. Every boss also drops a unique weapon, and each
+  gets a second phase when badly hurt.
+- **Side quests**: find Farmer Dennis's chicken, and collect the **10 lost socks** scattered across the
+  world for Sockrates (rewards at 3, 6 and 10).
+- **Shops**: Bargain Barry in the village, Captain Coupon on the beach.
+- **Secrets**: four fake walls (hit them, or blow them up with a Soda Bomb), one-way shortcuts, a hidden
+  thicket, and something the moderators hid behind fake ice.
+- **Loot**: 16 weapons (lifesteal, frost, extra reach, a shield-umbrella…), 10 armour pieces
+  (poison immunity, coin bonus, damage bonus…), 5 consumables, rare enemy drops.
+- A gentle **day/night cycle** (10 minutes per day).
 
 ## Performance and graphics settings
 
@@ -93,9 +110,11 @@ The game is built for school laptops with integrated graphics:
 - A **render resolution** slider (40–100%). With *Auto-lower resolution* on, the game drops the
   resolution by itself if the frame rate stays below ~24 FPS.
 - Turn on **Show FPS counter** to check how it's running.
-- Under the hood: low-poly flat-shaded Lambert materials, instanced and zone-chunked scenery,
-  distance culling, at most 8 enemies simulated at once, pooled particles, projectiles and floating
-  text, and simple 2D circle/box collision instead of a physics engine.
+- Under the hood: low-poly flat-shaded Lambert materials; terrain split into tiles; scenery
+  instanced per 64 m cell with each prop type merged into one mesh; characters merged per joint so
+  each costs only a few draw calls; distance culling of scenery, props and characters; at most 8
+  enemies simulated at once; pooled particles, projectiles and floating text; and simple 2D
+  circle/box collision instead of a physics engine.
 
 If the game says WebGL 2 is unavailable, update the browser and make sure hardware acceleration is
 enabled in its settings (Chrome: Settings → System → "Use graphics acceleration when available").
