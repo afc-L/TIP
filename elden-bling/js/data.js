@@ -313,8 +313,8 @@ export const REGION_BOSSES = {
 };
 
 export const SOCKRATES = {
-  intro: 'Ah, a traveller. Tell me: if a sock is lost and nobody finds it, is it still a sock? I have lost <b>ten socks</b> across the kingdom. Bring them back and I will reward you with wisdom. And actual items. Mostly items.',
-  progress: (n) => `You have returned <b>${n} of 10</b> socks. ${n >= 10 ? '' : 'The rest are out there. In the desert, the peaks, the beach, everywhere. Socks are drawn to adventure.'}`,
+  intro: 'Ah, a traveller. Tell me: if a sock is lost and nobody finds it, is it still a sock? I have lost <b>sixteen socks</b> across the kingdom. Bring them back and I will reward you with wisdom. And actual items. Mostly items.',
+  progress: (n) => `You have returned <b>${n} of 16</b> socks. ${n >= 16 ? '' : 'The rest are out there. In the desert, the peaks, the beach, everywhere. Socks are drawn to adventure.'}`,
 };
 
 export const DEATH_LINES = [
@@ -350,7 +350,7 @@ export const TIPS = {
   heal: 'Press <b>Q</b> to drink your Flask of Questionable Juice. <b>Tab</b> opens your inventory and stats.',
   lock: 'Press <b>F</b> (or Middle Mouse) to lock on to an enemy. Very helpful for big angry kings.',
   map: 'Press <b>M</b> to open the world map. The kingdom is bigger than it looks: deserts west, mountains east, a beach south.',
-  medallion: 'Bling Medallions open the fog to Lord Touchgrass. Defeat the region bosses to earn them. Any order you like!',
+  medallion: 'Bling Medallions open the fog to Lord Touchgrass. You need <b>six</b>. Eight great enemies across the kingdom carry them. Any order you like!',
 };
 
 export const CREDITS = `
@@ -361,3 +361,261 @@ export const CREDITS = `
 <p>Special thanks to Nugget the chicken, who was not harmed and is honestly doing great.</p>
 <p>No kings were touched in the making of this game. Only grass.</p>
 `;
+
+// ======================================================================
+// Expansion 2: the far regions (Haunted Woods, Mount Slightly Hot,
+// the Fungal Funhouse and the Candy Kingdom), more bosses and loot.
+// ======================================================================
+
+Object.assign(WEAPONS, {
+  juicebox: { name: 'Juice Box of Eternal Night', dmg: 30, speed: 1.15, reach: 2.4, arc: 125, lifesteal: 0.2, desc: 'Count Snackula\'s weapon of choice. Every hit drains 20% back as health. Contains no actual juice, only vibes.' },
+  jackflail: { name: 'Jack-o\'-Flail', dmg: 38, speed: 0.75, reach: 2.9, arc: 140, stagger: true, dot: { dps: 6, t: 3, color: 0xff8822 }, desc: 'A burning pumpkin on a chain. The Headless Horseman would like it back, but he can\'t see where it went.' },
+  gavel: { name: 'Gavel of Hot Takes', dmg: 40, speed: 0.8, reach: 2.6, arc: 130, stagger: true, dot: { dps: 8, t: 3, color: 0xff5511 }, desc: 'The Molten Mayor\'s gavel. Sets enemies on fire. Order in the court! Especially the on-fire part.' },
+  dragontooth: { name: 'Dave\'s Tooth (He Wants It Back)', dmg: 34, speed: 1.0, reach: 3.2, arc: 120, dot: { dps: 7, t: 3, color: 0xff6622 }, desc: 'A dragon fang. Still warm. Dave keeps sending you passive-aggressive letters about it.' },
+  shroomstaff: { name: 'Mush-Room Service Staff', dmg: 32, speed: 1.05, reach: 2.8, arc: 130, dot: { dps: 9, t: 4, color: 0x88ee44 }, desc: 'The Fun Guy\'s staff. Poisons enemies. Comes with a little "do not disturb" sign.' },
+  slimesabre: { name: 'Slimy Sabre', dmg: 30, speed: 1.15, reach: 2.6, arc: 125, frost: true, desc: 'Queen Slugworth\'s sword. Slows enemies down. Also slows down anyone who has to clean it.' },
+  candycane: { name: 'Candy Cane of Sugar Rush', dmg: 33, speed: 1.4, reach: 2.6, arc: 130, desc: 'Baron Von Sugarcrash\'s cane. Ridiculously fast. Mint flavoured. Do not lick mid-fight.' },
+  gummyfists: { name: 'Gummy Gauntlets', dmg: 20, speed: 1.9, reach: 2.0, arc: 120, stagger: true, desc: 'Big squishy fists. Punch faster than your enemies can process emotionally.' },
+  wormwhip: { name: 'Sandworm Whip', dmg: 29, speed: 1.0, reach: 4.0, arc: 90, desc: 'Sandra\'s tail tip. Enormous reach. Sandra says it\'ll grow back. Sandra is lying.' },
+  brrsword: { name: 'Brr-oadsword', dmg: 35, speed: 0.95, reach: 2.8, arc: 130, frost: true, desc: 'Sir Shivers\' frozen blade. Slows enemies. Your hands will never be warm again.' },
+  tentacle: { name: 'Kevin\'s Spare Tentacle', dmg: 27, speed: 1.35, reach: 3.3, arc: 135, slap: true, desc: 'Kevin had eight. Now he has seven and a grudge. Every hit is a wet slap.' },
+  broom: { name: 'Witch\'s Broom (Used)', dmg: 28, speed: 1.2, reach: 2.8, arc: 175, desc: 'Grandma Bog\'s broom. Sweeps in a huge arc. Does not fly. She checked. Many times.' },
+  bigspoon: { name: 'The Big Spoon', dmg: 22, speed: 1.1, reach: 2.6, arc: 150, desc: 'For cuddling and for violence. Mostly violence.' },
+  airguitar: { name: 'Air Guitar of Shredding', dmg: 26, speed: 1.3, reach: 2.4, arc: 130, desc: 'You can\'t see it. Enemies can\'t see it. Everyone agrees it is absolutely shredding though.' },
+  keyboard: { name: 'Gaming Keyboard (RGB)', dmg: 19, speed: 1.7, reach: 2.2, arc: 125, desc: 'Clicky switches. +10 to annoying your roommate. The lights make it hit harder (they don\'t).' },
+  flamingospear: { name: 'Lawn Flamingo Spear', dmg: 24, speed: 1.15, reach: 3.4, arc: 80, desc: 'A plastic flamingo on a stick. Lord Touchgrass reported it stolen in 1523.' },
+  pizzacutter: { name: 'Pizza Cutter of Destiny', dmg: 25, speed: 1.45, reach: 2.2, arc: 130, desc: 'Cuts through pizza, cheese, enemies and arguments about pineapple.' },
+  dadsbelt: { name: 'Dad\'s Belt', dmg: 31, speed: 1.2, reach: 2.9, arc: 140, stagger: true, desc: 'Enemies freeze in fear when you take it off. Simply terrifying.' },
+});
+
+Object.assign(ARMOR, {
+  pumpkinhead: { slot: 'head', name: 'Pumpkin Head', def: 0.12, desc: 'Carved by a professional. Smells like autumn. You can only see through the triangle eyes.' },
+  witchhat: { slot: 'head', name: 'Pointy Witch Hat', def: 0.1, xpBonus: 0.4, desc: '+40% XP. The hat is doing all the thinking now.' },
+  shroomcap: { slot: 'head', name: 'Mushroom Cap', def: 0.12, poisonResist: true, desc: 'Immune to poison. Might be growing on you. Literally.' },
+  propeller: { slot: 'head', name: 'Propeller Beanie', def: 0.06, speedBonus: 0.12, desc: '+12% movement speed. The propeller is not connected to anything. It is pure belief.' },
+  tinfoil: { slot: 'head', name: 'Tin Foil Hat', def: 0.11, chillResist: true, desc: 'Immune to being chilled. Blocks mind control, 5G and snowballs.' },
+  dragonhelm: { slot: 'head', name: 'Dragon Skull Helm', def: 0.17, dmgBonus: 0.08, desc: 'Dave\'s cousin. Dave doesn\'t talk about it.' },
+  vampcape: { slot: 'body', name: 'Cape of Dramatic Entrances', def: 0.14, lifesteal: 0.05, desc: 'Every hit heals 5% of the damage. Swish it. Swish it often.' },
+  lavaplate: { slot: 'body', name: 'Lava Plate Armour', def: 0.28, burnResist: true, desc: 'Immune to burning. Very heavy. Very hot. Do not hug anyone.' },
+  gingerplate: { slot: 'body', name: 'Gingerbread Plate', def: 0.2, regen: 1.5, desc: 'Regenerates 1.5 HP per second as you nibble on it. Structurally questionable.' },
+  apron: { slot: 'body', name: 'Kiss the Cook Apron', def: 0.12, healBonus: 0.5, desc: 'Flasks and food heal 50% more. Nobody kisses the cook.' },
+  hoodie: { slot: 'body', name: 'Comfy Hoodie', def: 0.11, stamRegen: 0.45, desc: '+45% stamina regeneration. Hood up = main character energy.' },
+  tuxedo: { slot: 'body', name: 'Tuxedo of Formal Violence', def: 0.18, dmgBonus: 0.15, desc: '+15% damage. You came to this fight dressed for a gala and you will LEAVE like it.' },
+});
+
+Object.assign(CONSUMABLES, {
+  firebomb: { name: 'Spicy Fire Bomb', key: '6', desc: 'Thrown like a soda bomb, but sets everything on fire. 60 damage plus burning.' },
+  mushroom: { name: 'Questionable Mushroom', key: '7', desc: 'Random effect! Could heal you fully, make you super strong, or turn the world upside down emotionally.' },
+  candy: { name: 'Rare-ish Candy', key: '8', desc: 'Grants 250 XP instantly. Technically counts as a vegetable in the Candy Kingdom.' },
+});
+
+SHOP.push({ kind: 'consumable', id: 'coconut', price: 50 });
+export const SHOP_GOURDON = [
+  { kind: 'consumable', id: 'firebomb', price: 90 },
+  { kind: 'consumable', id: 'mushroom', price: 75 },
+  { kind: 'consumable', id: 'coconut', price: 50 },
+  { kind: 'armor', id: 'pumpkinhead', price: 400, once: true },
+  { kind: 'weapon', id: 'bigspoon', price: 500, once: true },
+  { kind: 'flask', id: 'flask3', price: 700, once: true, name: 'Flask Great-Uncle (+1 Flask)', desc: 'Wears suspenders. Tells long stories. Heals you anyway.' },
+];
+export const SHOP_LOLLIPOP = [
+  { kind: 'consumable', id: 'candy', price: 160 },
+  { kind: 'consumable', id: 'firebomb', price: 90 },
+  { kind: 'consumable', id: 'bomb', price: 70 },
+  { kind: 'armor', id: 'propeller', price: 600, once: true },
+  { kind: 'armor', id: 'tuxedo', price: 1400, once: true },
+  { kind: 'weapon', id: 'keyboard', price: 650, once: true },
+  { kind: 'flask', id: 'flask4', price: 1000, once: true, name: 'Flask Long-Lost Twin (+1 Flask)', desc: 'Separated from the first flask at birth. Dramatic reunion pending.' },
+];
+
+SOCKS.push([-120, -100], [130, -105], [-235, 10], [-190, -110], [235, 0], [200, 95]);
+
+Object.assign(ENEMIES, {
+  ghost: {
+    name: 'Mildly Spooky Ghost', hp: 70, dmg: 16, speed: 3.0, radius: 0.6, height: 2.0,
+    detect: 16, lose: 26, leash: 26, range: 1.8, windup: 0.55, active: 0.15, recover: 0.6,
+    cooldown: 1.4, xp: 40, coins: [16, 30], ranged: { min: 4, max: 15, windup: 0.6, proj: 'orb', dmg: 14 },
+    lines: ['Boo. BOO! ...Is this thing on?', 'I\'m not spooky, I\'m just misunderstood!', 'OoooOOooo (rent is due)', 'Haunting is my side hustle.'],
+  },
+  werepoodle: {
+    name: 'Werepoodle', hp: 85, dmg: 18, speed: 4.6, radius: 0.55, height: 1.9, poise: 1,
+    detect: 15, lose: 26, leash: 30, range: 1.9, windup: 0.42, active: 0.14, recover: 0.5,
+    cooldown: 0.8, xp: 46, coins: [18, 32], rare: { kind: 'weapon', id: 'dadsbelt', chance: 0.06 },
+    lines: ['GRRR! Wait, I just got groomed.', 'Awoooo! Respect the pompom!', 'I am a WOLF. A fancy one.'],
+  },
+  pumpkin: {
+    name: 'Pumpkin Brute', hp: 110, dmg: 24, speed: 2.6, radius: 0.6, height: 2.0, poise: 1,
+    detect: 13, lose: 24, leash: 26, range: 2.3, windup: 0.8, active: 0.18, recover: 0.85,
+    cooldown: 1.4, xp: 52, coins: [20, 36], rare: { kind: 'armor', id: 'pumpkinhead', chance: 0.06 },
+    lines: ['SMASH! Then pie.', 'I\'ve got seeds of ANGER.', 'Don\'t carve me, bro.'],
+  },
+  imp: {
+    name: 'Hot-Headed Imp', hp: 60, dmg: 15, speed: 4.2, radius: 0.45, height: 1.3,
+    detect: 15, lose: 24, leash: 26, range: 1.7, windup: 0.4, active: 0.14, recover: 0.5,
+    cooldown: 1.1, xp: 40, coins: [16, 28], ranged: { min: 4, max: 13, windup: 0.5, proj: 'fireball', dmg: 12, burn: 3, fan: 2 },
+    lines: ['Hot hot HOT!', 'I\'m having a meltdown!', 'Fire is my love language!'],
+  },
+  golem: {
+    name: 'Magma Golem', hp: 190, dmg: 30, speed: 2.2, radius: 0.95, height: 3.1, poise: 1,
+    detect: 13, lose: 22, leash: 24, range: 2.8, windup: 1.0, active: 0.2, recover: 1.0,
+    cooldown: 1.6, xp: 80, coins: [30, 50], rare: { kind: 'armor', id: 'lavaplate', chance: 0.05 },
+    lines: ['ROCK. AND. ROLL.', 'I\'m not stoned, I\'m STONE.', 'Lava you. Not like that.'],
+  },
+  shroom: {
+    name: 'Angry Shroomling', hp: 55, dmg: 15, speed: 4.0, radius: 0.5, height: 1.2,
+    detect: 13, lose: 22, leash: 24, range: 1.6, windup: 0.4, active: 0.2, recover: 0.5,
+    cooldown: 0.9, xp: 34, coins: [14, 26], rare: { kind: 'armor', id: 'shroomcap', chance: 0.07 },
+    lines: ['I\'m a fun guy! Fight me!', 'Spore-ts time!', 'There\'s not mush room for you here!'],
+  },
+  sporeling: {
+    name: 'Puffball Sporeling', hp: 75, dmg: 12, speed: 2.0, radius: 0.7, height: 1.4,
+    detect: 16, lose: 24, leash: 20, range: 1.8, windup: 0.6, active: 0.15, recover: 0.7,
+    cooldown: 1.5, xp: 42, coins: [14, 26], ranged: { min: 3.5, max: 15, windup: 0.7, proj: 'spore', dmg: 12, poison: 4 },
+    lines: ['*puff*', '*PUFF* (aggressively)', 'Achoo! That was a spore. You\'re welcome.'],
+  },
+  ginger: {
+    name: 'Gingerbread Guard', hp: 100, dmg: 21, speed: 3.6, radius: 0.55, height: 1.9, poise: 1,
+    detect: 14, lose: 26, leash: 28, range: 2.4, windup: 0.55, active: 0.15, recover: 0.6,
+    cooldown: 1.0, xp: 54, coins: [22, 38], rare: { kind: 'armor', id: 'gingerplate', chance: 0.05 },
+    lines: ['Run run as fast as you can!', 'You can\'t catch me, I\'m— oh, you caught me.', 'I\'m crumbly but I\'m TOUGH!', 'Not the gumdrop buttons!'],
+  },
+  gummyworm: {
+    name: 'Sour Gummy Worm', hp: 80, dmg: 14, speed: 2.8, radius: 0.6, height: 1.3,
+    detect: 16, lose: 24, leash: 24, range: 1.8, windup: 0.5, active: 0.15, recover: 0.6,
+    cooldown: 1.3, xp: 46, coins: [18, 30], ranged: { min: 4, max: 14, windup: 0.55, proj: 'candy', dmg: 13, fan: 3 },
+    lines: ['Sour POWER!', 'I\'m sweet AND sour!', 'Wiggle wiggle ATTACK!'],
+  },
+  marshmallow: {
+    name: 'Marshmallow Bouncer', hp: 170, dmg: 26, speed: 2.6, radius: 0.95, height: 2.4, poise: 1,
+    detect: 13, lose: 22, leash: 24, range: 2.4, windup: 0.85, active: 0.25, recover: 0.9,
+    cooldown: 1.4, xp: 74, coins: [26, 44], rare: { kind: 'armor', id: 'apron', chance: 0.06 },
+    lines: ['Squish!', 'I am SOFT but my RULES are HARD.', 'You\'re toast. S\'more like it.'],
+  },
+});
+// Late-game regular-enemy drops.
+ENEMIES.ghost.rare = { kind: 'armor', id: 'witchhat', chance: 0.05 };
+ENEMIES.imp.rare = { kind: 'weapon', id: 'pizzacutter', chance: 0.06 };
+ENEMIES.sporeling.rare = { kind: 'armor', id: 'hoodie', chance: 0.06 };
+ENEMIES.gummyworm.rare = { kind: 'weapon', id: 'airguitar', chance: 0.06 };
+
+Object.assign(REGION_BOSSES, {
+  sandworm: {
+    name: 'Sandra the Sandworm', title: 'Very Long, Very Grumpy', model: 'sandworm',
+    hp: 900, dmg: 26, speed: 3.4, radius: 1.6, height: 3.2, xp: 520, coins: [300, 300], arena: 15, optional: true,
+    drop: 'wormwhip', proj: 'sand', attacks: ['sweep', 'charge', 'barrage', 'fan'], phase2: ['leap', 'stomp'],
+    intro: 'You walked on my nap spot. My nap spot is the ENTIRE DESERT.',
+    taunts: ['Sssssand in your eyes!', 'I am 40 metres of bad mood!', 'Wiggle CRUSH!'],
+    phase2Line: 'Now I\'m REALLY going to ssssquish you!', death: 'I\'ll... just... burrow... forever...',
+  },
+  shivers: {
+    name: 'Sir Shivers the Ice Knight', title: 'Has Not Been Warm Since 1302', model: 'shivers',
+    hp: 950, dmg: 27, speed: 3.2, radius: 1.1, height: 3.4, xp: 540, coins: [320, 320], arena: 14, optional: true,
+    drop: 'brrsword', proj: 'snowball', attacks: ['sweep', 'overhead', 'fan', 'leap'], phase2: ['charge', 'barrage'],
+    intro: 'Halt! Have you got a hot chocolate? No? Then you must DIE. Brrr.',
+    taunts: ['Ch-ch-ch-charge!', 'My t-t-teeth are chattering with RAGE!', 'Cold steel! Very cold! Ow!'],
+    phase2Line: 'I c-c-can\'t feel my FACE! Neither will YOU!', death: 'F-f-finally... warm...',
+  },
+  kevin: {
+    name: 'Kevin, the Kraken\'s Little Brother', title: 'Not a Kraken. Please Stop Asking.', model: 'kraken',
+    hp: 980, dmg: 26, speed: 2.4, radius: 1.8, height: 3.4, xp: 560, coins: [340, 340], arena: 15, optional: true,
+    drop: 'tentacle', proj: 'ink', attacks: ['sweep', 'fan', 'barrage', 'stomp'], phase2: ['charge', 'leap'],
+    intro: 'Everybody always asks about my BROTHER. "Is the Kraken here?" NO! It\'s KEVIN! Fight KEVIN!',
+    taunts: ['Eight arms, zero hugs!', 'Ink-redible!', 'My brother would never do THIS!'],
+    phase2Line: 'I\'M THE KRAKEN NOW!', death: 'Tell my brother... I was... cool...',
+  },
+  bog: {
+    name: 'Grandma Bog', title: 'Swamp Witch, Retired, Unretired', model: 'bog',
+    hp: 900, dmg: 25, speed: 3.0, radius: 1.0, height: 3.2, xp: 500, coins: [300, 300], arena: 13, optional: true,
+    drop: 'broom', proj: 'slime', attacks: ['sweep', 'barrage', 'fan', 'leap'], phase2: ['stomp', 'charge'],
+    intro: 'Oh, a visitor! Come in, dearie, I\'ve made soup. The soup is a FIGHT.',
+    taunts: ['Eat your vegetables! THEY BITE!', 'Back in my day we died with DIGNITY!', 'Hehehe! Another one for the pot!'],
+    phase2Line: 'Grandma\'s getting her REAL broom!', death: 'Remember to... wear a jumper...',
+  },
+  snackula: {
+    name: 'Count Snackula', title: 'Lord of the Haunted Woods, Drinker of Juice Boxes', model: 'snackula',
+    hp: 2100, dmg: 34, speed: 3.4, radius: 1.3, height: 4.4, xp: 1400, coins: [800, 800], arena: 18,
+    drop: 'juicebox', proj: 'bat', medallion: true, attacks: ['sweep', 'overhead', 'fan', 'leap', 'barrage'], phase2: ['charge', 'stomp'],
+    intro: 'Welcome to my castle. I vant to... drink your... JUICE BOX. Apple, if you have it.',
+    taunts: ['Bleh! Bleh bleh!', 'I am not a morning person. I am a FIGHTING person!', 'I never drink... tap water.', 'Ah-ah-ah! One hit! Two hits!'],
+    phase2Line: 'The sun is down, the juice is out, and I am THIRSTY!', death: 'Noooo... the sun... it\'s 3 PM...',
+    healRage: ['You DARE drink in front of ME?!'],
+  },
+  horseless: {
+    name: 'The Headless Horseman (Horseless)', title: 'Lost His Head. Then His Horse.', model: 'horseless',
+    hp: 1500, dmg: 31, speed: 3.6, radius: 1.1, height: 3.6, xp: 900, coins: [500, 500], arena: 15, optional: true,
+    drop: 'jackflail', proj: 'pumpkin', attacks: ['sweep', 'overhead', 'barrage', 'charge'], phase2: ['leap', 'fan'],
+    intro: '...(He gestures wildly. He has no head. He seems to be asking if you have seen a horse.)',
+    taunts: ['(furious gesturing)', '(points at you, then at the empty saddle)', '(does a sad little shrug)'],
+    phase2Line: '(He throws his pumpkin head. Then he grabs another one. He has MANY.)', death: '(He waves goodbye. Probably.)',
+  },
+  mayor: {
+    name: 'The Molten Mayor', title: 'Re-elected Every Year (No One Else Runs)', model: 'mayor',
+    hp: 2300, dmg: 36, speed: 2.8, radius: 1.6, height: 5.0, xp: 1500, coins: [850, 850], arena: 18,
+    drop: 'gavel', proj: 'fireball', medallion: true, attacks: ['overhead', 'stomp', 'barrage', 'fan', 'sweep'], phase2: ['leap', 'charge'],
+    intro: 'Citizens! I promise lower taxes, hotter lava, and the immediate DESTRUCTION of this tourist!',
+    taunts: ['Vote for me or BURN!', 'My approval rating is 100%! I approved it!', 'Next item on the agenda: YOU!', 'This meeting is now on FIRE!'],
+    phase2Line: 'I am declaring a STATE OF EMERGENCY! The emergency is ME!', death: 'I... concede... the election...',
+  },
+  dave: {
+    name: 'Dave the Mildly Inconvenient Dragon', title: 'Wants His Tooth Back', model: 'dragon',
+    hp: 1700, dmg: 33, speed: 3.0, radius: 2.0, height: 4.0, xp: 1000, coins: [600, 600], arena: 17, optional: true,
+    drop: 'dragontooth', proj: 'fireball', attacks: ['fan', 'sweep', 'charge', 'stomp'], phase2: ['barrage', 'leap'],
+    intro: 'Oh. A knight. Great. Look, I\'m not here to hoard gold, I\'m here because my dentist is up here.',
+    taunts: ['Do you know how hard it is to floss with claws?!', 'ROAR. Sorry. That was rude. ROAR.', 'I\'m a dragon, not a DRAG-on!'],
+    phase2Line: 'Okay. NOW I\'m inconvenienced!', death: 'Fine. Keep the tooth. I\'m getting a crown anyway.',
+  },
+  funguy: {
+    name: 'The Fun Guy', title: 'Life of Every Party, Ruler of the Fungal Funhouse', model: 'funguy',
+    hp: 2200, dmg: 33, speed: 3.3, radius: 1.5, height: 4.8, xp: 1450, coins: [800, 800], arena: 18,
+    drop: 'shroomstaff', proj: 'spore', medallion: true, attacks: ['sweep', 'barrage', 'stomp', 'fan', 'overhead'], phase2: ['leap', 'charge'],
+    intro: 'Heyyy! Welcome to the party! The theme is: YOU LOSE! Wooo!',
+    taunts: ['Party foul!', 'This is my jam! And by jam I mean violence!', 'Is it hot in here or is it just my spores?', 'Woo! Mosh pit!'],
+    phase2Line: 'Time for the AFTER-PARTY!', death: 'Party\'s... over... somebody call... a cab...',
+  },
+  slugworth: {
+    name: 'Queen Slugworth', title: 'Slowest Monarch in the Kingdom', model: 'slug',
+    hp: 1700, dmg: 32, speed: 2.4, radius: 1.9, height: 2.8, xp: 1000, coins: [600, 600], arena: 15, optional: true,
+    drop: 'slimesabre', proj: 'slime', attacks: ['charge', 'barrage', 'stomp', 'fan'], phase2: ['leap', 'sweep'],
+    intro: 'You will kneel before your Queen. Take your time. I am also taking mine.',
+    taunts: ['Slow and steady wins the FIGHT!', 'My trail is a royal decree!', 'Bow! Bow lower! Lower! Now SLIMIER!'],
+    phase2Line: 'Royal guard! ...Oh right, I ate them.', death: 'Long... live... the slime...',
+  },
+  sugarcrash: {
+    name: 'Baron Von Sugarcrash', title: 'Ruler of the Candy Kingdom, Has Never Seen a Vegetable', model: 'sugarcrash',
+    hp: 2400, dmg: 37, speed: 3.2, radius: 1.6, height: 5.2, xp: 1600, coins: [900, 900], arena: 18,
+    drop: 'candycane', proj: 'candy', medallion: true, attacks: ['overhead', 'sweep', 'barrage', 'stomp', 'fan'], phase2: ['charge', 'leap'],
+    intro: 'A HEALTHY person? In MY kingdom? Guards! Bring me... no, I\'ll do it myself. AFTER this cupcake.',
+    taunts: ['SUGAR RUSH!', 'Vegetables are a MYTH!', 'Eat cake! Eat it! EAT THE CAKE!', 'I\'m vibrating at a frequency you can\'t comprehend!'],
+    phase2Line: 'I\'m... crashing... NO! MORE SUGAR!', death: 'I... should have... eaten... a carrot...',
+  },
+  gummy: {
+    name: 'The Gummy Bear Bruiser', title: 'Chewy. Furious. Bear-shaped.', model: 'gummy',
+    hp: 1600, dmg: 31, speed: 3.8, radius: 1.2, height: 3.6, xp: 950, coins: [550, 550], arena: 15, optional: true,
+    drop: 'gummyfists', proj: 'candy', attacks: ['sweep', 'overhead', 'leap', 'charge'], phase2: ['fan', 'stomp'],
+    intro: 'Hi! I\'m a gummy bear! I\'m gonna squish you into a gummy PANCAKE!',
+    taunts: ['Gummy SMASH!', 'I\'m not chewy, I\'m TOUGH!', 'Bear hug! The bad kind!'],
+    phase2Line: 'I\'M MELTING... WITH RAGE!', death: 'I... was... the red one... the best one...',
+  },
+});
+
+// Harder bosses: everything hits harder and has more health than before.
+for (const id of ['gary', 'pharaoh', 'snowmom', 'sogbeard']) {
+  REGION_BOSSES[id].hp = Math.round(REGION_BOSSES[id].hp * 1.45);
+  REGION_BOSSES[id].dmg = Math.round(REGION_BOSSES[id].dmg * 1.2);
+}
+UNEMPLOYED.hp = 560; UNEMPLOYED.dmg = 23;
+for (const id of ['snackula', 'horseless', 'mayor', 'dave', 'funguy', 'slugworth', 'sugarcrash', 'gummy']) {
+  REGION_BOSSES[id].hp = Math.round(REGION_BOSSES[id].hp * 1.1);
+  REGION_BOSSES[id].dmg = Math.round(REGION_BOSSES[id].dmg * 1.15);
+}
+for (const id of ['sandworm', 'shivers', 'kevin']) REGION_BOSSES[id].dmg = Math.round(REGION_BOSSES[id].dmg * 1.1);
+TOUCHGRASS.hp = 2600; TOUCHGRASS.dmg = 36;
+
+Object.assign(SIGNS, {
+  woods: 'THE HAUNTED WOODS. Mildly spooky. Count Snackula\'s castle lies to the north. Ghosts here are mostly harmless, emotionally.',
+  volcano: 'MOUNT SLIGHTLY HOT. Lava burns. Golems hit hard. The Molten Mayor holds office at the summit.',
+  fungal: 'THE FUNGAL FUNHOUSE. Do not eat anything. Do not lick anything. The Fun Guy is throwing a party. You are not invited.',
+  candy: 'THE CANDY KINGDOM. Everything is sweet except the inhabitants. Baron Von Sugarcrash rules from his cake castle.',
+  farlands: 'Warning: beyond this point, enemies are MUCH stronger. Make sure you have levelled up. Or don\'t. We\'re a sign, not a cop.',
+});
+TIPS.far = 'You have entered a <b>far region</b>. Enemies here are much tougher, but drop better loot. Six Bling Medallions are needed for the King now!';

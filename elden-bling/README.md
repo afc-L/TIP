@@ -1,11 +1,11 @@
 # Elden Bling: The Quest for the Last Brain Cell
 
-A silly, low-poly, open-world 3D Soulslike that runs in the browser. Explore a kingdom of six
+A silly, low-poly, open-world 3D Soulslike that runs in the browser. Explore a kingdom of ten
 regions, bonk ridiculous enemies, loot questionable gear, rescue a chicken, return lost socks to a
 philosopher, defeat the great enemies of the realm in any order you like and finally take down
 **Lord Touchgrass**, who has guarded his backyard for 500 years.
 
-A first playthrough takes roughly 1–2 hours; finding every secret takes longer.
+A first playthrough takes several hours; beating all 18 bosses and finding every secret takes longer.
 
 - Plain HTML, CSS and JavaScript (ES modules), no build step, no backend.
 - [Three.js](https://threejs.org) r186 is included in `vendor/` so the game works offline.
@@ -53,7 +53,7 @@ everything uses relative paths.
 | `Shift` | Sprint |
 | `E` | Interact, open chests, rest at shrines |
 | `Q` | Drink a Flask of Questionable Juice (heal) |
-| `1` – `5` | Garlic Bread / Potion of 100% Dignity / Ghost Pepper / Coconut / Soda Bomb (thrown) |
+| `1` – `8` | Garlic Bread / Potion of 100% Dignity / Ghost Pepper / Coconut / Soda Bomb / Fire Bomb / Questionable Mushroom / Rare-ish Candy |
 | `F` or middle click | Lock on to an enemy |
 | `M` | World map |
 | `Tab` | Inventory, equipment and stats |
@@ -78,27 +78,32 @@ Click the game once to capture the mouse. `Esc` releases it and pauses.
 ### The open world
 
 The kingdom is open: after the tutorial you can go anywhere, in any order. Press `M` for the map.
+The **far regions** (outermost ring) are much harder: enemies there have more health and hit harder.
 
-| Region | Where | Enemies | Boss |
-| --- | --- | --- | --- |
-| **The Grasslands** | Centre (start) | Goblins with frying pans, Angry Knights | *Gary the Enormous Goblin* (optional field boss) |
-| **The Cursed Swamp** | North of the start | Poison frogs, clumsy skeletons | *The Unemployed Knight* (guards the Backyard Gate) |
-| **The Crunchy Desert** | West | Unwrapped Mummies, Hostile Cacti (needle volleys) | *Pharaoh Pyramid-Scheme* |
-| **The Slightly Chilly Peaks** | East | Snowmen (snowballs slow you), Yeti Bouncers | *The Abominable Snowmom* |
-| **The Beach of Regret** | South | Crabs with tiny knives, Seasick Pirates | *Captain Sogbeard* |
-| **The King's Backyard** | Far north | Lawn guards | **Lord Touchgrass** (final boss) |
+| Region | Where | Enemies | Medallion boss | Field boss (optional) |
+| --- | --- | --- | --- | --- |
+| The Grasslands | Centre (start) | Goblins, Angry Knights | — | Gary the Enormous Goblin |
+| The Cursed Swamp | North of the start | Poison frogs, clumsy skeletons | The Unemployed Knight | Grandma Bog |
+| The Crunchy Desert | West | Mummies, Hostile Cacti | Pharaoh Pyramid-Scheme | Sandra the Sandworm |
+| The Slightly Chilly Peaks | East | Snowmen, Yeti Bouncers | The Abominable Snowmom | Sir Shivers the Ice Knight |
+| The Beach of Regret | South | Crabs, Seasick Pirates | Captain Sogbeard | Kevin, the Kraken's Little Brother |
+| **The Haunted Woods** | Far north-west | Ghosts, Werepoodles, Pumpkin Brutes | Count Snackula | The Headless Horseman (Horseless) |
+| **Mount Slightly Hot** | Far north-east (lava!) | Hot-Headed Imps, Magma Golems | The Molten Mayor | Dave the Mildly Inconvenient Dragon |
+| **The Fungal Funhouse** | Far west | Shroomlings, Puffball Sporelings | The Fun Guy | Queen Slugworth |
+| **The Candy Kingdom** | Far east | Gingerbread Guards, Gummy Worms, Marshmallow Bouncers | Baron Von Sugarcrash | The Gummy Bear Bruiser |
+| The King's Backyard | Far north of the centre | Lawn guards | **Lord Touchgrass** (final boss) | — |
 
-- **Bling Medallions**: the Unemployed Knight, the Pharaoh, the Snowmom and Captain Sogbeard each drop
-  one. Any **three** open the fog to Lord Touchgrass. Every boss also drops a unique weapon, and each
-  gets a second phase when badly hurt.
-- **Side quests**: find Farmer Dennis's chicken, and collect the **10 lost socks** scattered across the
-  world for Sockrates (rewards at 3, 6 and 10).
-- **Shops**: Bargain Barry in the village, Captain Coupon on the beach.
-- **Secrets**: four fake walls (hit them, or blow them up with a Soda Bomb), one-way shortcuts, a hidden
-  thicket, and something the moderators hid behind fake ice.
-- **Loot**: 16 weapons (lifesteal, frost, extra reach, a shield-umbrella…), 10 armour pieces
-  (poison immunity, coin bonus, damage bonus…), 5 consumables, rare enemy drops.
-- A gentle **day/night cycle** (10 minutes per day).
+- **18 bosses.** The eight medallion bosses each drop a **Bling Medallion**: any **six** open the fog to Lord
+  Touchgrass. Every boss drops a unique weapon. Bosses have varying wind-up timings (read the glint, don't
+  count beats), a second phase that chains attacks together, and an enrage at low health.
+- **Side quests**: find Farmer Dennis's chicken, and collect the **16 lost socks** scattered across the
+  world for Sockrates (rewards at 3, 6, 10 and 16).
+- **Shops**: Bargain Barry (village), Captain Coupon (beach), Gourd-on (haunted woods), Lady Lollipop (candy kingdom).
+- **Secrets**: six fake walls (hit them, or blow them up with a bomb), one-way shortcuts, a hidden thicket.
+- **Loot**: 34 weapons (lifesteal, burning, poison, frost, huge reach, very fast fists…), 22 armour pieces
+  (poison/burn/chill immunity, regeneration, speed, coin, XP, damage and healing bonuses…), 8 consumables, and
+  rare drops from every enemy type.
+- Hazards: poison pools in the swamp, lava on the volcano. A gentle **day/night cycle** (10 minutes per day).
 
 ## Performance and graphics settings
 

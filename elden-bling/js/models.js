@@ -156,6 +156,57 @@ function buildHead(rig, o) {
     for (const s of [-1, 1]) { mesh(box(0.12, 0.5, 0.2), gold, s * 0.26, 0.12, 0.02, h); mesh(box(0.125, 0.05, 0.205), blue, s * 0.26, 0.2, 0.02, h); mesh(box(0.125, 0.05, 0.205), blue, s * 0.26, 0.02, 0.02, h); }
     mesh(box(0.08, 0.3, 0.06), gold, 0, -0.05, 0.18, h); // beard
     mesh(cone(0.06, 0.16, 4), gold, 0, 0.6, 0.15, h);
+  } else if (type === 'poodle') {
+    const pink = mat(0xffb8d8);
+    mesh(box(0.34, 0.34, 0.4), pink, 0, 0.2, 0.04, h);
+    mesh(box(0.2, 0.16, 0.22), pink, 0, 0.14, 0.28, h);
+    mesh(box(0.08, 0.06, 0.04), mat(0x111111), 0, 0.18, 0.4, h);
+    mesh(sph(0.22, 7, 5), mat(0xffe0f0), 0, 0.45, 0, h);
+    for (const s of [-1, 1]) { mesh(sph(0.13, 6, 4), mat(0xffe0f0), s * 0.22, 0.24, -0.02, h); mesh(box(0.06, 0.06, 0.02), mat(0xffff44, { emissive: 0x555500 }), s * 0.08, 0.27, 0.23, h); }
+  } else if (type === 'pumpkin') {
+    mesh(sph(0.3, 8, 6), mat(0xff8a22), 0, 0.24, 0, h).scale.set(1.2, 0.95, 1.1);
+    for (const s of [-1, 1]) mesh(cone(0.06, 0.08, 3), mat(0xffee55, { emissive: 0xaa7700 }), s * 0.1, 0.3, 0.32, h).rotation.x = -1.57;
+    mesh(box(0.22, 0.05, 0.02), mat(0xffee55, { emissive: 0xaa7700 }), 0, 0.14, 0.33, h);
+    mesh(cyl(0.04, 0.05, 0.14, 5), mat(0x3a6a2a), 0, 0.55, 0, h);
+  } else if (type === 'imp') {
+    mesh(box(0.34, 0.34, 0.34), mat(0xd8342a), 0, 0.2, 0, h);
+    for (const s of [-1, 1]) { mesh(cone(0.05, 0.22, 4), mat(0x222222), s * 0.12, 0.45, 0, h).rotation.z = -s * 0.3; mesh(box(0.06, 0.04, 0.02), mat(0xffee44, { emissive: 0x886600 }), s * 0.08, 0.24, 0.17, h); }
+    mesh(box(0.18, 0.04, 0.02), mat(0xffffff), 0, 0.12, 0.17, h);
+  } else if (type === 'golem' || type === 'mayor') {
+    mesh(box(0.5, 0.44, 0.46), mat(0x3a3434), 0, 0.22, 0, h);
+    for (const s of [-1, 1]) mesh(box(0.1, 0.06, 0.02), mat(0xff7a22, { emissive: 0xaa3300 }), s * 0.11, 0.26, 0.235, h);
+    mesh(box(0.3, 0.06, 0.02), mat(0xff7a22, { emissive: 0xaa3300 }), 0, 0.1, 0.235, h);
+    if (type === 'mayor') { mesh(cyl(0.22, 0.22, 0.4, 8), mat(0x111111), 0, 0.64, 0, h); mesh(cyl(0.34, 0.34, 0.04, 8), mat(0x111111), 0, 0.45, 0, h); mesh(cyl(0.225, 0.225, 0.06, 8), mat(0xdd2222), 0, 0.5, 0, h); }
+  } else if (type === 'ginger') {
+    mesh(cyl(0.2, 0.2, 0.36, 8), mat(0xb8743a), 0, 0.2, 0, h).rotation.x = 1.57;
+    for (const s of [-1, 1]) mesh(sph(0.04, 4, 3), mat(0xffffff), s * 0.08, 0.25, 0.18, h);
+    mesh(box(0.16, 0.03, 0.02), mat(0xffffff), 0, 0.12, 0.18, h);
+    if (o.hat) { mesh(cyl(0.16, 0.18, 0.3, 8), mat(0xdd2233), 0, 0.48, 0, h); mesh(sph(0.08, 5, 4), mat(0xffffff), 0, 0.66, 0, h); }
+  } else if (type === 'vampire') {
+    mesh(box(0.36, 0.4, 0.36), mat(0xe8e0f0), 0, 0.2, 0, h);
+    for (const s of [-1, 1]) { mesh(box(0.06, 0.05, 0.02), mat(0xdd1122, { emissive: 0x660000 }), s * 0.08, 0.26, 0.185, h); mesh(cone(0.02, 0.06, 3), mat(0xffffff), s * 0.04, 0.08, 0.18, h).rotation.x = Math.PI; }
+    const hair = mesh(box(0.4, 0.12, 0.4), mat(0x111111), 0, 0.38, -0.01, h); void hair;
+    mesh(cone(0.06, 0.12, 3), mat(0x111111), 0, 0.33, 0.2, h).rotation.x = Math.PI;
+  } else if (type === 'mushroom') {
+    mesh(box(0.34, 0.34, 0.34), mat(0xf0e8d8), 0, 0.18, 0, h);
+    for (const s of [-1, 1]) mesh(box(0.06, 0.08, 0.02), mat(0x111111), s * 0.08, 0.22, 0.175, h);
+    mesh(box(0.14, 0.04, 0.02), mat(0x111111), 0, 0.1, 0.175, h);
+    mesh(sph(0.55, 9, 5), mat(0xdd3366), 0, 0.42, 0, h).scale.set(1, 0.5, 1);
+    for (let i = 0; i < 5; i++) { const a = i * 1.25; mesh(sph(0.08, 5, 4), mat(0xffffff), Math.cos(a) * 0.32, 0.6, Math.sin(a) * 0.32, h); }
+    mesh(box(0.5, 0.12, 0.12), mat(0x222222), 0, 0.24, 0.2, h); // party shades
+  } else if (type === 'bear') {
+    mesh(box(0.44, 0.4, 0.4), mat(0xee2233), 0, 0.22, 0, h);
+    mesh(box(0.2, 0.14, 0.12), mat(0xff5566), 0, 0.14, 0.24, h);
+    for (const s of [-1, 1]) { mesh(sph(0.1, 6, 4), mat(0xee2233), s * 0.18, 0.46, 0, h); mesh(box(0.06, 0.06, 0.02), mat(0x111111), s * 0.09, 0.28, 0.205, h); }
+  } else if (type === 'witch') {
+    mesh(box(0.36, 0.38, 0.36), mat(0x8ac878), 0, 0.2, 0, h);
+    for (const s of [-1, 1]) mesh(box(0.06, 0.06, 0.02), mat(0x111111), s * 0.08, 0.24, 0.18, h);
+    mesh(cone(0.05, 0.18, 4), mat(0x8ac878), 0, 0.18, 0.24, h).rotation.x = 1.4;
+    mesh(cyl(0.42, 0.42, 0.04, 10), mat(0x222233), 0, 0.4, 0, h);
+    const hat = mesh(cone(0.22, 0.6, 8), mat(0x222233), 0, 0.7, -0.04, h); hat.rotation.x = -0.25;
+    mesh(box(0.42, 0.16, 0.4), mat(0xbbbbbb), 0, 0.33, -0.05, h); // grey hair
+  } else if (type === 'none') {
+    mesh(cyl(0.14, 0.16, 0.08, 6), mat(0x5a2a1a), 0, 0.04, 0, h); // just a neck stump
   } else if (type === 'philosopher') {
     mesh(box(0.36, 0.38, 0.36), skin, 0, 0.2, 0, h);
     for (const s of [-1, 1]) mesh(box(0.06, 0.06, 0.02), mat(0x111111), s * 0.08, 0.24, 0.18, h);
@@ -262,6 +313,82 @@ export function weaponModel(id, scale = 1) {
       mesh(box(0.7, 0.4, 0.4), mat(0x555a66), 0, 1.35, 0, g);
       mesh(box(0.72, 0.1, 0.42), mat(0xdd2222), 0, 1.35, 0, g);
       break;
+    case 'juicebox':
+      mesh(cyl(0.03, 0.03, 0.6, 5), dark, 0, 0.25, 0, g);
+      mesh(box(0.3, 0.42, 0.2), mat(0xcc3344), 0, 0.75, 0, g);
+      mesh(cyl(0.015, 0.015, 0.25, 4), mat(0xffffff), 0.08, 1.05, 0, g);
+      break;
+    case 'jackflail':
+      mesh(cyl(0.04, 0.04, 0.7, 5), wood, 0, 0.3, 0, g);
+      mesh(box(0.03, 0.4, 0.03), dark, 0, 0.85, 0, g);
+      mesh(sph(0.26, 7, 5), mat(0xff8a22), 0, 1.2, 0, g);
+      break;
+    case 'gavel':
+      mesh(cyl(0.05, 0.05, 1.0, 5), mat(0x5a3020), 0, 0.45, 0, g);
+      mesh(cyl(0.2, 0.2, 0.6, 8), mat(0x3a2424), 0, 1.05, 0, g).rotation.z = 1.57;
+      mesh(cyl(0.21, 0.21, 0.1, 8), mat(0xff6a1a), 0.2, 1.05, 0, g).rotation.z = 1.57;
+      break;
+    case 'dragontooth':
+      mesh(cyl(0.05, 0.05, 0.4, 5), dark, 0, 0.1, 0, g);
+      mesh(cone(0.16, 1.4, 5), mat(0xf4ecd8), 0, 1.0, 0, g);
+      break;
+    case 'shroomstaff':
+      mesh(cyl(0.04, 0.05, 1.5, 5), mat(0xf0e8d8), 0, 0.7, 0, g);
+      mesh(sph(0.3, 7, 4), mat(0x66cc44), 0, 1.5, 0, g).scale.set(1, 0.5, 1);
+      break;
+    case 'slimesabre':
+      mesh(box(0.05, 0.2, 0.05), dark, 0, 0, 0, g);
+      mesh(box(0.13, 1.0, 0.04), mat(0x88dd66), 0, 0.62, 0, g);
+      break;
+    case 'candycane':
+      for (let i = 0; i < 5; i++) mesh(cyl(0.06, 0.06, 0.24, 6), mat(i % 2 ? 0xffffff : 0xee2233), 0, 0.12 + i * 0.24, 0, g);
+      mesh(cyl(0.06, 0.06, 0.4, 6), mat(0xee2233), 0.15, 1.3, 0, g).rotation.z = -1.2;
+      break;
+    case 'gummyfists':
+      mesh(sph(0.22, 6, 5), mat(0x44dd66), 0, 0.1, 0, g);
+      break;
+    case 'wormwhip':
+      for (let i = 0; i < 6; i++) mesh(sph(0.1 - i * 0.008, 5, 4), mat(0xc89a6a), 0, 0.2 + i * 0.3, 0, g);
+      break;
+    case 'brrsword':
+      mesh(box(0.06, 0.24, 0.06), dark, 0, 0, 0, g);
+      mesh(box(0.38, 0.06, 0.08), mat(0x9ec8f0), 0, 0.14, 0, g);
+      mesh(box(0.13, 1.1, 0.04), mat(0xbfe8ff, { emissive: 0x224466 }), 0, 0.72, 0, g);
+      break;
+    case 'tentacle':
+      for (let i = 0; i < 6; i++) mesh(sph(0.12 - i * 0.015, 6, 4), mat(0xaa55cc), Math.sin(i) * 0.06, 0.15 + i * 0.25, 0, g);
+      break;
+    case 'broom':
+      mesh(cyl(0.035, 0.035, 1.4, 5), wood, 0, 0.6, 0, g);
+      mesh(cone(0.22, 0.5, 7), mat(0xd8b860), 0, 1.4, 0, g).rotation.x = Math.PI;
+      break;
+    case 'bigspoon':
+      mesh(cyl(0.04, 0.04, 1.0, 5), mat(0xc8ccd4), 0, 0.45, 0, g);
+      mesh(sph(0.22, 7, 5), mat(0xc8ccd4), 0, 1.05, 0, g).scale.set(1, 1.3, 0.35);
+      break;
+    case 'airguitar':
+      break; // you can't see it
+    case 'keyboard':
+      mesh(box(0.06, 0.3, 0.06), dark, 0, 0.1, 0, g);
+      mesh(box(0.25, 1.1, 0.06), mat(0x222222), 0, 0.75, 0, g);
+      for (let i = 0; i < 5; i++) mesh(box(0.2, 0.04, 0.065), mat([0xff3355, 0xffaa33, 0x55ff66, 0x44aaff, 0xcc66ff][i]), 0, 0.35 + i * 0.2, 0, g);
+      break;
+    case 'flamingospear':
+      mesh(cyl(0.03, 0.03, 1.8, 4), mat(0x222222), 0, 0.8, 0, g);
+      mesh(sph(0.18, 6, 5), mat(0xff66aa), 0, 1.75, 0, g).scale.set(0.8, 0.7, 1.3);
+      break;
+    case 'pizzacutter':
+      mesh(cyl(0.04, 0.04, 0.6, 5), mat(0xdd2222), 0, 0.25, 0, g);
+      mesh(cyl(0.3, 0.3, 0.03, 12), mat(0xc8ccd4), 0, 0.75, 0, g).rotation.z = 1.57;
+      break;
+    case 'dadsbelt':
+      mesh(box(0.1, 1.3, 0.02), mat(0x4a2a1a), 0, 0.6, 0, g);
+      mesh(box(0.16, 0.12, 0.03), mat(0xddaa33), 0, 1.25, 0, g);
+      break;
+    case 'trident':
+      mesh(cyl(0.04, 0.04, 2.2, 5), mat(0x8aa0a0), 0, 1.0, 0, g);
+      for (const x of [-0.18, 0, 0.18]) mesh(cone(0.05, 0.4, 4), mat(0x8aa0a0), x, 2.2, 0, g);
+      break;
     case 'rake':
       mesh(cyl(0.05, 0.05, 2.4, 5), wood, 0, 1.0, 0, g);
       mesh(box(0.9, 0.08, 0.08), dark, 0, 2.2, 0, g);
@@ -296,6 +423,18 @@ export function makeHero() {
     wraps: (() => { const g = new THREE.Group(); for (let i = 0; i < 5; i++) mesh(box(0.58, 0.07, 0.36), mat(i % 2 ? 0xe0d8b8 : 0xc8bf98), 0, 0.08 + i * 0.15, 0, g).rotation.z = (i % 2 ? 0.1 : -0.1); rig.torso.add(g); return g; })(),
     parka: (() => { const g = new THREE.Group(); mesh(box(0.7, 0.8, 0.48), mat(0x3a8ad8), 0, 0.36, 0, g); mesh(box(0.72, 0.16, 0.5), mat(0xf4f4f4), 0, 0.72, 0, g); for (let i = 0; i < 3; i++) mesh(box(0.71, 0.03, 0.49), mat(0x2a6ab8), 0, 0.15 + i * 0.2, 0, g); rig.torso.add(g); return g; })(),
     goldsuit: (() => { const g = new THREE.Group(); mesh(box(0.62, 0.78, 0.4), mat(0xffcc22, { emissive: 0x443300 }), 0, 0.36, 0, g); mesh(box(0.1, 0.5, 0.01), mat(0x222222), 0, 0.45, 0.205, g); rig.torso.add(g); return g; })(),
+    pumpkinhead: (() => { const g = new THREE.Group(); mesh(sph(0.34, 8, 6), mat(0xff8a22), 0, 0.24, 0, g).scale.set(1.15, 1, 1.1); for (const s of [-1, 1]) mesh(cone(0.06, 0.08, 3), mat(0x222222), s * 0.11, 0.3, 0.36, g).rotation.x = -1.57; mesh(cyl(0.04, 0.05, 0.14, 5), mat(0x3a6a2a), 0, 0.6, 0, g); h.add(g); return g; })(),
+    witchhat: (() => { const g = new THREE.Group(); mesh(cyl(0.42, 0.42, 0.04, 10), mat(0x222233), 0, 0.4, 0, g); mesh(cone(0.22, 0.6, 8), mat(0x222233), 0, 0.72, -0.04, g).rotation.x = -0.25; mesh(cyl(0.23, 0.23, 0.06, 8), mat(0xaa66ff), 0, 0.45, 0, g); h.add(g); return g; })(),
+    shroomcap: (() => { const g = new THREE.Group(); mesh(sph(0.36, 8, 5), mat(0xdd3366), 0, 0.42, 0, g).scale.set(1, 0.5, 1); for (let i = 0; i < 4; i++) mesh(sph(0.05, 4, 3), mat(0xffffff), Math.cos(i * 1.6) * 0.2, 0.55, Math.sin(i * 1.6) * 0.2, g); h.add(g); return g; })(),
+    propeller: (() => { const g = new THREE.Group(); mesh(sph(0.21, 8, 4), mat(0x3366dd), 0, 0.36, 0, g).scale.set(1, 0.6, 1); mesh(cyl(0.02, 0.02, 0.12, 4), mat(0x222222), 0, 0.52, 0, g); const p = mesh(box(0.5, 0.02, 0.06), mat(0xffdd22), 0, 0.58, 0, g); g.userData.prop = p; h.add(g); return g; })(),
+    tinfoil: (() => { const g = new THREE.Group(); mesh(cone(0.24, 0.4, 6), mat(0xd8dce4), 0, 0.55, 0, g); h.add(g); return g; })(),
+    dragonhelm: (() => { const g = new THREE.Group(); mesh(box(0.44, 0.3, 0.46), mat(0xf4ecd8), 0, 0.36, 0, g); for (const s of [-1, 1]) mesh(cone(0.06, 0.35, 4), mat(0xf4ecd8), s * 0.2, 0.6, -0.1, g).rotation.x = -0.5; h.add(g); return g; })(),
+    vampcape: (() => { const g = new THREE.Group(); mesh(box(0.62, 1.0, 0.04), mat(0x1a1a22), 0, 0.1, -0.24, g).rotation.x = 0.12; mesh(box(0.58, 0.95, 0.02), mat(0xaa1122), 0, 0.1, -0.215, g).rotation.x = 0.12; rig.torso.add(g); return g; })(),
+    lavaplate: (() => { const g = new THREE.Group(); mesh(box(0.62, 0.78, 0.42), mat(0x3a3434), 0, 0.36, 0, g); for (let i = 0; i < 3; i++) mesh(box(0.06, 0.4, 0.01), mat(0xff6a1a), -0.15 + i * 0.15, 0.4, 0.215, g); rig.torso.add(g); return g; })(),
+    gingerplate: (() => { const g = new THREE.Group(); mesh(box(0.6, 0.76, 0.4), mat(0xb8743a), 0, 0.36, 0, g); for (let i = 0; i < 3; i++) mesh(sph(0.05, 5, 4), mat([0xee2233, 0x44dd66, 0xffdd22][i]), 0, 0.2 + i * 0.2, 0.2, g); rig.torso.add(g); return g; })(),
+    apron: (() => { const g = new THREE.Group(); mesh(box(0.5, 0.7, 0.02), mat(0xffffff), 0, 0.3, 0.17, g); mesh(box(0.3, 0.1, 0.01), mat(0xdd3344), 0, 0.45, 0.185, g); rig.torso.add(g); return g; })(),
+    hoodie: (() => { const g = new THREE.Group(); mesh(box(0.62, 0.78, 0.42), mat(0x7a8a9a), 0, 0.36, 0, g); mesh(box(0.42, 0.2, 0.3), mat(0x6a7a8a), 0, 0.78, -0.12, g); rig.torso.add(g); return g; })(),
+    tuxedo: (() => { const g = new THREE.Group(); mesh(box(0.6, 0.76, 0.4), mat(0x111111), 0, 0.36, 0, g); mesh(box(0.18, 0.6, 0.01), mat(0xffffff), 0, 0.42, 0.205, g); mesh(box(0.14, 0.06, 0.02), mat(0xdd1122), 0, 0.68, 0.21, g); rig.torso.add(g); return g; })(),
     bathrobe: (() => { const g = new THREE.Group(); mesh(box(0.6, 0.85, 0.38), mat(0xf4b6c8), 0, 0.3, 0, g); mesh(box(0.08, 0.6, 0.01), mat(0xffffff), 0, 0.4, 0.195, g); rig.torso.add(g); return g; })(),
   };
   for (const k in rig.cos) rig.cos[k].visible = false;
@@ -366,6 +505,68 @@ export function makeEnemyModel(type) {
     rig.torso.add(parrot);
     holdWeapon(rig, weaponModel('cutlass', 1.5));
     rig.root.scale.setScalar(2.3);
+  } else if (type === 'werepoodle') {
+    rig = humanoid({ skin: 0xffb8d8, body: 0xffe0f0, arms: 0xffb8d8, legs: 0xffb8d8, head: 'poodle', width: 0.5 });
+    for (const a of [rig.armL, rig.armR]) mesh(sph(0.13, 6, 4), mat(0xffe0f0), 0, -0.6, 0, a);
+  } else if (type === 'pumpkin') {
+    rig = humanoid({ skin: 0x3a6a2a, body: 0x5a3a6a, arms: 0x3a6a2a, legs: 0x2a2a3a, head: 'pumpkin', width: 0.6, belt: 0x222222 });
+    holdWeapon(rig, weaponModel('stick', 1.3));
+    rig.root.scale.setScalar(1.1);
+  } else if (type === 'imp') {
+    rig = humanoid({ skin: 0xd8342a, body: 0xd8342a, arms: 0xd8342a, legs: 0x8a1a14, head: 'imp', legH: 0.45, torsoH: 0.45, width: 0.4, armLen: 0.5 });
+    mesh(cone(0.05, 0.6, 4), mat(0xd8342a), 0, 0.1, -0.3, rig.torso).rotation.x = -1;
+    holdWeapon(rig, weaponModel('trident', 0.6));
+  } else if (type === 'golem') {
+    rig = humanoid({ skin: 0x3a3434, body: 0x3a3434, arms: 0x4a3a3a, legs: 0x2a2424, head: 'golem', width: 0.8, armLen: 0.9 });
+    for (let i = 0; i < 3; i++) mesh(box(0.1, 0.4, 0.02), mat(0xff6a1a, { emissive: 0xaa3300 }), -0.2 + i * 0.2, 0.35, 0.25, rig.torso);
+    rig.root.scale.setScalar(1.5);
+  } else if (type === 'ginger') {
+    rig = humanoid({ skin: 0xb8743a, body: 0xb8743a, arms: 0xb8743a, legs: 0xb8743a, head: 'ginger', hat: true, width: 0.5 });
+    for (let i = 0; i < 3; i++) mesh(sph(0.05, 5, 4), mat([0xee2233, 0x44dd66, 0xffdd22][i]), 0, 0.2 + i * 0.18, 0.16, rig.torso);
+    holdWeapon(rig, weaponModel('candycane', 1));
+  } else if (type === 'sandworm' || type === 'dragon' || type === 'slug' || type === 'kraken') {
+    return makeBigSimple(type);
+  } else if (type === 'shivers') {
+    rig = humanoid({ skin: 0xbfe0ff, body: 0x9ec8f0, arms: 0x9ec8f0, legs: 0x7aa8d8, head: 'helmet', helmet: 0xbfe0ff, plume: 0xffffff, pauldrons: 0xe0f0ff, boots: 0x5a7aa8 });
+    holdWeapon(rig, weaponModel('brrsword', 1.3));
+    rig.root.scale.setScalar(1.9);
+  } else if (type === 'bog') {
+    rig = humanoid({ skin: 0x8ac878, body: 0x3a2a4a, arms: 0x3a2a4a, legs: 0x2a1a3a, head: 'witch', belly: true, boots: 0x111111 });
+    holdWeapon(rig, weaponModel('broom', 1.4));
+    rig.root.scale.setScalar(2.0);
+  } else if (type === 'snackula') {
+    rig = humanoid({ skin: 0xe8e0f0, body: 0x1a1a22, arms: 0x1a1a22, legs: 0x1a1a22, head: 'vampire', boots: 0x111111, belt: 0xdd1122, pauldrons: 0xdd1122 });
+    mesh(box(0.9, 1.4, 0.05), mat(0x1a1a22), 0, 0.05, -0.3, rig.torso).rotation.x = 0.15;
+    mesh(box(0.86, 1.3, 0.02), mat(0xaa1122), 0, 0.05, -0.27, rig.torso).rotation.x = 0.15;
+    mesh(box(0.7, 0.4, 0.05), mat(0x1a1a22), 0, 0.85, -0.22, rig.torso).rotation.x = -0.5; // collar
+    holdWeapon(rig, weaponModel('juicebox', 1.4));
+    rig.root.scale.setScalar(2.4);
+  } else if (type === 'horseless') {
+    rig = humanoid({ skin: 0x3a3a3a, body: 0x2a2a3a, arms: 0x2a2a3a, legs: 0x1a1a22, head: 'none', boots: 0x3a2a1a, pauldrons: 0x4a4a5a, belt: 0x6a3a1a });
+    mesh(box(0.9, 1.2, 0.05), mat(0x1a1a22), 0, 0.1, -0.3, rig.torso).rotation.x = 0.2;
+    holdWeapon(rig, weaponModel('jackflail', 1.3));
+    rig.root.scale.setScalar(2.0);
+  } else if (type === 'mayor') {
+    rig = humanoid({ skin: 0x3a3434, body: 0x3a3434, arms: 0x3a3434, legs: 0x2a2424, head: 'mayor', width: 0.8, armLen: 0.85, belly: true });
+    mesh(box(0.84, 0.12, 0.5), mat(0xdd2222), 0, 0.55, 0, rig.torso).rotation.z = 0.5; // sash
+    for (let i = 0; i < 4; i++) mesh(box(0.08, 0.5, 0.02), mat(0xff6a1a, { emissive: 0xaa3300 }), -0.3 + i * 0.2, 0.3, 0.3, rig.torso);
+    holdWeapon(rig, weaponModel('gavel', 1.4));
+    rig.root.scale.setScalar(2.6);
+  } else if (type === 'funguy') {
+    rig = humanoid({ skin: 0xf0e8d8, body: 0x7a4ad8, arms: 0xf0e8d8, legs: 0x4a2a8a, head: 'mushroom', width: 0.6, boots: 0xffffff });
+    mesh(box(0.62, 0.2, 0.38), mat(0xffdd22), 0, 0.5, 0, rig.torso); // party shirt stripe
+    holdWeapon(rig, weaponModel('shroomstaff', 1.4));
+    rig.root.scale.setScalar(2.5);
+  } else if (type === 'sugarcrash') {
+    rig = humanoid({ skin: 0xb8743a, body: 0xb8743a, arms: 0xb8743a, legs: 0xb8743a, head: 'ginger', width: 0.8, belly: true });
+    mesh(cyl(0.3, 0.3, 0.3, 8), mat(0xffd0e8), 0, 1.05, 0, rig.torso); // cupcake crown base
+    mesh(sph(0.2, 7, 5), mat(0xee2233), 0, 1.3, 0, rig.torso);
+    for (let i = 0; i < 3; i++) mesh(box(0.84, 0.05, 0.52), mat(0xffffff), 0, 0.15 + i * 0.22, 0, rig.torso);
+    holdWeapon(rig, weaponModel('candycane', 1.6));
+    rig.root.scale.setScalar(2.6);
+  } else if (type === 'gummy') {
+    rig = humanoid({ skin: 0xee2233, body: 0xee2233, arms: 0xee2233, legs: 0xee2233, head: 'bear', width: 0.75, belly: true });
+    rig.root.scale.setScalar(2.1);
   } else if (type === 'king') {
     rig = humanoid({ skin: 0xf0c8a0, body: 0x6a2a8a, arms: 0x6a2a8a, legs: 0x4a1a5a, head: 'king', belly: true, width: 0.7, boots: 0x332211, belt: 0xffcc22, pauldrons: 0xffffff });
     // Royal cape.
@@ -476,6 +677,105 @@ export function makeSnowman() {
   shadowAll(root);
   optimize(root);
   return { root, body, arms, isSimple: true, kind: 'snowman' };
+}
+
+function simpleRig(kind, build) {
+  const root = new THREE.Group(), body = new THREE.Group();
+  root.add(body);
+  const arms = [];
+  build(body, arms);
+  shadowAll(root);
+  optimize(root);
+  return { root, body, arms, isSimple: true, kind };
+}
+function armGroup(body, x, y, z) { const a = new THREE.Group(); a.position.set(x, y, z); body.add(a); return a; }
+
+export function makeSimpleEnemy(type) {
+  if (type === 'ghost') return simpleRig('ghost', (b, arms) => {
+    const sheet = mat(0xeef0ff);
+    mesh(cone(0.6, 1.6, 8), sheet, 0, 1.0, 0, b);
+    mesh(sph(0.45, 8, 6), sheet, 0, 1.75, 0, b);
+    for (const s of [-1, 1]) mesh(box(0.1, 0.16, 0.02), mat(0x111122), s * 0.15, 1.8, 0.43, b);
+    mesh(sph(0.1, 6, 4), mat(0x111122), 0, 1.58, 0.42, b);
+    for (const s of [-1, 1]) { const a = armGroup(b, s * 0.45, 1.3, 0); mesh(cone(0.12, 0.5, 5), sheet, s * 0.2, 0, 0, a).rotation.z = s * 1.4; arms.push(a); }
+  });
+  if (type === 'shroom') return simpleRig('shroom', (b, arms) => {
+    mesh(cyl(0.25, 0.3, 0.7, 7), mat(0xf0e8d8), 0, 0.35, 0, b);
+    mesh(sph(0.5, 8, 5), mat(0x8a4ad8), 0, 0.8, 0, b).scale.set(1, 0.6, 1);
+    for (const s of [-1, 1]) mesh(box(0.06, 0.1, 0.02), mat(0x111111), s * 0.09, 0.5, 0.26, b);
+    for (const s of [-1, 1]) { const a = armGroup(b, s * 0.28, 0.4, 0); mesh(cyl(0.05, 0.05, 0.35, 4), mat(0xf0e8d8), s * 0.15, 0, 0, a).rotation.z = 1.57; arms.push(a); }
+  });
+  if (type === 'sporeling') return simpleRig('sporeling', (b, arms) => {
+    mesh(sph(0.7, 9, 7), mat(0xc8b890), 0, 0.7, 0, b);
+    for (let i = 0; i < 8; i++) { const a = i * 0.8; mesh(sph(0.12, 4, 3), mat(0x9aaa70), Math.cos(a) * 0.62, 0.9 + Math.sin(i) * 0.2, Math.sin(a) * 0.62, b); }
+    for (const s of [-1, 1]) mesh(box(0.1, 0.1, 0.02), mat(0x111111), s * 0.15, 0.85, 0.68, b);
+    for (const s of [-1, 1]) arms.push(armGroup(b, s * 0.6, 0.6, 0));
+  });
+  if (type === 'gummyworm') return simpleRig('gummyworm', (b, arms) => {
+    const cols = [0xff5566, 0xffcc33, 0x55dd66, 0x55aaff, 0xcc66ff];
+    for (let i = 0; i < 5; i++) mesh(sph(0.32, 7, 5), mat(cols[i]), 0, 0.32 + (i === 4 ? 0.5 : 0) + (i === 3 ? 0.25 : 0), -i * 0.42 + (i >= 3 ? 1.2 : 0), b);
+    for (const s of [-1, 1]) mesh(sph(0.08, 5, 4), mat(0xffffff), s * 0.12, 0.95, 1.4, b);
+    for (const s of [-1, 1]) arms.push(armGroup(b, s * 0.3, 0.5, 0));
+  });
+  if (type === 'marshmallow') return simpleRig('marshmallow', (b, arms) => {
+    mesh(cyl(0.9, 0.9, 1.9, 12), mat(0xfff8f4), 0, 1.0, 0, b);
+    for (const s of [-1, 1]) mesh(box(0.12, 0.16, 0.02), mat(0x222222), s * 0.25, 1.4, 0.9, b);
+    mesh(box(0.4, 0.06, 0.02), mat(0x222222), 0, 1.1, 0.9, b);
+    mesh(cyl(0.92, 0.92, 0.25, 12), mat(0xc8946a), 0, 2.0, 0, b); // toasted top
+    for (const s of [-1, 1]) { const a = armGroup(b, s * 0.9, 1.2, 0); mesh(cyl(0.2, 0.2, 0.8, 6), mat(0xfff8f4), s * 0.35, 0, 0, a).rotation.z = 1.57; arms.push(a); }
+  });
+  return null;
+}
+
+// Non-humanoid bosses (animated with the simple bobbing rig).
+function makeBigSimple(type) {
+  let rig;
+  if (type === 'sandworm') rig = simpleRig('worm', (b, arms) => {
+    const sand = mat(0xc89a6a), ring = mat(0xa87a4a);
+    for (let i = 0; i < 7; i++) { const r = 0.75 - i * 0.05; mesh(sph(r, 9, 7), i % 2 ? ring : sand, 0, 0.6 + Math.max(0, 3 - i) * 0.45, -i * 0.9 + 2.4, b); }
+    const head = armGroup(b, 0, 2.0, 2.6);
+    mesh(cyl(0.7, 0.8, 0.6, 9), mat(0x8a5a3a), 0, 0, 0.2, head).rotation.x = 1.57;
+    for (let i = 0; i < 6; i++) { const a = i * 1.05; mesh(cone(0.1, 0.3, 4), mat(0xffffff), Math.cos(a) * 0.5, Math.sin(a) * 0.5, 0.5, head).rotation.x = 1.57; }
+    arms.push(head, armGroup(b, 0, 0.6, -3));
+  });
+  else if (type === 'dragon') rig = simpleRig('dragon', (b, arms) => {
+    const red = mat(0xc83a2a), belly = mat(0xffcc66);
+    mesh(sph(1.3, 9, 7), red, 0, 1.6, 0, b).scale.set(1, 0.85, 1.5);
+    mesh(sph(1.0, 8, 6), belly, 0, 1.4, 0.6, b).scale.set(0.9, 0.7, 1);
+    mesh(cyl(0.4, 0.55, 1.6, 7), red, 0, 2.6, 1.6, b).rotation.x = 0.7;
+    mesh(box(0.9, 0.7, 1.2), red, 0, 3.2, 2.4, b);
+    mesh(box(0.7, 0.3, 0.7), red, 0, 3.0, 3.1, b);
+    for (const s of [-1, 1]) { mesh(box(0.12, 0.12, 0.02), mat(0xffee22, { emissive: 0x886600 }), s * 0.25, 3.35, 3.01, b); mesh(cone(0.1, 0.5, 4), mat(0xeeeeee), s * 0.3, 3.75, 2.2, b); }
+    mesh(cone(0.4, 2.2, 6), red, 0, 1.4, -2.2, b).rotation.x = -1.3;
+    for (const s of [-1, 1]) { mesh(box(0.35, 1.2, 0.4), red, s * 0.8, 0.6, 0.6, b); mesh(box(0.35, 1.2, 0.4), red, s * 0.8, 0.6, -0.8, b); }
+    for (const s of [-1, 1]) {
+      const w = armGroup(b, s * 1.0, 2.3, 0);
+      mesh(box(2.6, 0.08, 1.6), mat(0x8a2a1a), s * 1.3, 0, 0, w);
+      arms.push(w);
+    }
+  });
+  else if (type === 'slug') rig = simpleRig('slug', (b, arms) => {
+    const g = mat(0x9ad86a);
+    mesh(sph(1.4, 10, 7), g, 0, 0.9, 0, b).scale.set(1, 0.6, 2);
+    mesh(sph(0.9, 9, 6), g, 0, 1.6, 2.0, b);
+    for (const s of [-1, 1]) { const st = armGroup(b, s * 0.35, 2.3, 2.2); mesh(cyl(0.06, 0.08, 0.8, 5), g, 0, 0.4, 0, st); mesh(sph(0.16, 6, 4), mat(0x111111), 0, 0.85, 0, st); arms.push(st); }
+    const gold = mat(0xffcc22, { emissive: 0x332200 });
+    mesh(cyl(0.45, 0.4, 0.3, 8), gold, 0, 2.5, 1.9, b);
+    for (let i = 0; i < 5; i++) { const a = i * 1.25; mesh(cone(0.08, 0.25, 4), gold, Math.cos(a) * 0.4, 2.75, 1.9 + Math.sin(a) * 0.4, b); }
+  });
+  else rig = simpleRig('kraken', (b, arms) => {
+    const purple = mat(0xaa55cc);
+    mesh(sph(1.4, 10, 8), purple, 0, 2.4, 0, b).scale.set(1, 1.3, 1);
+    for (const s of [-1, 1]) { mesh(sph(0.3, 7, 5), mat(0xffffff), s * 0.5, 2.6, 1.2, b); mesh(sph(0.15, 5, 4), mat(0x111111), s * 0.5, 2.6, 1.45, b); }
+    for (let i = 0; i < 6; i++) {
+      const a = (i / 6) * Math.PI * 2;
+      const t = mesh(cone(0.3, 2.4, 6), purple, Math.cos(a) * 1.0, 0.7, Math.sin(a) * 1.0, b);
+      t.rotation.set(Math.sin(a) * 0.9, 0, -Math.cos(a) * 0.9);
+    }
+    for (const s of [-1, 1]) { const arm = armGroup(b, s * 1.2, 2.0, 0.5); mesh(cone(0.25, 2.6, 6), purple, s * 1.0, 0, 0.6, arm).rotation.z = s * 1.2; arms.push(arm); }
+  });
+  rig.big = true;
+  return rig;
 }
 
 export function makeChicken() {
@@ -692,6 +992,14 @@ export function projectileModel(kind) {
   else if (kind === 'bomb') { mesh(cyl(0.14, 0.16, 0.45, 7), mat(0x3aa8ff, { emissive: 0x113355 }), 0, 0, 0, g); mesh(cyl(0.05, 0.08, 0.15, 5), mat(0x3aa8ff), 0, 0.3, 0, g); }
   else if (kind === 'resume') mesh(box(0.5, 0.02, 0.65), mat(0xffffff), 0, 0, 0, g);
   else if (kind === 'gnome') g.add(makeGnome(1.6));
+  else if (kind === 'bat') { mesh(sph(0.2, 6, 4), mat(0x222233), 0, 0, 0, g); for (const s of [-1, 1]) mesh(box(0.5, 0.03, 0.25), mat(0x222233), s * 0.3, 0, 0, g); }
+  else if (kind === 'pumpkin') mesh(sph(0.45, 8, 6), mat(0xff8a22, { emissive: 0x552200 }), 0, 0, 0, g);
+  else if (kind === 'fireball' || kind === 'firebomb') mesh(ico(kind === 'firebomb' ? 0.25 : 0.35, 1), mat(0xff6a1a, { emissive: 0xcc3300 }), 0, 0, 0, g);
+  else if (kind === 'spore') mesh(ico(0.32, 1), mat(0xaadd55, { emissive: 0x335500 }), 0, 0, 0, g);
+  else if (kind === 'candy') { mesh(sph(0.25, 6, 5), mat(0xff55aa, { emissive: 0x551133 }), 0, 0, 0, g); for (const s of [-1, 1]) mesh(cone(0.12, 0.2, 4), mat(0xff55aa), s * 0.3, 0, 0, g).rotation.z = s * 1.57; }
+  else if (kind === 'ink') mesh(sph(0.35, 7, 5), mat(0x221133, { emissive: 0x110022 }), 0, 0, 0, g);
+  else if (kind === 'orb') mesh(ico(0.3, 1), mat(0xaaccff, { emissive: 0x4466aa }), 0, 0, 0, g);
+  else if (kind === 'sand') mesh(ico(0.4, 0), mat(0xd8b070, { emissive: 0x332200 }), 0, 0, 0, g);
   return g;
 }
 

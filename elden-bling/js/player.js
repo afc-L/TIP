@@ -5,8 +5,8 @@ import { groundHeight } from './collision.js';
 import { WEAPONS, ARMOR } from './data.js';
 
 const RADIUS = 0.45;
-const WALK = 4.6, SPRINT = 7.6, ROLL_SPEED = 9.5;
-const COST = { light: 13, heavy: 26, roll: 18, sprint: 16 };
+const WALK = 4.6, SPRINT = 8.6, ROLL_SPEED = 9.5;
+const COST = { light: 13, heavy: 26, roll: 18, sprint: 13 };
 
 export class Player {
   constructor(game) {
@@ -48,6 +48,10 @@ export class Player {
   get dmgBonus() { return this.armorStat('dmgBonus'); }
   get coinBonus() { return this.armorStat('coinBonus'); }
   get poisonResist() { return this.armorStat('poisonResist') > 0; }
+  get burnResist() { return this.armorStat('burnResist') > 0; }
+  get chillResist() { return this.armorStat('chillResist') > 0; }
+  get healMult() { return 1 + this.armorStat('healBonus'); }
+  get armorLifesteal() { return this.armorStat('lifesteal'); }
   get xpNeed() { return 60 + (this.stats.level - 1) * 40; }
   get xpBonus() { return this.equip.head ? ARMOR[this.equip.head].xpBonus || 0 : 0; }
   get rolling() { return this.state === 'roll' && this.stateT > 0.04 && this.stateT < 0.42; }
@@ -61,6 +65,7 @@ export class Player {
     this.staDelay = 0;
     this.poison = 0;
     this.chill = 0;
+    this.burn = 0;
     this.hurtFlash = 0;
     this.knock.set(0, 0, 0);
     this.root.rotation.set(0, this.yaw, 0);
@@ -112,14 +117,24 @@ export class Player {
       mz = -ix * s + iz * c;
     }
     const moving = len > 0;
-    const inPoison = g.world.inPoison(this.pos.x, this.pos.z);
+    const hazard = g.world.hazardAt(this.pos.x, this.pos.z);
+    const inPoison = hazard === 'poison';
     if (inPoison && !this.poisonResist) this.poison = Math.max(this.poison, 1.5);
-    if (this.chill > 0) this.chill -= dt;
+    if (hazard === 'lava' && !this.burnResist) this.burn = Math.max(this.burn, 2);
+    if (this.chill > 0) { this.chill -= dt; if (this.chillResist) this.chill = 0; }
     if (this.poison > 0) {
       this.poison -= dt;
       this.hp -= 5 * dt;
       if (this.hp <= 0) { g.killPlayer(); return; }
     }
+    if (this.burn > 0) {
+      this.burn -= dt;
+      this.hp -= (hazard === 'lava' ? 14 : 7) * dt;
+      if (Math.random() < dt * 10) g.fx.burst(this.pos.x, this.pos.y + 0.8, this.pos.z, 0xff6622, 1, { speed: 1, up: 2 });
+      if (this.hp <= 0) { g.killPlayer(); return; }
+    }
+    const regen = this.armorStat('regen');
+    if (regen && this.hp < this.maxHp) this.hp = Math.min(this.maxHp, this.hp + regen * dt);
 
     let speed = 0;
     let sprinting = false;
@@ -134,7 +149,7 @@ export class Player {
       if (this.state === 'move') {
         sprinting = moving && input.down('ShiftLeft') || moving && input.down('ShiftRight');
         if (sprinting && this.sta <= 0.5) sprinting = false;
-        speed = moving ? (sprinting ? SPRINT : WALK) : 0;
+        speed = moving ? (sprinting ? SPRINT : WALK) * (1 + this.armorStat('speedBonus')) : 0;
         if (inPoison) speed *= 0.7;
         if (this.chill > 0) speed *= 0.6;
         if (sprinting) { this.sta -= COST.sprint * dt; this.staDelay = 0.5; }
@@ -170,7 +185,7 @@ export class Player {
       this.vel.set(mx * 1.6, 0, mz * 1.6);
       if (!this.healed && this.stateT > 0.45) {
         this.healed = true;
-        const amt = Math.round(this.maxHp * 0.45);
+        const amt = Math.round(this.maxHp * 0.45 * this.healMult);
         this.hp = Math.min(this.maxHp, this.hp + amt);
         this.poison = 0;
         g.fx.rise(this.pos.x, this.pos.y + 0.3, this.pos.z, 0x77ff88, 18);
@@ -192,7 +207,7 @@ export class Player {
     // Stamina regen.
     if (this.staDelay > 0) this.staDelay -= dt;
     else if (this.state !== 'attack' && this.state !== 'roll' && !sprinting) {
-      let regen = 42 * (1 + (this.equip.body ? ARMOR[this.equip.body].stamRegen || 0 : 0));
+      let regen = 42 * (1 + this.armorStat('stamRegen'));
       if (this.buffs.dignity > 0) regen *= 2;
       if (this.state === 'heal') regen *= 0.5;
       this.sta = Math.min(this.maxSta, this.sta + regen * dt);

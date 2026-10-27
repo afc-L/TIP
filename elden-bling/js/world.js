@@ -1,13 +1,18 @@
 // The open world: terrain, walls, gates, props, shrines, chests, NPCs and triggers.
 import * as THREE from 'three';
-import { Colliders, groundHeight, wDesert, wPeaks, wBeach, smooth, WATER_LEVEL, edgeDistance, ARENAS } from './collision.js';
+import { Colliders, groundHeight, wDesert, wPeaks, wBeach, wWoods, wVolcano, wFungal, wCandy, smooth, WATER_LEVEL, edgeDistance, ARENAS } from './collision.js';
 import * as M from './models.js';
 import { SIGNS, SOCKS } from './data.js';
 
-export const ZONES = { grass: 'The Grasslands', swamp: 'The Cursed Swamp', backyard: "The King's Backyard", arena: 'The Lawn of Lord Touchgrass', desert: 'The Crunchy Desert', peaks: 'The Slightly Chilly Peaks', beach: 'The Beach of Regret' };
+export const ZONES = { grass: 'The Grasslands', swamp: 'The Cursed Swamp', backyard: "The King's Backyard", arena: 'The Lawn of Lord Touchgrass', desert: 'The Crunchy Desert', peaks: 'The Slightly Chilly Peaks', beach: 'The Beach of Regret', woods: 'The Haunted Woods', volcano: 'Mount Slightly Hot', fungal: 'The Fungal Funhouse', candy: 'The Candy Kingdom' };
 
 // Region bosses: [id, x, z] (the arena centre is the boss's home).
-export const BOSS_SPOTS = { gary: [45, 42], pharaoh: [-122, 10], snowmom: [120, 8], sogbeard: [55, 132] };
+export const BOSS_SPOTS = {
+  gary: [45, 42], pharaoh: [-122, 10], snowmom: [120, 8], sogbeard: [55, 132],
+  sandworm: [-125, 60], shivers: [140, 62], kevin: [-40, 134], bog: [30, -15],
+  snackula: [-110, -160], horseless: [-130, -100], mayor: [110, -140], dave: [135, -95],
+  funguy: [-210, -40], slugworth: [-230, -95], sugarcrash: [210, -40], gummy: [230, -95],
+};
 
 export const SHRINES = [
   { id: 's1', name: 'Shrine of First Steps', x: 6, z: 84 },
@@ -19,6 +24,14 @@ export const SHRINES = [
   { id: 's7', name: 'Shrine of the Brain Freeze', x: 100, z: 30 },
   { id: 's8', name: 'Shrine of Salty Tears', x: -22, z: 112 },
   { id: 's9', name: 'Shrine of the Soggy Plank', x: 34, z: 118 },
+  { id: 's10', name: 'Shrine of Spooky Snacks', x: -88, z: -78 },
+  { id: 's11', name: 'Shrine of the Creaky Coffin', x: -128, z: -134 },
+  { id: 's12', name: 'Shrine of Toasty Toes', x: 88, z: -78 },
+  { id: 's13', name: 'Shrine of the Burnt Marshmallow', x: 132, z: -122 },
+  { id: 's14', name: 'Shrine of Fungal Friendship', x: -182, z: -12 },
+  { id: 's15', name: 'Shrine of the Spore Bore', x: -214, z: 72 },
+  { id: 's16', name: 'Shrine of the Sugar High', x: 182, z: -12 },
+  { id: 's17', name: 'Shrine of Cavities', x: 214, z: 72 },
 ];
 
 export const START = { x: 0, z: 93 };
@@ -43,6 +56,47 @@ export const ENEMY_SPAWNS = [
   ['crab', -70, 116], ['pirate', -50, 130], ['crab', -32, 138], ['pirate', -12, 128], ['crab', 18, 134], ['pirate', 48, 106],
   ['crab', 84, 118], ['pirate', 90, 134], ['crab', -86, 136], ['pirate', -88, 108], ['crab', 70, 110],
 ];
+
+// Extra spawns are scattered procedurally (seeded, so every game is the same).
+const SPAWN_REGIONS = [
+  // [types, count, minX, maxX, minZ, maxZ, tier]
+  [['mummy', 'cactus', 'skeleton'], 8, -150, -70, -55, 95, 2],
+  [['snowman', 'yeti', 'knight'], 8, 70, 150, -55, 95, 2],
+  [['crab', 'pirate'], 6, -95, 95, 106, 138, 2],
+  [['ghost', 'werepoodle', 'pumpkin', 'skeleton'], 22, -152, -68, -184, -68, 3],
+  [['imp', 'golem', 'imp', 'skeleton'], 22, 68, 152, -184, -68, 3],
+  [['shroom', 'sporeling', 'frog', 'shroom'], 24, -254, -166, -114, 95, 3],
+  [['ginger', 'gummyworm', 'marshmallow', 'ginger'], 24, 166, 254, -114, 95, 3],
+];
+const KEEP_OUT = [[-122, -26, 16], [120, -22, 12], [84, 146, 9], [-80, 138, 4], [96, 64, 5], [-110, -178, 14], [118, -180, 18], [205, -62, 12], [-94, 12, 6]];
+function tierFor(x, z) {
+  if (x < -159 || x > 159 || (z < -63 && Math.abs(x) > 61)) return 3;
+  if (x < -61 || x > 61 || z > 101) return 2;
+  return 1;
+}
+export { tierFor };
+(function scatterSpawns() {
+  const R = rng(4242);
+  for (const [types, count, x0, x1, z0, z1] of SPAWN_REGIONS) {
+    let n = 0, tries = 0;
+    while (n < count && tries < count * 60) {
+      tries++;
+      const x = x0 + R() * (x1 - x0), z = z0 + R() * (z1 - z0);
+      if (edgeDistance(x, z) > 0 || groundHeight(x, z) < WATER_LEVEL + 0.4) continue;
+      if (Object.values(BOSS_SPOTS).some(([bx, bz]) => Math.hypot(x - bx, z - bz) < 24)) continue;
+      if (SHRINES.some((s) => Math.hypot(x - s.x, z - s.z) < 14)) continue;
+      if (KEEP_OUT.some(([kx, kz, kr]) => Math.hypot(x - kx, z - kz) < kr + 2)) continue;
+      if (ENEMY_SPAWNS.some((e) => Math.hypot(x - e[1], z - e[2]) < 7)) continue;
+      ENEMY_SPAWNS.push([types[n % types.length], Math.round(x), Math.round(z)]);
+      n++;
+    }
+  }
+  // Regular enemies never stand inside a boss arena.
+  for (let i = ENEMY_SPAWNS.length - 1; i >= 0; i--) {
+    const [, x, z] = ENEMY_SPAWNS[i];
+    if (Object.values(BOSS_SPOTS).some(([bx, bz]) => Math.hypot(x - bx, z - bz) < 18)) ENEMY_SPAWNS.splice(i, 1);
+  }
+})();
 
 export const CHESTS = [
   { id: 'c_garlic', x: -34, z: 88, loot: [['consumable', 'garlic', 2], ['coins', 40]] },
@@ -71,8 +125,30 @@ export const CHESTS = [
   { id: 'c_wreck', x: 72, z: 136, fancy: true, loot: [['consumable', 'bomb', 3], ['coins', 250]] },
   // Grasslands extras
   { id: 'c_field', x: 54, z: 50, loot: [['consumable', 'bomb', 2], ['coins', 80]] },
+  // Haunted Woods
+  { id: 'c_crypt', x: -150, z: -182, fancy: true, loot: [['armor', 'witchhat'], ['coins', 300]] },
+  { id: 'c_grave', x: -76, z: -120, loot: [['consumable', 'firebomb', 2], ['coins', 200]] },
+  { id: 'c_woods', x: -146, z: -76, loot: [['weapon', 'flamingospear'], ['coins', 150]] },
+  { id: 'c_cape', x: -86, z: -176, fancy: true, loot: [['armor', 'vampcape']] },
+  // Mount Slightly Hot
+  { id: 'c_lava', x: 150, z: -150, fancy: true, loot: [['armor', 'dragonhelm'], ['coins', 300]] },
+  { id: 'c_ash', x: 74, z: -110, loot: [['consumable', 'coconut', 3], ['consumable', 'candy', 1]] },
+  { id: 'c_vent', x: 148, z: -72, loot: [['armor', 'tinfoil'], ['coins', 180]] },
+  { id: 'c_forge', x: 80, z: -176, fancy: true, loot: [['weapon', 'dadsbelt'], ['coins', 220]] },
+  // Fungal Funhouse
+  { id: 'c_spore', x: -250, z: -110, fancy: true, loot: [['armor', 'shroomcap'], ['coins', 250]] },
+  { id: 'c_ring', x: -172, z: 92, loot: [['consumable', 'mushroom', 3], ['coins', 160]] },
+  { id: 'c_glow', x: -250, z: 30, loot: [['weapon', 'pizzacutter'], ['coins', 140]] },
+  { id: 'c_hoodie', x: -176, z: -104, loot: [['armor', 'hoodie']] },
+  // Candy Kingdom
+  { id: 'c_cake', x: 250, z: -110, fancy: true, loot: [['armor', 'gingerplate'], ['coins', 300]] },
+  { id: 'c_sprinkle', x: 172, z: 92, loot: [['consumable', 'candy', 2], ['coins', 200]] },
+  { id: 'c_fudge', x: 252, z: 30, loot: [['weapon', 'airguitar'], ['coins', 160]] },
+  { id: 'c_toffee', x: 176, z: -104, loot: [['consumable', 'firebomb', 2], ['armor', 'apron']] },
 ];
 
+// Lava pools burn instead of poisoning.
+const LAVA = [[100, -100, 5], [128, -150, 4], [80, -150, 4.5], [145, -120, 3.5], [96, -178, 4], [70, -130, 3.5]];
 const POOLS = [[-20, 20, 5], [6, 14, 3.5], [20, 0, 6], [-10, -12, 5], [30, -32, 4], [-34, -30, 4], [46, 12, 5], [-50, -15, 3.5], [-140, 70, 4], [-104, 80, 3]];
 
 const PATH = [[0, 93], [0, 72], [-24, 56], [-50, 38], [-50, 28], [-44, 12], [-38, 4], [-20, -10], [0, -24], [0, -46], [0, -66], [0, -88]];
@@ -86,6 +162,10 @@ const ROADS = [
   [[0, 104], [30, 116], [48, 126]],
   [[-62, -7], [-80, -8], [-100, 0]],
   [[62, 3], [84, 4], [104, 6]],
+  [[-106, -62], [-100, -90], [-110, -138]],
+  [[106, -62], [100, -90], [110, -120]],
+  [[-158, 25], [-180, 20], [-200, -20]],
+  [[158, 35], [180, 30], [200, -20]],
 ];
 const ALL_PATHS = [PATH, PATH2, PATH3, ...ROADS];
 function nearPath(x, z, w) {
@@ -114,6 +194,10 @@ function distToPath(x, z, path) {
 }
 
 export function zoneAt(x, z) {
+  if (x < -159) return 'fungal';
+  if (x > 159) return 'candy';
+  if (z < -63 && x < -61) return 'woods';
+  if (z < -63 && x > 61) return 'volcano';
   if (z > 101) return 'beach';
   if (x < -61) return 'desert';
   if (x > 61) return 'peaks';
@@ -194,7 +278,7 @@ export class World {
 
   // Terrain is split into tiles so the camera can cull the ones out of view.
   buildTerrain() {
-    const x0 = -190, x1 = 190, z0 = -140, z1 = 190, tile = 64, seg = 2.5;
+    const x0 = -290, x1 = 290, z0 = -226, z1 = 190, tile = 64, seg = 2.5;
     const mat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
     const c = new THREE.Color();
     const r = rng(7);
@@ -227,7 +311,7 @@ export class World {
       }
     }
     // The sea.
-    const sea = new THREE.Mesh(new THREE.PlaneGeometry(420, 90).rotateX(-Math.PI / 2), new THREE.MeshLambertMaterial({ color: 0x2a8ac8, transparent: true, opacity: 0.85 }));
+    const sea = new THREE.Mesh(new THREE.PlaneGeometry(620, 90).rotateX(-Math.PI / 2), new THREE.MeshLambertMaterial({ color: 0x2a8ac8, transparent: true, opacity: 0.85 }));
     sea.position.set(0, WATER_LEVEL, 180);
     this.scene.add(sea);
     this.sea = sea;
@@ -238,8 +322,13 @@ export class World {
     const v = (n - 0.5) * 0.06;
     const edge = edgeDistance(x, z);
     if (edge > 4 && !(z > 120 && Math.abs(x) < 100)) {
-      const snowy = (wPeaks(x) > 0.5 && z < 101) || y > 14;
-      c.setHex(snowy ? (y > 6 ? 0xf2f6ff : 0xb8c0c8) : wDesert(x) > 0.5 || z > 101 ? 0xc0925a : 0x7d7a6a);
+      const snowy = (wPeaks(x) > 0.5 && wCandy(x) < 0.5 && z > -64 && z < 101) || y > 14;
+      let rock = wDesert(x) > 0.5 || z > 101 ? 0xc0925a : 0x7d7a6a;
+      if (z < -64 && x < -61) rock = 0x4a4458;
+      if (z < -64 && x > 61) rock = 0x3a3434;
+      if (x < -160) rock = 0x6a5a7a;
+      if (x > 160) rock = 0xd8a8c8;
+      c.setHex(snowy ? (y > 6 ? 0xf2f6ff : 0xb8c0c8) : rock);
       c.offsetHSL(0, 0, v);
       return;
     }
@@ -250,6 +339,14 @@ export class World {
       else c.setHex(onPath ? 0xd8c090 : n > 0.85 ? 0xf0e0b0 : 0xeedc9e);
       // Blend into neighbouring regions near the border.
       if (z < 108 && (x < -60 || x > 60)) c.lerp(new THREE.Color(x < 0 ? 0xe0b86a : 0xe8eef6), 0.5);
+    } else if (zone === 'woods') {
+      c.setHex(onPath ? 0x5a4a3a : n > 0.8 ? 0x3a4a38 : n > 0.4 ? 0x34442f : 0x2e3d2c);
+    } else if (zone === 'volcano') {
+      c.setHex(onPath ? 0x6a5a50 : n > 0.85 ? 0x8a3a1a : n > 0.5 ? 0x3a3232 : 0x2a2626);
+    } else if (zone === 'fungal') {
+      c.setHex(onPath ? 0x8a7a6a : n > 0.8 ? 0x7a5aa0 : n > 0.4 ? 0x5a8a7a : 0x6a4a8a);
+    } else if (zone === 'candy') {
+      c.setHex(onPath ? 0xfff0f8 : n > 0.75 ? 0xffd0e8 : n > 0.4 ? 0xc8f0e0 : 0xffe4a8);
     } else if (zone === 'desert') {
       c.setHex(onPath ? 0xc89a5a : n > 0.75 ? 0xe8c47a : 0xe0b86a);
     } else if (zone === 'peaks') {
@@ -379,9 +476,25 @@ export class World {
   buildWalls() {
     // Outer boundary (invisible; mountains and the sea sell it).
     const B = (a, b, c, d) => this.col.addBox(a, b, c, d, { cam: false });
-    B(-175, -125, -158.5, 200); B(158.5, -125, 175, 200);
-    B(-60, -125, 60, -108.5); B(-175, -125, -60, -62.5); B(60, -125, 175, -62.5);
-    B(-175, 146, 175, 200); B(-175, 101.5, -100.5, 200); B(100.5, 101.5, 175, 200);
+    B(-280, -240, -260.5, 200); B(260.5, -240, 280, 200);
+    B(-60, -240, 60, -108.5); B(-280, -240, 280, -190.5);
+    B(-280, -240, -158.5, -120.5); B(158.5, -240, 280, -120.5);
+    B(-280, 146, 280, 200); B(-280, 101.5, -100.5, 200); B(100.5, 101.5, 280, 200);
+    // Borders into the far regions: rock walls with passes.
+    for (const s of [-1, 1]) {
+      const f = (a) => (s < 0 ? a : -a);
+      // North edge of desert / peaks (passes into the woods and the volcano).
+      const nx0 = s < 0 ? -158.5 : 61, nx1 = s < 0 ? -61 : 158.5;
+      const gap = s < 0 ? [-112, -100] : [100, 112];
+      this.wall(nx0, -63.5, gap[0], -61.5, s < 0 ? 'rock' : 'rock');
+      this.wall(gap[1], -63.5, nx1, -61.5, 'rock');
+      // Outer edge (passes into the fungal funhouse and the candy kingdom).
+      const ex0 = s < 0 ? -160 : 158, ex1 = ex0 + 2;
+      this.wall(ex0, -190.5, ex1, -100, 'rock');
+      this.wall(ex0, -88, ex1, 18, 'rock');
+      this.wall(ex0, 32, ex1, 101.5, 'rock');
+      void f;
+    }
 
     // Region borders: rock ridges with passes into the desert (west) and peaks (east).
     for (const s of [-1, 1]) {
@@ -439,6 +552,7 @@ export class World {
     this.illusoryWall('w_ice', 145, -62.5, 146, -50, 'ice');
 
     this.buildLandmarks();
+    this.buildFarLandmarks();
     // All wall-top boulders in one instanced draw call.
     const bl = this.boulders || [];
     const im = new THREE.InstancedMesh(M.ico(1, 0), M.mat(0x9a9488), bl.length);
@@ -511,6 +625,67 @@ export class World {
     }
   }
 
+  buildFarLandmarks() {
+    const sc = this.scene;
+    const add = (o, x, z, y = 0) => { o.position.set(x, groundHeight(x, z) + y, z); sc.add(o); return o; };
+    // Count Snackula's castle.
+    const castle = new THREE.Group();
+    const stone = M.mat(0x4a4458), roof = M.mat(0x6a2a4a);
+    M.mesh(M.box(22, 10, 8), stone, 0, 5, 0, castle);
+    for (const tx of [-11, 11, -4, 4]) {
+      const h = tx === -4 || tx === 4 ? 16 : 13;
+      M.mesh(M.cyl(2.2, 2.4, h, 8), stone, tx, h / 2, tx === -4 || tx === 4 ? -2 : 0, castle);
+      M.mesh(M.cone(2.8, 4, 8), roof, tx, h + 2, tx === -4 || tx === 4 ? -2 : 0, castle);
+    }
+    for (let i = 0; i < 6; i++) M.mesh(M.box(1.2, 2, 0.3), M.mat(0xffdd66, { emissive: 0x664400 }), -8 + i * 3.2, 6, 4.05, castle);
+    add(castle, -110, -182);
+    this.col.addBox(-122, -187, -98, -177, { h: 10 });
+    // The volcano.
+    const vol = new THREE.Group();
+    M.mesh(M.cone(26, 34, 9), M.mat(0x3a3030), 0, 17, 0, vol);
+    M.mesh(M.cyl(6.5, 7, 1, 9), new THREE.MeshBasicMaterial({ color: 0xff5a10 }), 0, 30.6, 0, vol);
+    add(vol, 118, -200, -4);
+    this.col.addCircle(118, -200, 22, { h: 30, cam: true });
+    // The Fun Guy's giant party mushroom.
+    const shroom = new THREE.Group();
+    M.mesh(M.cyl(3, 4, 14, 10), M.mat(0xf0e8d8), 0, 7, 0, shroom);
+    M.mesh(M.sph(11, 12, 6), M.mat(0xdd3366), 0, 14, 0, shroom).scale.set(1, 0.45, 1);
+    for (let i = 0; i < 8; i++) { const a = i * 0.8; M.mesh(M.sph(1.6, 6, 4), M.mat(0xffffff), Math.cos(a) * 7, 17.5, Math.sin(a) * 7, shroom); }
+    add(shroom, -210, -68);
+    this.col.addCircle(-210, -68, 4.5, { h: 14, cam: true });
+    // Baron Von Sugarcrash's cake castle.
+    const cake = new THREE.Group();
+    const tiers = [[14, 6, 0xffd0e8], [10, 5, 0xfff0f8], [6, 5, 0xc8f0e0]];
+    let y = 0;
+    for (const [r, h, c] of tiers) { M.mesh(M.cyl(r, r, h, 14), M.mat(c), 0, y + h / 2, 0, cake); M.mesh(M.cyl(r + 0.3, r + 0.3, 0.6, 14), M.mat(0xff88bb), 0, y + h, 0, cake); y += h; }
+    M.mesh(M.sph(2, 8, 6), M.mat(0xdd2233), 0, y + 1.6, 0, cake);
+    add(cake, 205, -72);
+    this.col.addCircle(205, -72, 14.3, { h: 16, cam: true });
+    // Gingerbread houses.
+    for (const [x, z] of [[180, 60], [240, 10], [190, -95], [245, 80]]) {
+      const h = new THREE.Group();
+      M.mesh(M.box(5, 3.4, 4), M.mat(0xb8743a), 0, 1.7, 0, h);
+      const rf = M.mesh(M.cone(4, 2.4, 4), M.mat(0xfff4fa), 0, 4.6, 0, h); rf.rotation.y = Math.PI / 4;
+      M.mesh(M.box(1.2, 2, 0.1), M.mat(0x8a3a1a), 0, 1, 2.02, h);
+      add(h, x, z);
+      this.col.addBox(x - 2.5, z - 2, x + 2.5, z + 2, { h: 4 });
+    }
+    // Gravestones and a crypt in the woods.
+    for (let i = 0; i < 24; i++) {
+      const x = -96 - (i % 6) * 3, z = -112 - Math.floor(i / 6) * 3.5;
+      const gs = M.mesh(M.box(1, 1.4, 0.3), M.mat(0x7a7a88), 0, 0.7, 0);
+      gs.rotation.z = (this.rand() - 0.5) * 0.3;
+      add(gs, x, z);
+      this.col.addCircle(x, z, 0.5);
+    }
+    // Hidden crypt pocket (north-west corner of the woods).
+    this.wall(-158.5, -178, -144, -176.5, 'rock');
+    this.illusoryWall('w_crypt', -145, -190.5, -143.5, -178, 'rock');
+    // Volcano forge pocket (north-west corner of the volcano).
+    this.wall(61, -170, 92, -168.5, 'rock');
+    this.illusoryWall('w_forge', 90.5, -190.5, 92, -170, 'rock');
+  }
+
   palm(x, z, s = 1) {
     const g = new THREE.Group();
     for (let i = 0; i < 5; i++) M.mesh(M.cyl(0.18, 0.22, 1.1, 5), M.mat(0x9a7444), i * 0.12, 0.55 + i * 1.0, 0, g).rotation.z = -0.08;
@@ -528,7 +703,29 @@ export class World {
     this.col.addCircle(x, z, 0.35);
   }
 
+  buildLava() {
+    const lavaM = new THREE.MeshBasicMaterial({ color: 0xff6a1a });
+    const crustM = M.mat(0x2a1a14);
+    for (const [x, z, r] of LAVA) {
+      const y = groundHeight(x, z);
+      const m = new THREE.Mesh(new THREE.CircleGeometry(r, 16).rotateX(-Math.PI / 2), lavaM);
+      m.position.set(x, y + 0.07, z);
+      this.scene.add(m);
+      const ring = new THREE.Mesh(new THREE.RingGeometry(r, r + 0.6, 16).rotateX(-Math.PI / 2), crustM);
+      ring.position.set(x, y + 0.06, z);
+      this.scene.add(ring);
+    }
+    this.animated.push((t) => { lavaM.color.setHSL(0.05 + Math.sin(t * 2) * 0.01, 1, 0.5 + Math.sin(t * 3) * 0.05); });
+  }
+
+  // 'poison' | 'lava' | null for a point on the ground.
+  hazardAt(x, z) {
+    for (const [lx, lz, r] of LAVA) if ((x - lx) ** 2 + (z - lz) ** 2 < (r - 0.2) ** 2) return 'lava';
+    return this.inPoison(x, z) ? 'poison' : null;
+  }
+
   buildPools() {
+    this.buildLava();
     const poolM = new THREE.MeshLambertMaterial({ color: 0x7a3a9a, emissive: 0x2a0a3a, transparent: true, opacity: 0.85 });
     const padM = M.mat(0x3a8a3a);
     for (const p of this.pools) {
@@ -640,15 +837,34 @@ export class World {
     scatter(Math.round(90 * d), -99, 99, 103, 128, (x, z) => { add('tuft_beach', x, z, 0.8 + R() * 0.6); return true; });
     scatter(Math.round(25 * d), -99, 99, 104, 144, (x, z) => { if (!this.clearSpot(x, z, 1)) return false; add('rock_grass', x, z, 0.6 + R() * 1.0, 0.8); return true; });
     scatter(Math.round(15 * d), -99, 99, 110, 142, (x, z) => { if (!this.clearSpot(x, z, 1)) return false; add('driftwood', x, z, 0.8 + R() * 0.6); return true; });
+    // Haunted woods: spooky trees, pumpkins.
+    scatter(Math.round(150 * d), -157, -63, -189, -64, (x, z) => { if (!this.clearSpot(x, z, 1.2)) return false; add('tree_spooky', x, z, 0.9 + R() * 0.8, 0.45); return true; });
+    scatter(Math.round(40 * d), -157, -63, -189, -64, (x, z) => { if (!this.clearSpot(x, z, 0.6)) return false; add('pumpkin_deco', x, z, 0.7 + R() * 0.6); return true; });
+    scatter(Math.round(120 * d), -157, -63, -189, -64, (x, z) => { add('mushroom', x, z, 0.6 + R() * 0.6); return true; });
+    // Volcano: black rocks, dead stumps.
+    scatter(Math.round(90 * d), 63, 157, -189, -64, (x, z) => { if (!this.clearSpot(x, z, 1.2)) return false; add('rock_volcanic', x, z, 0.8 + R() * 1.4, 0.8); return true; });
+    scatter(Math.round(40 * d), 63, 157, -189, -64, (x, z) => { if (!this.clearSpot(x, z, 1)) return false; add('deadtree', x, z, 0.8 + R() * 0.6, 0.35); return true; });
+    // Fungal funhouse: giant and small glowing mushrooms.
+    scatter(Math.round(70 * d), -259, -161, -119, 100, (x, z) => { if (!this.clearSpot(x, z, 2)) return false; add('giantshroom', x, z, 0.8 + R() * 1.0, 0.6); return true; });
+    scatter(Math.round(180 * d), -259, -161, -119, 100, (x, z) => { add('mushroom', x, z, 0.8 + R() * 1.2); return true; });
+    // Candy kingdom: candy canes, lollipops, gumdrops.
+    scatter(Math.round(60 * d), 161, 259, -119, 100, (x, z) => { if (!this.clearSpot(x, z, 1)) return false; add('candycane', x, z, 0.8 + R() * 0.8, 0.3); return true; });
+    scatter(Math.round(60 * d), 161, 259, -119, 100, (x, z) => { if (!this.clearSpot(x, z, 1)) return false; add('lollipop', x, z, 0.8 + R() * 0.8, 0.3); return true; });
+    scatter(Math.round(120 * d), 161, 259, -119, 100, (x, z) => { add('gumdrop', x, z, 0.7 + R() * 0.8); return true; });
+
     // Tree lines and rocks on the mountains just beyond the playable border.
     let placed = 0, tries = 0;
-    const want = Math.round(260 * Math.max(0.5, d));
+    const want = Math.round(520 * Math.max(0.5, d));
     while (placed < want && tries < want * 30) {
       tries++;
-      const x = -185 + R() * 370, z = -135 + R() * 300;
+      const x = -285 + R() * 570, z = -220 + R() * 385;
       const e = edgeDistance(x, z);
       if (e < 2 || e > 26 || (z > 120 && Math.abs(x) < 100)) continue;
-      const key = x > 60 ? 'tree_snow' : x < -60 ? (R() < 0.6 ? 'rock_desert' : 'cactus_deco') : z > -45 && z < 30 ? 'deadtree' : 'tree_grass';
+      let key = x > 60 ? 'tree_snow' : x < -60 ? (R() < 0.6 ? 'rock_desert' : 'cactus_deco') : z > -45 && z < 30 ? 'deadtree' : 'tree_grass';
+      if (z < -62 && x < -60) key = 'tree_spooky';
+      if (z < -62 && x > 60) key = 'rock_volcanic';
+      if (x < -159) key = 'giantshroom';
+      if (x > 159) key = R() < 0.5 ? 'lollipop' : 'candycane';
       add(key, x, z, 1.3 + R() * 1.1);
       placed++;
     }
@@ -673,6 +889,13 @@ export class World {
       shell: [[M.cone(0.12, 0.08, 5), M.mat(0xffc8b0), 0.04]],
       tuft_beach: [[M.cone(0.1, 0.6, 3), M.mat(0x9aa850), 0.3]],
       driftwood: [[M.box(2.2, 0.25, 0.3), M.mat(0x9a8a70), 0.12]],
+      tree_spooky: [[M.cyl(0.2, 0.32, 2.4, 5), M.mat(0x2a2028), 1.2], [M.cone(1.3, 2.6, 5), M.mat(0x3a2a4a), 3.0], [M.cone(0.9, 2.0, 5), M.mat(0x4a3a5a), 4.2]],
+      pumpkin_deco: [[M.sph(0.45, 7, 5), M.mat(0xff8a22), 0.35], [M.cyl(0.05, 0.05, 0.2, 4), M.mat(0x3a6a2a), 0.8]],
+      rock_volcanic: [[M.ico(0.9, 0), M.mat(0x2a2424), 0.4]],
+      giantshroom: [[M.cyl(0.35, 0.45, 3, 6), M.mat(0xf0e8d8), 1.5], [M.cone(2.2, 1.4, 8), M.mat(0x8a4ad8), 3.4]],
+      candycane: [[M.cyl(0.14, 0.14, 2.6, 6), M.mat(0xffffff), 1.3], [M.cyl(0.15, 0.15, 0.3, 6), M.mat(0xee2233), 0.6], [M.cyl(0.15, 0.15, 0.3, 6), M.mat(0xee2233), 1.4], [M.cyl(0.15, 0.15, 0.3, 6), M.mat(0xee2233), 2.2]],
+      lollipop: [[M.cyl(0.06, 0.06, 2.4, 4), M.mat(0xffffff), 1.2], [M.cyl(0.9, 0.9, 0.2, 10), M.mat(0xff55aa), 2.6]],
+      gumdrop: [[M.cone(0.35, 0.5, 6), M.mat(0x55dd88), 0.25]],
     };
     // Each prop type's parts are merged into one vertex-coloured geometry: one draw call per type per cell.
     const merged = {};
@@ -685,9 +908,10 @@ export class World {
         if (key === 'deadtree' && yOff > 2) g.rotateZ(0.8).translate(0.4, 0, 0);
         if (key === 'cactus_deco' && yOff > 1.5) g.rotateZ(1.2).translate(0.5, 0, 0);
         if (key === 'bones' && yOff > 0.1) g.translate(0.35, 0, 0);
+        if (key === 'lollipop' && yOff > 2) g.rotateX(Math.PI / 2);
         g.translate(0, yOff, 0);
         g.computeVertexNormals();
-        c.copy(key === 'flower' && yOff > 0.3 ? new THREE.Color(0xffffff) : m.color);
+        c.copy((key === 'flower' && yOff > 0.3) || key === 'gumdrop' || (key === 'lollipop' && yOff > 2) ? new THREE.Color(0xffffff) : m.color);
         const pa = g.attributes.position, na = g.attributes.normal;
         for (let i = 0; i < pa.count; i++) {
           pos.push(pa.getX(i), pa.getY(i), pa.getZ(i));
@@ -720,6 +944,7 @@ export class World {
           dummy.updateMatrix();
           im.setMatrixAt(i, dummy.matrix);
           if (key === 'flower') im.setColorAt(i, col.setHex(flowerColors[i % flowerColors.length]));
+          if (key === 'gumdrop' || key === 'lollipop') im.setColorAt(i, col.setHex([0xff7799, 0x77ddff, 0xffee66, 0xaa88ff, 0x88ff99][i % 5]));
         });
         im.castShadow = this.game.useShadows && (key.startsWith('tree') || key === 'deadtree' || key.startsWith('rock') || key === 'cactus_deco');
         im.receiveShadow = false;
@@ -886,12 +1111,19 @@ export class World {
     const peaks = [0xc8dcf0, 0xe4eef8, 0xf0f6ff, 0x8a96a8, 0xf0f4ff];
     const beach = [0x8fd8ff, 0xc8f0ff, 0xffffff, 0x9a8a5a, 0xfff6d8];
     const night_ = [0x1a2244, 0x1e2a48, 0x6070a8, 0x202838, 0x8898d0];
+    const far = [
+      [wWoods(x, z), [0x5a5078, 0x4a4466, 0xa8a0c8, 0x2a2a3a, 0xc8b8e8]],
+      [wVolcano(x, z), [0xa8584a, 0x8a4a3a, 0xffb090, 0x3a1a14, 0xffa070]],
+      [wFungal(x), [0x9a7ac8, 0xb898d8, 0xe0d0ff, 0x4a6a5a, 0xe8d0ff]],
+      [wCandy(x), [0xffc8e8, 0xffe0f0, 0xffffff, 0xc89ab0, 0xfff0f8]],
+    ];
     const out = [];
     for (let k = 0; k < 5; k++) {
       let c = centre[k];
       c = lerpColor(c, desert[k], wd);
       c = lerpColor(c, peaks[k], wp);
       c = lerpColor(c, beach[k], wb * (1 - Math.max(wd, wp) * 0.5));
+      for (const [w, pal] of far) if (w > 0) c = lerpColor(c, pal[k], w);
       out.push(lerpColor(c, night_[k], night * 0.75));
     }
     this.scene.background.setHex(out[0]);
@@ -902,7 +1134,7 @@ export class World {
     this.hemi.intensity = 1.6 * (1 - night * 0.35);
     this.sun.intensity = 1.9 * (1 - night * 0.6);
     const vd = this.game.preset.viewDist;
-    const swamp = t1 * (1 - t2) * (1 - Math.max(wd, wp, wb));
+    const swamp = Math.max(t1 * (1 - t2) * (1 - Math.max(wd, wp, wb)), wWoods(x, z) * 0.8, wFungal(x) * 0.4);
     this.scene.fog.near = 18 - swamp * 10 + t2 * 10;
     this.scene.fog.far = vd * (1 - swamp * 0.35 + t2 * 0.35 + Math.max(wd, wb) * 0.15) * (1 - night * 0.2);
   }

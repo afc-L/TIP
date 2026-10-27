@@ -202,11 +202,19 @@ hr { border: 0; border-top: 1px solid rgba(242,199,92,0.2); }
 .medal-ico { background: radial-gradient(circle at 40% 35%, #fff2a0, #e0a020); box-shadow: 0 0 0 3px #8a5a10 inset, 0 0 10px rgba(255,210,80,0.7); }
 .slot.medal { border-color: var(--gold); }
 .buff.chill { color: #a8e0ff; }
-.map-panel { width: min(980px, 96vw); }
+.map-panel { width: min(1180px, 97vw); padding: 14px 18px; }
 .map-wrap { overflow: hidden; border: 1px solid var(--edge); background: #222; text-align: center; }
-#map-canvas { display: block; margin: 0 auto; max-width: 100%; max-height: 62vh; width: auto; height: auto; }
+#map-canvas { display: block; margin: 0 auto; max-width: 100%; max-height: 64vh; width: auto; height: auto; }
 #map-legend { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; margin-top: 10px; font: 13px system-ui, sans-serif; }
 #map-legend b { color: var(--gold); }
 .lg { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; border: 1px solid #000; }
 .lg.shrine { background: #7dff8a; } .lg.boss { background: #d8342a; } .lg.npc { background: #4ab0ff; } .lg.bag { background: #ffcc22; }
 @media (max-width: 900px) { #quick .slot { width: 46px; height: 46px; } }
+
+.firebomb-ico { background: radial-gradient(circle at 40% 35%, #ffd080, #e04a10); }
+.mushroom-ico { background: radial-gradient(circle at 50% 30%, #ff6688 45%, #f0e8d8 46%); }
+.candy-ico { background: conic-gradient(#ff5599, #ffee55, #55ddff, #ff5599); }
+.buff.burn { color: #ff9a50; }
+.dmg.dot { color: #ffb070; font-size: 14px; }
+.lg.field { background: #e8902a; }
+@media (max-width: 1100px) { #quick .slot { width: 46px; height: 46px; } #quick { gap: 5px; } }

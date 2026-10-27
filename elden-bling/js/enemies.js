@@ -1,9 +1,13 @@
 // Enemies, mini-boss, final boss and NPCs. Simple state-machine AI.
 import * as THREE from 'three';
-import { makeEnemyModel, makeFrog, makeDummy, makeChicken, makeCactus, makeCrab, makeSnowman, optimize, humanoid, blobShadow, mesh, box, cyl, sph, mat, weaponModel, holdWeapon } from './models.js';
+import { makeEnemyModel, makeFrog, makeDummy, makeChicken, makeCactus, makeCrab, makeSnowman, makeSimpleEnemy, optimize, humanoid, blobShadow, mesh, box, cyl, sph, mat, weaponModel, holdWeapon } from './models.js';
 import { groundHeight } from './collision.js';
 import { ENEMIES, UNEMPLOYED, TOUCHGRASS, REGION_BOSSES } from './data.js';
 import { turnTo, smoothstep } from './player.js';
+import { tierFor } from './world.js';
+
+// Stat multipliers for the tougher outer regions.
+const TIER = { 1: { hp: 1, dmg: 1, xp: 1 }, 2: { hp: 1.15, dmg: 1.1, xp: 1.2 }, 3: { hp: 1.45, dmg: 1.35, xp: 1.7 } };
 
 let glintMat = null;
 function glintSprite() {
@@ -35,7 +39,14 @@ export class Enemy {
     this.type = type;
     this.def = { ...ENEMIES[type] };
     const simple = { frog: makeFrog, cactus: makeCactus, crab: makeCrab, snowman: makeSnowman }[type];
-    this.rig = simple ? simple() : makeEnemyModel(type);
+    this.rig = simple ? simple() : makeSimpleEnemy(type) || makeEnemyModel(type);
+    const tier = TIER[tierFor(x, z)];
+    this.tier = tierFor(x, z);
+    this.def.hp = Math.round(this.def.hp * tier.hp);
+    this.def.dmg = Math.round(this.def.dmg * tier.dmg);
+    this.def.xp = Math.round(this.def.xp * tier.xp);
+    this.def.coins = this.def.coins.map((c) => Math.round(c * tier.xp));
+    if (this.def.ranged) this.def.ranged = { ...this.def.ranged, dmg: Math.round((this.def.ranged.dmg ?? 12) * tier.dmg) };
     this.root = this.rig.root;
     game.scene.add(this.root);
     if (!game.useShadows) { this.blob = blobShadow(this.def.radius); game.scene.add(this.blob); }
@@ -80,6 +91,19 @@ export class Enemy {
 
   setState(s) { this.state = s; this.t = 0; }
 
+  // Damage-over-time from burning / poisoned weapons. Returns true if it killed us.
+  tickDot(dt) {
+    const d = this.dot;
+    if (!d || d.t <= 0 || this.dead) return false;
+    d.t -= dt;
+    this.hp -= d.dps * dt;
+    d.acc = (d.acc || 0) + d.dps * dt;
+    if (Math.random() < dt * 8) this.game.fx.burst(this.pos.x, this.pos.y + this.height * 0.6, this.pos.z, d.color, 2, { speed: 1.5, up: 2 });
+    if (d.acc >= 5) { this.game.fx.number(new THREE.Vector3(this.pos.x, this.pos.y + this.height, this.pos.z), Math.round(d.acc), 'dot'); d.acc = 0; }
+    if (this.hp <= 0) { this.die(); return true; }
+    return false;
+  }
+
   say(text, dur) { this.game.fx.say(this, text, dur, this.height + 0.5); }
 
   distTo(p) { return Math.hypot(p.x - this.pos.x, p.z - this.pos.z); }
@@ -107,6 +131,7 @@ export class Enemy {
     this.cd -= dt;
     if (this.slowT > 0) this.slowT -= dt;
     if (this.dead) { this.updateDead(dt); return; }
+    if (this.tickDot(dt)) return;
     const dist = this.distTo(p.pos);
     const distHome = this.distTo(this.home);
     let move = 0, faceTarget = null, turnRate = 8;
@@ -251,13 +276,13 @@ export class Enemy {
       const base = this.faceYaw(p.pos);
       for (let i = 0; i < r.fan; i++) {
         const yaw = base + (i - (r.fan - 1) / 2) * 0.25;
-        g.fx.spawnProjectile(r.proj, from, new THREE.Vector3(Math.sin(yaw) * 14, 0.6, Math.cos(yaw) * 14), { dmg: r.dmg, grav: 1.5, radius: 0.3, life: 1.5 });
+        g.fx.spawnProjectile(r.proj, from, new THREE.Vector3(Math.sin(yaw) * 14, 0.6, Math.cos(yaw) * 14), { dmg: r.dmg, grav: 1.5, radius: 0.3, life: 1.5, burn: r.burn || 0 });
       }
     } else {
       const T = 0.85;
       const tx = p.pos.x + p.vel.x * 0.35, tz = p.pos.z + p.vel.z * 0.35, ty = p.pos.y + 0.8;
       const vel = new THREE.Vector3((tx - from.x) / T, (ty - from.y + 0.5 * 9.8 * T * T) / T, (tz - from.z) / T);
-      g.fx.spawnProjectile(r.proj || 'slime', from, vel, { dmg: r.dmg ?? 12, poison: r.poison || 0, chill: r.chill || 0, radius: 0.35 });
+      g.fx.spawnProjectile(r.proj || 'slime', from, vel, { dmg: r.dmg ?? 12, poison: r.poison || 0, chill: r.chill || 0, burn: r.burn || 0, radius: 0.35 });
     }
     g.audio.play('spit');
   }
@@ -377,6 +402,7 @@ export class Enemy {
     const k = r.kind;
     if (move > 0) {
       if (k === 'crab') { roll = Math.sin(t * 2) * 0.12; y = Math.abs(Math.sin(t * 2)) * 0.05; }
+      else if (k === 'worm' || k === 'slug' || k === 'gummyworm') { pitch = Math.sin(t * 1.2) * 0.05; sq = 1 + Math.sin(t * 2) * 0.06; }
       else if (k === 'snowman') { pitch = Math.sin(t) * 0.08; y = Math.abs(Math.sin(t)) * 0.1; }
       else { y = Math.abs(Math.sin(t * 0.8)) * 0.15; roll = Math.sin(t * 0.8) * 0.1; }
     } else sq = 1 + Math.sin(t * 2) * 0.02;
@@ -387,7 +413,9 @@ export class Enemy {
       else armA = -1 + f;
     } else if (this.state === 'hurt') pitch = -0.35;
     else if (this.state === 'trip') { roll = Math.min(1, this.t * 4) * 1.3 * (1 - smoothstep(1.3, 1.8, this.t)); }
-    r.body.position.y = y;
+    if (k === 'ghost') y += 0.3 + Math.sin(this.animT * 0.7) * 0.15;
+    if (k === 'dragon' && !(this.state === 'attack')) armA = Math.sin(this.animT * 1.5) * 0.5;
+    r.body.position.y = y + (this.jumpY || 0) * (r.big ? 0.8 : 0);
     r.body.rotation.set(pitch, 0, roll);
     r.body.scale.set(2 - sq, sq, 2 - sq);
     if (r.arms) r.arms.forEach((a, i) => {
@@ -554,7 +582,8 @@ export class UnemployedKnight extends Enemy {
 
   beginStep() {
     const a = this.atk, s = a.steps[a.step];
-    a.t = 0; a.windup = s.w; a.active = s.a; a.recover = s.r; a.hit = false; a.fired = false; a.glinted = false;
+    const quick = this.hp < this.maxHp * 0.5 ? 0.72 : 0.85;
+    a.t = 0; a.windup = s.w * quick * (0.85 + Math.random() * 0.3); a.active = s.a; a.recover = s.r * quick; a.hit = false; a.fired = false; a.glinted = false;
     a.kindStep = s.k;
     this.atk.kind = s.k === 'sweepR' ? 'sweep' : s.k === 'leap' ? 'stomp' : s.k;
     a.reverse = s.k === 'sweepR';
@@ -757,7 +786,7 @@ export class LordTouchgrass extends Enemy {
 
   attackDef(kind) {
     const p2 = this.phase === 2;
-    const k = p2 ? 0.75 : 1;
+    const k = (p2 ? 0.66 : 0.85) * (0.85 + Math.random() * 0.3);
     if (kind === 'rake') return { kind: 'sweep', name: kind, windup: 1.0 * k, active: 0.3, recover: 1.0 * k, dmg: 26, range: 7.5, arc: 1.9, lunge: 3, knock: 9 };
     if (kind === 'stomp') return { kind: 'stomp', name: kind, windup: 1.0 * k, active: 0.25, recover: 1.2 * k, dmg: 20 };
     if (kind === 'charge') return { kind: 'charge', name: kind, windup: 0.9, active: 1.3, recover: 1.5, dmg: 32 };
@@ -911,7 +940,8 @@ export class RegionBoss extends Enemy {
     this.glint = glintSprite();
     this.glint.scale.setScalar(1.2);
     if (this.rig.weapon) { this.glint.position.set(0, 1.0, 0); this.rig.weapon.add(this.glint); }
-    else { this.glint.position.set(0, 1.2, 0.6); this.rig.torso.add(this.glint); }
+    else if (this.rig.torso) { this.glint.position.set(0, 1.2, 0.6); this.rig.torso.add(this.glint); }
+    else { this.glint.position.set(0, cfg.height * 0.7, cfg.radius + 0.4); this.rig.body.add(this.glint); }
     this.bossId = id;
     this.def = { ...this.def, ...cfg, rare: null, detect: cfg.arena, lose: cfg.arena + 10, leash: cfg.arena + 8 };
     this.radius = cfg.radius;
@@ -946,6 +976,7 @@ export class RegionBoss extends Enemy {
     const g = this.game, p = g.player;
     if (this.dead) { this.updateDead(dt); return; }
     this.t += dt;
+    if (this.engaged && this.tickDot(dt)) return;
     const fromHome = Math.hypot(p.pos.x - this.home.x, p.pos.z - this.home.z);
     if (!this.engaged) {
       if (p.alive && fromHome < this.def.arena) {
@@ -997,7 +1028,9 @@ export class RegionBoss extends Enemy {
     if (this.state === 'alert') { this.yaw = turnTo(this.yaw, this.faceYaw(p.pos), dt * 3); if (this.t > 1.5) this.setState('chase'); return this.finish(dt, 0); }
     this.state = 'chase';
     this.yaw = turnTo(this.yaw, this.faceYaw(p.pos), dt * (this.phase === 2 ? 3.2 : 2.4));
-    if (dist > this.radius + 2.2) move = this.def.speed * (this.phase === 2 ? 1.25 : 1) * (this.slowT > 0 ? 0.6 : 1);
+    const enraged = this.hp < this.maxHp * 0.2;
+    if (enraged && !this.enrageSaid) { this.enrageSaid = true; this.say('ENOUGH!', 2); g.fx.ring(this.pos.x, this.pos.z, { speed: 16, maxR: 12, dmg: 10, color: 0xff4422 }); }
+    if (dist > this.radius + 2.2) move = this.def.speed * (this.phase === 2 ? 1.3 : 1) * (enraged ? 1.2 : 1) * (this.slowT > 0 ? 0.6 : 1);
     if (this.cd <= 0) this.chooseAttack(dist);
     if (move) { this.pos.x += Math.sin(this.yaw) * move * dt; this.pos.z += Math.cos(this.yaw) * move * dt; }
     this.finish(dt, move);
@@ -1030,7 +1063,9 @@ export class RegionBoss extends Enemy {
   }
 
   attackDef(kind) {
-    const k = this.phase === 2 ? 0.8 : 1, d = this.def.dmg;
+    // Windups vary from attack to attack so you have to read the glint, not count beats.
+    const mix = 0.78 + Math.random() * 0.4;
+    const k = (this.phase === 2 ? 0.75 : 0.9) * (this.hp < this.maxHp * 0.2 ? 0.85 : 1) * mix, d = this.def.dmg;
     const reach = this.radius + 2.8;
     switch (kind) {
       case 'sweep': return { kind: 'sweep', name: kind, windup: 0.85 * k, active: 0.25, recover: 0.9 * k, dmg: d, range: reach, arc: 1.7, lunge: 3, knock: 8 };
@@ -1096,7 +1131,7 @@ export class RegionBoss extends Enemy {
         for (let i = 0; i < a.count; i++) {
           const yaw = base + (i - (a.count - 1) / 2) * 0.22;
           const from = new THREE.Vector3(this.pos.x, this.pos.y + this.height * 0.5, this.pos.z);
-          g.fx.spawnProjectile(kind, from, new THREE.Vector3(Math.sin(yaw) * 13, 2, Math.cos(yaw) * 13), { dmg: a.dmg, grav: 4, radius: 0.45, chill: kind === 'snowball' ? 2.5 : 0, life: 2 });
+          g.fx.spawnProjectile(kind, from, new THREE.Vector3(Math.sin(yaw) * 14, 2, Math.cos(yaw) * 14), { dmg: a.dmg, grav: 4, radius: 0.45, chill: kind === 'snowball' ? 2.5 : 0, burn: kind === 'fireball' ? 3 : 0, poison: kind === 'spore' || kind === 'ink' ? 3 : 0, life: 2 });
         }
         g.audio.play('swing');
       }
@@ -1110,7 +1145,9 @@ export class RegionBoss extends Enemy {
       if (this.distTo(p.pos) < (a.name === 'leap' ? 3.6 : 3.2)) g.damagePlayer(a.dmg, this.pos.x, this.pos.z, { knock: 9, source: this });
     }
     if (a.t >= a.windup + a.active + a.recover) {
-      this.cd = (this.phase === 2 ? 0.45 : 0.85) + Math.random() * 0.6;
+      this.cd = (this.phase === 2 ? 0.3 : 0.65) + Math.random() * 0.5;
+      // Phase 2: often chains straight into another attack.
+      if (this.phase === 2 && Math.random() < 0.45) this.cd = 0.05;
       this.setState('chase');
       this.atk = null;
     }
@@ -1124,7 +1161,8 @@ export class RegionBoss extends Enemy {
     const T = 1.1, ty = groundHeight(tx, tz);
     const vel = new THREE.Vector3((tx - from.x) / T, (ty - from.y + 0.5 * 9.8 * T * T) / T, (tz - from.z) / T);
     const tele = g.fx.telegraph(tx, tz, 2.2, T);
-    g.fx.spawnProjectile(this.def.proj, from, vel, { dmg: this.atk.dmg, splash: 2.2, tele, life: 3, chill: this.def.proj === 'snowball' ? 2 : 0 });
+    const pr = this.def.proj;
+    g.fx.spawnProjectile(pr, from, vel, { dmg: this.atk.dmg, splash: 2.2, tele, life: 3, chill: pr === 'snowball' ? 2 : 0, burn: pr === 'fireball' ? 3 : 0, poison: pr === 'spore' || pr === 'slime' || pr === 'ink' ? 3 : 0 });
     g.audio.play(this.def.proj === 'cannon' ? 'stomp' : 'swing');
   }
 
@@ -1180,6 +1218,14 @@ export class NPC {
       mesh(box(0.56, 0.08, 0.34), mat(0xcc3333), 0, 0.5, 0, this.rig.torso).rotation.z = 0.5;
       holdWeapon(this.rig, weaponModel('sockpuppet', 0.8));
       this.name = 'Sockrates';
+    } else if (kind === 'gourdon') {
+      this.rig = humanoid({ skin: 0x3a6a2a, body: 0x5a3a6a, arms: 0x3a6a2a, legs: 0x2a2a3a, head: 'pumpkin', boots: 0x2a1a10, belly: true });
+      mesh(box(0.6, 0.8, 0.4), mat(0x8a5a2a), 0, 0.4, -0.45, this.rig.torso);
+      this.name = 'Gourd-on the Merchant';
+    } else if (kind === 'lollipop') {
+      this.rig = humanoid({ skin: 0xffd8c8, body: 0xff88cc, arms: 0xffd8c8, legs: 0xff88cc, hair: 0xffee66, boots: 0xffffff });
+      holdWeapon(this.rig, weaponModel('flamingospear', 0.8));
+      this.name = 'Lady Lollipop';
     } else if (kind === 'coupon') {
       this.rig = humanoid({ skin: 0xd8a880, body: 0x3a6a3a, arms: 0x3a6a3a, legs: 0x2a3a6a, head: 'pirate', bandana: 0x22aa55, boots: 0x2a1a10, belly: true });
       mesh(box(0.6, 0.8, 0.4), mat(0x8a5a2a), 0, 0.4, -0.45, this.rig.torso);

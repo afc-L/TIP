@@ -119,6 +119,11 @@ function segCircle(ax, az, dx, dz, cx, cz, r) {
 // Arenas that get flattened: [x, z, inner radius, outer radius, height].
 export const ARENAS = [
   [0, -88, 16, 22, 0], [0, -32, 10, 15, -0.6], [-122, 10, 18, 25, 0.6], [120, 8, 18, 25, 1.2], [55, 132, 16, 22, 0.2], [45, 42, 10, 15, 0.1],
+  // Field bosses in the old regions.
+  [-125, 60, 15, 21, 0.8], [140, 62, 14, 20, 1.2], [-40, 134, 15, 21, 0.2], [30, -15, 13, 18, -0.4],
+  // The far regions.
+  [-110, -160, 19, 26, 0.4], [-130, -100, 16, 22, 0.3], [110, -140, 19, 26, 1.0], [135, -95, 18, 24, 1.0],
+  [-210, -40, 19, 26, 0.3], [-230, -95, 16, 22, 0.2], [210, -40, 19, 26, 0.8], [230, -95, 16, 22, 0.8],
 ];
 export const WATER_LEVEL = -0.9;
 
@@ -126,19 +131,30 @@ export const WATER_LEVEL = -0.9;
 export const wDesert = (x) => smooth(-58, -68, x);
 export const wPeaks = (x) => smooth(58, 68, x);
 export const wBeach = (z) => smooth(100, 108, z);
+export const wWoods = (x, z) => smooth(-60, -70, z) * smooth(-58, -68, x);
+export const wVolcano = (x, z) => smooth(-60, -70, z) * smooth(58, 68, x);
+export const wFungal = (x) => smooth(-157, -167, x);
+export const wCandy = (x) => smooth(157, 167, x);
 
 // Rolling hills, desert dunes, snowy hills, a beach sloping into the sea, flattened arenas
 // and mountains beyond the playable edge. Used by terrain AND characters.
 export function groundHeight(x, z) {
   let h = 0.45 * Math.sin(x * 0.11) * Math.cos(z * 0.09) + 0.25 * Math.sin(x * 0.23 + z * 0.17);
   const wd = wDesert(x), wp = wPeaks(x), wb = wBeach(z);
+  const ww = wWoods(x, z), wv = wVolcano(x, z), wf = wFungal(x), wc = wCandy(x);
+  const desertOnly = (1 - ww) * (1 - wf), peaksOnly = (1 - wv) * (1 - wc);
   const side = 1 - Math.max(wd, wp);
   // Swamp sits lower.
   const sw = smooth(34, 26, z) * smooth(-50, -42, z) * side;
   h -= 0.6 * sw;
   // Desert dunes and snowy hills.
-  h += wd * (1 - wb) * (1.4 * (Math.sin(x * 0.06 + z * 0.025) * 0.5 + 0.5) + 0.5 * Math.sin(z * 0.11));
-  h += wp * (1 - wb) * (2.6 * (Math.sin(x * 0.045 + 1) * Math.cos(z * 0.05) * 0.5 + 0.5) + 0.4 * Math.sin(x * 0.2) * Math.sin(z * 0.17));
+  h += desertOnly * wd * (1 - wb) * (1.4 * (Math.sin(x * 0.06 + z * 0.025) * 0.5 + 0.5) + 0.5 * Math.sin(z * 0.11));
+  h += peaksOnly * wp * (1 - wb) * (2.6 * (Math.sin(x * 0.045 + 1) * Math.cos(z * 0.05) * 0.5 + 0.5) + 0.4 * Math.sin(x * 0.2) * Math.sin(z * 0.17));
+  // Far regions: spooky hills, rugged volcanic ridges, bumpy fungus, rolling candy hills.
+  h += ww * 0.9 * Math.sin(x * 0.09) * Math.cos(z * 0.08);
+  h += wv * (2.2 * Math.abs(Math.sin(x * 0.07 + z * 0.05)) + 0.6 * Math.sin(z * 0.2));
+  h += wf * 0.9 * Math.sin(x * 0.13) * Math.sin(z * 0.11);
+  h += wc * 1.6 * (Math.sin(x * 0.05) * Math.cos(z * 0.04) * 0.5 + 0.5);
   // The beach slopes into the sea.
   if (z > 128) h -= (z - 128) * 0.07;
   // Flatten arenas.
@@ -161,7 +177,10 @@ export function edgeDistance(x, z) {
   const dA = rectDist(x, z, -60, -108, 60, 101);
   const dB = rectDist(x, z, -158, -62, 158, 101);
   const dC = Math.hypot(Math.max(0, Math.abs(x) - 100), Math.max(0, 101 - z));
-  return Math.min(dA, dB, dC);
+  const ax = Math.abs(x);
+  const dN = rectDist(ax, z, 62, -190, 158, -62); // woods + volcano (mirrored)
+  const dF = rectDist(ax, z, 160, -120, 260, 101); // fungal + candy (mirrored)
+  return Math.min(dA, dB, dC, dN, dF);
 }
 
 function rectDist(x, z, x0, z0, x1, z1) {

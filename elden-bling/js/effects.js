@@ -181,7 +181,7 @@ export class Effects {
     p.pos.copy(from); p.vel.copy(vel);
     p.dmg = opts.dmg; p.grav = opts.grav ?? 9.8; p.radius = opts.radius ?? 0.5; p.poison = opts.poison || 0;
     p.splash = opts.splash || 0; p.life = opts.life ?? 4; p.tele = opts.tele || null; p.spin = Math.random() * 6;
-    p.chill = opts.chill || 0; p.friendly = !!opts.friendly;
+    p.chill = opts.chill || 0; p.burn = opts.burn || 0; p.friendly = !!opts.friendly;
     p.obj.visible = true;
     p.obj.position.copy(from);
     return p;
@@ -261,7 +261,7 @@ export class Effects {
       else if (p.kind !== 'slime' && p.kind !== 'snowball') p.obj.rotation.x = p.spin;
       if (p.friendly) {
         // The player's soda bomb: explodes on landing.
-        if (p.pos.y <= groundHeight(p.pos.x, p.pos.z) || p.life <= 0) { g.explodeAt(p.pos.x, p.pos.z, p.splash, p.dmg); this.kill(p); }
+        if (p.pos.y <= groundHeight(p.pos.x, p.pos.z) || p.life <= 0) { g.explodeAt(p.pos.x, p.pos.z, p.splash, p.dmg, p.kind === 'firebomb'); this.kill(p); }
         continue;
       }
       if (p.kind === 'slime' && Math.random() < 0.3) this.chunks.emit(p.pos.x, p.pos.y, p.pos.z, 0, 0, 0, 0x66ee44, 0.3, 1);
@@ -270,7 +270,7 @@ export class Effects {
       if (!p.splash && player.alive) {
         const dx = player.pos.x - p.pos.x, dy = player.pos.y + 1 - p.pos.y, dz = player.pos.z - p.pos.z;
         if (dx * dx + dy * dy + dz * dz < (p.radius + 0.45) ** 2) {
-          g.damagePlayer(p.dmg, p.pos.x - p.vel.x, p.pos.z - p.vel.z, { poison: p.poison, chill: p.chill, knock: 3 });
+          g.damagePlayer(p.dmg, p.pos.x - p.vel.x, p.pos.z - p.vel.z, { poison: p.poison, chill: p.chill, burn: p.burn, knock: 3 });
           this.burst(p.pos.x, p.pos.y, p.pos.z, p.kind === 'slime' ? 0x66ff44 : p.kind === 'coin' ? 0xffcc22 : 0xffffff, 8, { glow: false });
           g.audio.play('splat');
           this.kill(p);
@@ -283,7 +283,7 @@ export class Effects {
           this.burst(p.pos.x, gy + 0.2, p.pos.z, 0xaa8855, 14, { glow: false, speed: 5 });
           this.burst(p.pos.x, gy + 0.2, p.pos.z, 0xffcc66, 8, { speed: 4 });
           const d = Math.hypot(player.pos.x - p.pos.x, player.pos.z - p.pos.z);
-          if (d < p.splash + 0.4) g.damagePlayer(p.dmg, p.pos.x, p.pos.z, { knock: 6 });
+          if (d < p.splash + 0.4) g.damagePlayer(p.dmg, p.pos.x, p.pos.z, { knock: 6, poison: p.poison, chill: p.chill, burn: p.burn });
         } else {
           this.burst(p.pos.x, gy + 0.1, p.pos.z, p.kind === 'slime' ? 0x55dd33 : 0xffffff, 6, { glow: false, speed: 2 });
           if (p.kind === 'slime') g.world.addSlimePuddle(p.pos.x, p.pos.z);

@@ -164,13 +164,14 @@ export class UI {
     $('hud-levelup').classList.toggle('hidden', p.stats.xp < p.xpNeed);
     this.setText('coins', String(p.coins));
     this.setText('q-flask', String(p.flasks));
-    for (const k of ['garlic', 'dignity', 'pepper', 'coconut', 'bomb']) this.setText('q-' + k, String(p.inv.items[k] || 0));
+    for (const k of ['garlic', 'dignity', 'pepper', 'coconut', 'bomb', 'firebomb', 'mushroom', 'candy']) this.setText('q-' + k, String(p.inv.items[k] || 0));
     this.setText('q-medal', String(g.flags.medallions || 0));
     let buffs = '';
     if (p.buffs.pepper > 0) buffs += `<span class="buff pepper">Rage ${Math.ceil(p.buffs.pepper)}s</span>`;
     if (p.buffs.dignity > 0) buffs += `<span class="buff dignity">Dignity ${Math.ceil(p.buffs.dignity)}s</span>`;
     if (p.poison > 0) buffs += '<span class="buff poison">Poisoned</span>';
     if (p.chill > 0) buffs += '<span class="buff chill">Chilled</span>';
+    if (p.burn > 0) buffs += '<span class="buff burn">Burning</span>';
     this.setHTML('buffs', buffs);
 
     if (g.boss) {
@@ -389,7 +390,7 @@ export class UI {
     box.innerHTML = `<p class="lvl-info">Your coins: <b>${p.coins}</b></p>`;
     for (const s of list) {
       const sold = s.once && g.flags.bought[s.id];
-      const data = s.kind === 'consumable' ? CONSUMABLES[s.id] : s.kind === 'armor' ? ARMOR[s.id] : s;
+      const data = s.kind === 'consumable' ? CONSUMABLES[s.id] : s.kind === 'armor' ? ARMOR[s.id] : s.kind === 'weapon' ? WEAPONS[s.id] : s;
       const d = document.createElement('div');
       d.className = 'item';
       d.innerHTML = `<div class="item-h"><b>${data.name}</b><span class="meta">${sold ? 'SOLD OUT' : s.price + ' coins'}</span></div><div class="desc">${data.desc}</div>`;
@@ -407,7 +408,7 @@ export class UI {
   // ---------- World map ----------
   renderMap() {
     const g = this.game, W = g.world;
-    const X0 = -160, X1 = 160, Z0 = -112, Z1 = 152, S = 1.5; // metres per pixel
+    const X0 = -264, X1 = 264, Z0 = -194, Z1 = 150, S = 1.25; // metres per pixel
     const w = Math.round((X1 - X0) / S), h = Math.round((Z1 - Z0) / S);
     const cv = $('map-canvas');
     if (!this.mapBase) {
@@ -421,7 +422,7 @@ export class UI {
         const x = X0 + px * S, z = Z0 + py * S;
         const y = groundHeight(x, z);
         const k = (py * w + px) * 4;
-        if (y < -0.9 && z > 120) { img.data[k] = 50; img.data[k + 1] = 130; img.data[k + 2] = 190; img.data[k + 3] = 255; continue; }
+        if (y < -0.9 && z > 120 && Math.abs(x) < 110) { img.data[k] = 50; img.data[k + 1] = 130; img.data[k + 2] = 190; img.data[k + 3] = 255; continue; }
         const e = edgeDistance(x, z);
         if (e > 1) { const v = Math.max(40, 110 - e * 2); img.data[k] = v; img.data[k + 1] = v * 0.95; img.data[k + 2] = v * 0.85; img.data[k + 3] = 255; continue; }
         W.groundColor(x, y, z, c, 0.5);
@@ -449,22 +450,25 @@ export class UI {
       const [a, b] = P(gt.box.minX, gt.box.minZ), [c2, d2] = P(gt.box.maxX, gt.box.maxZ);
       ctx.fillStyle = '#e8d8a0'; ctx.fillRect(a, b, c2 - a, d2 - b);
     }
-    ctx.font = 'bold 20px Georgia, serif';
+    ctx.font = 'bold 22px Georgia, serif';
     ctx.textAlign = 'center';
+    ctx.globalAlpha = 0.75;
     const label = (t, x, z) => { let [px, pz] = P(x, z); const hw = ctx.measureText(t).width / 2 + 4; px = Math.max(hw, Math.min(cv.width - hw, px)); ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.strokeText(t, px, pz); ctx.fillStyle = '#fff4d0'; ctx.fillText(t, px, pz); };
     label('GRASSLANDS', 0, 50); label('CURSED SWAMP', 0, 0); label("KING'S BACKYARD", 0, -56);
     label('CRUNCHY DESERT', -110, 72); label('CHILLY PEAKS', 110, 72); label('BEACH OF REGRET', 0, 128);
+    label('HAUNTED WOODS', -110, -78); label('MOUNT SLIGHTLY HOT', 110, -78); label('FUNGAL FUNHOUSE', -210, 90); label('CANDY KINGDOM', 210, 90);
+    ctx.globalAlpha = 1;
     const dot = (x, z, color, r, ring) => { const [px, pz] = P(x, z); ctx.beginPath(); ctx.arc(px, pz, r, 0, Math.PI * 2); ctx.fillStyle = color; ctx.fill(); if (ring) { ctx.lineWidth = 2; ctx.strokeStyle = ring; ctx.stroke(); } };
     // Shrines: bright when discovered.
     for (const sh of SHRINES) dot(sh.x, sh.z, g.flags.shrines[sh.id] ? '#7dff8a' : 'rgba(120,160,120,0.6)', 7, '#0a2a0a');
     // Bosses.
-    const bossDot = (x, z, dead, name) => {
-      dot(x, z, dead ? '#666' : '#d8342a', 10, '#000');
+    const bossDot = (x, z, dead, name, optional) => {
+      dot(x, z, dead ? '#666' : optional ? '#e8902a' : '#d8342a', optional ? 8 : 10, '#000');
       const [px, pz] = P(x, z);
       ctx.fillStyle = '#fff'; ctx.font = 'bold 13px system-ui, sans-serif'; ctx.fillText(dead ? '✓' : '!', px, pz + 5);
-      ctx.font = '13px system-ui, sans-serif'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.strokeText(name, px, pz - 15); ctx.fillStyle = dead ? '#bbb' : '#ffd0c0'; ctx.fillText(name, px, pz - 15);
+      ctx.font = '14px system-ui, sans-serif'; ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,0.7)'; ctx.strokeText(name, px, pz - 15); ctx.fillStyle = dead ? '#bbb' : '#ffd0c0'; ctx.fillText(name, px, pz - 15);
     };
-    for (const id in BOSS_SPOTS) bossDot(BOSS_SPOTS[id][0], BOSS_SPOTS[id][1], !!g.flags.bosses[id], REGION_BOSSES[id].name);
+    for (const id in BOSS_SPOTS) bossDot(BOSS_SPOTS[id][0], BOSS_SPOTS[id][1], !!g.flags.bosses[id], REGION_BOSSES[id].name.replace(/ \(.*\)$/, '').split(',')[0], REGION_BOSSES[id].optional);
     bossDot(0, -34, !!g.flags.miniDead, 'The Unemployed Knight');
     bossDot(0, -90, !!g.flags.bossDead, 'Lord Touchgrass');
     // People.
@@ -477,6 +481,6 @@ export class UI {
     ctx.beginPath(); ctx.moveTo(0, -13); ctx.lineTo(9, 10); ctx.lineTo(0, 5); ctx.lineTo(-9, 10); ctx.closePath();
     ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = '#000'; ctx.stroke(); ctx.restore();
     const socks = Object.keys(g.flags.socks || {}).length;
-    $('map-legend').innerHTML = `<span><i class="lg shrine"></i>Shrine</span><span><i class="lg boss"></i>Boss</span><span><i class="lg npc"></i>Person</span><span><i class="lg bag"></i>Your dropped coins</span><span>Medallions <b>${g.flags.medallions || 0} / 3</b></span><span>Socks <b>${socks} / ${SOCKS.length}</b></span>`;
+    $('map-legend').innerHTML = `<span><i class="lg shrine"></i>Shrine</span><span><i class="lg boss"></i>Medallion boss</span><span><i class="lg field"></i>Field boss</span><span><i class="lg npc"></i>Person</span><span><i class="lg bag"></i>Your dropped coins</span><span>Medallions <b>${g.flags.medallions || 0} / 6</b></span><span>Socks <b>${socks} / ${SOCKS.length}</b></span>`;
   }
 }

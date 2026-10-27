@@ -8,9 +8,11 @@ import { Player, turnTo } from './player.js';
 import { Enemy, Dummy, UnemployedKnight, LordTouchgrass, RegionBoss, NPC, Chicken } from './enemies.js';
 import { Effects } from './effects.js';
 import { UI } from './ui.js';
-import { WEAPONS, ARMOR, CONSUMABLES, DEATH_LINES, TIPS, SOCKS, SOCKRATES, SHOP, SHOP_COUPON, REGION_BOSSES } from './data.js';
+import { WEAPONS, ARMOR, CONSUMABLES, DEATH_LINES, TIPS, SOCKS, SOCKRATES, SHOP, SHOP_COUPON, SHOP_GOURDON, SHOP_LOLLIPOP, REGION_BOSSES } from './data.js';
 
-const MEDALLIONS_NEEDED = 3;
+const MEDALLIONS_NEEDED = 6;
+const BOSS_WHERE = { pharaoh: 'desert, west', snowmom: 'peaks, east', sogbeard: 'beach, south', snackula: 'haunted woods, far north-west', mayor: 'volcano, far north-east', funguy: 'fungal funhouse, far west', sugarcrash: 'candy kingdom, far east' };
+const SHOPS = { barry: [SHOP, "Barry's Bargain Bin"], coupon: [SHOP_COUPON, "Captain Coupon's Coconut Cove"], gourdon: [SHOP_GOURDON, "Gourd-on's Spooky Supplies"], lollipop: [SHOP_LOLLIPOP, "Lady Lollipop's Sweet Deals"] };
 const DAY_LENGTH = 600; // seconds for a full day/night cycle
 import { groundHeight } from './collision.js';
 import { makeLoot, makeBrainCell } from './models.js';
@@ -120,8 +122,10 @@ class Game {
     this.barry = new NPC(this, 'barry', 14, 80.5, 0);
     this.sockrates = new NPC(this, 'sockrates', -8, 66, 0.4);
     this.coupon = new NPC(this, 'coupon', 18, 112, Math.PI);
+    this.gourdon = new NPC(this, 'gourdon', -76, -90, 0.6);
+    this.lollipop = new NPC(this, 'lollipop', 190, 30, -0.6);
     this.chicken = new Chicken(this, -51, -38);
-    this.npcs = [this.dennis, this.barry, this.sockrates, this.coupon];
+    this.npcs = [this.dennis, this.barry, this.sockrates, this.coupon, this.gourdon, this.lollipop];
     // Lost socks scattered around the world.
     this.sockLoots = SOCKS.map(([x, z], i) => this.spawnLoot({ kind: 'sock', id: i, label: 'Pick up a lost sock', color: [0xff6666, 0x66aaff, 0x66ff88, 0xffdd44, 0xcc77ff][i % 5] }, x, z));
 
@@ -129,6 +133,8 @@ class Game {
     W.interact({ pos: this.dennis.pos, r: 2.4, label: () => 'Talk to Farmer Dennis', act: () => this.talkDennis() });
     W.interact({ pos: this.barry.pos, r: 2.4, label: () => 'Shop with Bargain Barry', act: () => this.openShop('barry') });
     W.interact({ pos: this.coupon.pos, r: 2.4, label: () => 'Shop with Captain Coupon', act: () => this.openShop('coupon') });
+    W.interact({ pos: this.gourdon.pos, r: 2.4, label: () => 'Shop with Gourd-on', act: () => this.openShop('gourdon') });
+    W.interact({ pos: this.lollipop.pos, r: 2.4, label: () => 'Shop with Lady Lollipop', act: () => this.openShop('lollipop') });
     W.interact({ pos: this.sockrates.pos, r: 2.4, label: () => 'Talk to Sockrates', act: () => this.talkSockrates() });
     W.interact({ pos: this.chicken.pos, r: 1.8, label: () => (this.chicken.carried || this.flags.chickenReturned ? null : 'Pick up the chicken'), act: () => this.pickChicken() });
   }
@@ -355,6 +361,9 @@ class Game {
       if (this.input.consume('item3')) this.useItem('pepper');
       if (this.input.consume('item4')) this.useItem('coconut');
       if (this.input.consume('item5')) this.useItem('bomb');
+      if (this.input.consume('item6')) this.useItem('firebomb');
+      if (this.input.consume('item7')) this.useItem('mushroom');
+      if (this.input.consume('item8')) this.useItem('candy');
     } else if (!p.alive) p.update(dt, this.input, this.camYaw);
     else { p.stateT += dt; p.animate(dt, 0); }
 
@@ -517,6 +526,7 @@ class Game {
       if (z !== 'arena' && !first) this.ui.banner(ZONES[z]);
       if (z === 'swamp' && !this.flags.enteredSwamp) { this.flags.enteredSwamp = true; this.updateQuest(); }
       if ((z === 'desert' || z === 'peaks' || z === 'beach') && !this.flags.exploredOut) { this.flags.exploredOut = true; this.showTip('medallion'); }
+      if (['woods', 'volcano', 'fungal', 'candy'].includes(z)) this.showTip('far');
       if ((z === 'backyard' || z === 'arena') && !this.flags.enteredYard) { this.flags.enteredYard = true; this.updateQuest(); }
       if (!this.boss) this.audio.setMusic(this.zoneMusic());
     }
@@ -542,8 +552,8 @@ class Game {
     else if (med < MEDALLIONS_NEEDED) {
       const left = [];
       if (!f.miniDead) left.push('the Unemployed Knight (swamp)');
-      for (const b of this.regionBosses) if (REGION_BOSSES[b.bossId].medallion && !f.bosses[b.bossId]) left.push(`${REGION_BOSSES[b.bossId].name} (${{ pharaoh: 'desert, west', snowmom: 'peaks, east', sogbeard: 'beach, south' }[b.bossId]})`);
-      main = `${medTxt}. Defeat bosses to earn them: ${left.join(', ')}. <span class="dim">(M for map)</span>`;
+      for (const b of this.regionBosses) if (REGION_BOSSES[b.bossId].medallion && !f.bosses[b.bossId]) left.push(`${REGION_BOSSES[b.bossId].name} <span class="dim">(${BOSS_WHERE[b.bossId]})</span>`);
+      main = `${medTxt}. Great enemies remaining: ${left.slice(0, 4).join(', ')}${left.length > 4 ? ` and ${left.length - 4} more` : ''}. <span class="dim">(M for map)</span>`;
     }
     else if (!f.miniDead) main = 'Defeat <b>the Unemployed Knight</b> to open the Backyard Gate';
     else if (!f.bossDead) main = `${medTxt}. The fog will part: defeat <b>Lord Touchgrass</b> in the King's Backyard`;
@@ -604,7 +614,9 @@ class Game {
       const behind = Math.abs(rel) > 2.3 && !e.isDummy;
       if (behind) dmg *= 1.25;
       e.takeDamage(dmg, pl.pos.x, pl.pos.z, a.kind === 'heavy', a.stagger);
-      if (w.lifesteal && !e.isDummy) pl.hp = Math.min(pl.maxHp, pl.hp + dmg * w.lifesteal);
+      const ls = (w.lifesteal || 0) + pl.armorLifesteal;
+      if (ls && !e.isDummy) pl.hp = Math.min(pl.maxHp, pl.hp + dmg * ls);
+      if (w.dot && !e.isDummy && !e.dead) e.dot = { dps: w.dot.dps * (1 + pl.stats.str * 0.05), t: w.dot.t, color: w.dot.color };
       if (w.frost && !e.isDummy) { e.slowT = 3; this.fx.burst(e.pos.x, e.pos.y + 1, e.pos.z, 0x99ddff, 6, { speed: 2 }); }
       this.hitStop = a.kind === 'heavy' ? 0.09 : 0.05;
       this.audio.play(w.squeak ? 'squeak' : w.slap ? 'slap' : a.kind === 'heavy' ? 'heavyhit' : 'hit');
@@ -641,7 +653,8 @@ class Game {
     const amt = Math.max(1, Math.round(dmg * (1 - p.defense)));
     p.hp -= amt;
     if (opts.poison && !p.poisonResist) p.poison = Math.max(p.poison, opts.poison);
-    if (opts.chill) p.chill = Math.max(p.chill, opts.chill);
+    if (opts.chill && !p.chillResist) p.chill = Math.max(p.chill, opts.chill);
+    if (opts.burn && !p.burnResist) p.burn = Math.max(p.burn, opts.burn);
     this.fx.number(new THREE.Vector3(p.pos.x, p.pos.y + 2, p.pos.z), amt, 'player');
     this.fx.burst(p.pos.x, p.pos.y + 1.1, p.pos.z, 0xff5544, 8, { speed: 3 });
     this.ui.flashDamage();
@@ -814,7 +827,7 @@ class Game {
     const p = this.player;
     if (p.pos.z < -66.9) { this.ui.toast('The fog won\'t let you leave. Lord Touchgrass insists you stay for dinner.'); return; }
     if ((this.flags.medallions || 0) < MEDALLIONS_NEEDED) {
-      this.ui.dialogue('The Fog', `The fog has ${MEDALLIONS_NEEDED} medallion-shaped holes in it. You have <b>${this.flags.medallions || 0}</b> Bling Medallions. Defeat the great enemies of the kingdom to earn more: the Unemployed Knight, Pharaoh Pyramid-Scheme in the desert (west), the Abominable Snowmom in the peaks (east), and Captain Sogbeard on the beach (south).`);
+      this.ui.dialogue('The Fog', `The fog has ${MEDALLIONS_NEEDED} medallion-shaped holes in it. You have <b>${this.flags.medallions || 0}</b> Bling Medallions. Eight great enemies carry them: the Unemployed Knight (swamp), Pharaoh Pyramid-Scheme (desert), the Abominable Snowmom (peaks), Captain Sogbeard (beach), Count Snackula (haunted woods), the Molten Mayor (volcano), the Fun Guy (fungal funhouse) and Baron Von Sugarcrash (candy kingdom).`);
       return;
     }
     this.world.closeFog();
@@ -1043,18 +1056,29 @@ class Game {
     if (p.state !== 'move') return;
     p.inv.items[id]--;
     const v = new THREE.Vector3(p.pos.x, p.pos.y + 2.2, p.pos.z);
-    if (id === 'garlic') { p.hp = Math.min(p.maxHp, p.hp + 45); this.fx.number(v, '+45', 'heal'); this.fx.rise(p.pos.x, p.pos.y, p.pos.z, 0xffee88, 12); this.onPlayerHeal(); this.audio.play('drink'); }
+    if (id === 'garlic') { p.hp = Math.min(p.maxHp, p.hp + 45 * p.healMult); this.fx.number(v, '+45', 'heal'); this.fx.rise(p.pos.x, p.pos.y, p.pos.z, 0xffee88, 12); this.onPlayerHeal(); this.audio.play('drink'); }
     if (id === 'dignity') { p.hp = Math.min(p.maxHp, p.hp + 25); p.buffs.dignity = 30; this.ui.toast('Dignity restored to 100%! (It was 2%.)'); this.fx.rise(p.pos.x, p.pos.y, p.pos.z, 0x88ccff, 14); this.onPlayerHeal(); this.audio.play('drink'); }
-    if (id === 'coconut') { p.hp = Math.min(p.maxHp, p.hp + 70); p.poison = 0; this.fx.number(v, '+70', 'heal'); this.fx.rise(p.pos.x, p.pos.y, p.pos.z, 0xffffff, 14); this.onPlayerHeal(); this.audio.play('drink'); }
-    if (id === 'bomb') {
+    if (id === 'coconut') { p.hp = Math.min(p.maxHp, p.hp + 70 * p.healMult); p.poison = 0; this.fx.number(v, '+70', 'heal'); this.fx.rise(p.pos.x, p.pos.y, p.pos.z, 0xffffff, 14); this.onPlayerHeal(); this.audio.play('drink'); }
+    if (id === 'firebomb' || id === 'bomb') {
       // Lob it ahead (at the lock target if there is one).
       const t = this.lockTarget;
       const tx = t ? t.pos.x : p.pos.x + Math.sin(p.yaw) * 7, tz = t ? t.pos.z : p.pos.z + Math.cos(p.yaw) * 7;
       const from = new THREE.Vector3(p.pos.x, p.pos.y + 1.6, p.pos.z);
       const T = 0.8, ty = groundHeight(tx, tz);
       const vel = new THREE.Vector3((tx - from.x) / T, (ty - from.y + 0.5 * 9.8 * T * T) / T, (tz - from.z) / T);
-      this.fx.spawnProjectile('bomb', from, vel, { dmg: 70, splash: 3.2, friendly: true, life: 3 });
+      this.fx.spawnProjectile(id, from, vel, { dmg: id === 'firebomb' ? 60 : 70, splash: 3.2, friendly: true, life: 3 });
       this.audio.play('swing');
+    }
+    if (id === 'candy') { p.stats.xp += 250; this.fx.number(v, '+250 XP', 'xp'); this.fx.rise(p.pos.x, p.pos.y, p.pos.z, 0xff88cc, 16); this.audio.play('levelup'); this.ui.toast('Sweet, sweet experience. +250 XP.'); }
+    if (id === 'mushroom') {
+      const roll = Math.floor(Math.random() * 5);
+      this.audio.play('drink');
+      if (roll === 0) { p.hp = p.maxHp; p.poison = 0; p.burn = 0; this.ui.toast('The mushroom heals you completely. Groovy.'); }
+      else if (roll === 1) { p.buffs.pepper = 45; this.ui.toast('You feel INCREDIBLY strong. +35% damage for 45 seconds!'); }
+      else if (roll === 2) { p.buffs.dignity = 45; p.sta = p.maxSta; this.ui.toast('Your stamina feels infinite. (It isn\'t, but it\'s close.)'); }
+      else if (roll === 3) { p.poison = 4; this.ui.toast('That was a poisonous mushroom. Who could have predicted this.'); }
+      else { this.flags.dayT = (this.flags.dayT + 0.5) % 1; this.ui.toast('Whoa. Time just... skipped. Was it always this dark/light?'); }
+      this.fx.rise(p.pos.x, p.pos.y, p.pos.z, 0xaa66ff, 16);
     }
     if (id === 'pepper') { p.buffs.pepper = 30; this.ui.toast('Your mouth is on fire. So is your sword arm. +35% damage!'); this.fx.rise(p.pos.x, p.pos.y, p.pos.z, 0xff5522, 16); this.audio.play('levelup'); }
     if (this.ui.isOpen('inventory')) this.ui.renderInventory();
@@ -1095,7 +1119,9 @@ class Game {
     if (who === 'barry' && !this.flags.metBarry) { this.flags.metBarry = true; this.ui.toast('Barry: "Welcome to Barry\'s Bargain Bin! Everything is handcrafted. By me. Today. In a hurry."'); }
     if (who === 'coupon' && !this.flags.metCoupon) { this.flags.metCoupon = true; this.ui.toast('Captain Coupon: "Arr! Everything\'s 0% off! That\'s a pirate discount!"'); }
     this.shopWho = who;
-    this.ui.renderShop(who === 'coupon' ? SHOP_COUPON : SHOP, who === 'coupon' ? "Captain Coupon's Coconut Cove" : "Barry's Bargain Bin");
+    if (who === 'gourdon' && !this.flags.metGourdon) { this.flags.metGourdon = true; this.ui.toast('Gourd-on: "Welcome, mortal! Everything is 13% off. Spooky, right?"'); }
+    if (who === 'lollipop' && !this.flags.metLollipop) { this.flags.metLollipop = true; this.ui.toast('Lady Lollipop: "Hello, sweetie! Prices are sugar-coated. And non-negotiable."'); }
+    this.ui.renderShop(...SHOPS[who]);
     this.openMenu('shop');
   }
 
@@ -1109,24 +1135,28 @@ class Game {
     const rewards = [];
     if (before < 3 && found >= 3) rewards.push(['consumable', 'coconut', 3]);
     if (before < 6 && found >= 6) rewards.push(['flask']);
-    if (before < SOCKS.length && found >= SOCKS.length) rewards.push(['weapon', 'sockpuppet']);
+    if (before < 10 && found >= 10) rewards.push(['weapon', 'sockpuppet']);
+    if (before < SOCKS.length && found >= SOCKS.length) { rewards.push(['consumable', 'candy', 3]); rewards.push(['coins', 1500]); }
     let text = SOCKRATES.progress(found);
     if (found > before) text = `Ah! ${found - before} sock${found - before > 1 ? 's' : ''}! The sock that returns is wiser than the sock that left. ` + text;
-    if (rewards.length) text += ' <br><br>For your trouble, take this. Rewards come at 3, 6 and 10 socks.';
-    else if (found < SOCKS.length) text += ' <br><br>Rewards come at 3, 6 and 10 socks.';
+    if (rewards.length) text += ' <br><br>For your trouble, take this. Rewards come at 3, 6, 10 and 16 socks.';
+    else if (found < SOCKS.length) text += ' <br><br>Rewards come at 3, 6, 10 and 16 socks.';
     else text += ' <br><br>You have found every sock. There is nothing left to teach you. Go, and be warm of foot.';
     d(text, rewards.length ? [{ label: 'Accept reward', fn: () => { for (const r of rewards) this.grant(...r); this.updateQuest(); this.save(); } }] : null);
   }
 
-  explodeAt(x, z, r, dmg) {
+  explodeAt(x, z, r, dmg, fire = false) {
     this.audio.play('stomp');
     this.shake(0.25);
     const y = groundHeight(x, z);
-    this.fx.burst(x, y + 0.5, z, 0x66ccff, 26, { speed: 7, up: 4 });
+    this.fx.burst(x, y + 0.5, z, fire ? 0xff6622 : 0x66ccff, 26, { speed: 7, up: 4 });
     this.fx.burst(x, y + 0.5, z, 0xffffff, 14, { speed: 5, glow: false });
     for (const e of this.activeEnemies) {
       if (e.dead || e.hidden || (e === this.king && !e.engaged)) continue;
-      if (Math.hypot(e.pos.x - x, e.pos.z - z) < r + e.radius) e.takeDamage(dmg, x, z, true, true);
+      if (Math.hypot(e.pos.x - x, e.pos.z - z) < r + e.radius) {
+        e.takeDamage(dmg, x, z, true, true);
+        if (fire && !e.dead) e.dot = { dps: 10, t: 4, color: 0xff6622 };
+      }
     }
     for (const wl of this.world.illusory) {
       if (!wl.broken && Math.hypot(wl.x - x, wl.z - z) < r + wl.r) { this.world.breakWall(wl); this.flags.walls[wl.id] = true; }

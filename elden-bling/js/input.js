@@ -91,4 +91,7 @@ const KEYMAP = {
   Digit3: 'item3',
   Digit4: 'item4',
   Digit5: 'item5',
+  Digit6: 'item6',
+  Digit7: 'item7',
+  Digit8: 'item8',
 };
