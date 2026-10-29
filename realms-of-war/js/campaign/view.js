@@ -116,6 +116,10 @@
       this.scene.add(this.selRing);
     }
 
+    siteHeight(tid) {
+      if (!this._siteH) this._siteH = this.map.sites.map((s) => this.tileHeight(s.x, s.z));
+      return this._siteH[tid];
+    }
     tileHeight(x, z) {
       let best = null, bd = Infinity;
       for (const tl of this.map.tiles) { const d = (tl.x - x) ** 2 + (tl.z - z) ** 2; if (d < bd) { bd = d; best = tl; } }

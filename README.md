@@ -1,5 +1,8 @@
 # Steel & Blood
 
+> **Also in this repository:** [Realms of War](realms-of-war/README.md) — a fantasy grand-strategy
+> browser game (campaign map + real-time Three.js battles). Open `realms-of-war/index.html` to play.
+
 A browser-based, physics-driven medieval sword fighting game inspired by *Half Sword*.
 Nothing in combat is a canned animation: fighters are active ragdolls, weapons are rigid
 bodies held in the hand by a joint, and damage comes from how hard and with what part of

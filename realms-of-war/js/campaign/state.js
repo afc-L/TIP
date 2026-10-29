@@ -100,7 +100,7 @@
     territoryIncome(t) {
       const ti = D.TERRAIN_INFO[this.tdef(t.id).terrain];
       let inc = ti.income + D.SETTLEMENT.levels[t.level].income + (t.buildings.market ? 70 : 0) + (t.shrine ? 40 : 0);
-      if (this.factions[t.owner] && this.factions[t.owner].capital === t.id) inc += 100;
+      if (this.factions[t.owner] && this.factions[t.owner].capital === t.id) inc += 120;
       if (t.owner === 'valor') inc *= 1.15;
       return Math.round(inc);
     }
@@ -391,6 +391,9 @@
         if (defArmy && defGenDead) defArmy.generalHp = 0.3;
       }
       attacker.moves = 0;
+      const playerInvolved = this.factions[attacker.faction].isPlayer || (this.factions[setup.defFaction] && this.factions[setup.defFaction].isPlayer);
+      if (!text) text = attWon ? `${attacker.commander.name} won the battle at ${tname}.` : `${attacker.commander.name}'s attack on ${tname} was repulsed.`;
+      if (playerInvolved || /destroyed/.test(text)) this.addLog(text);
       // Loot
       if (attWon && attF) attF.gold += 80 + Math.round(this.sidePower(setup.def) * 0.05);
       return { attWon, text };

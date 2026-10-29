@@ -53,7 +53,7 @@
         <div class="b-top panel">
           <div class="b-forces">
             ${ui.emblem(me.faction, 34)}
-            <div class="b-forcebar"><div class="mine" style="background:${me.fac.color}"></div><div class="theirs" style="background:${foe.fac.color}"></div></div>
+            <div class="b-forcewrap"><div class="b-forcebar"><div class="mine" style="background:${me.fac.color}"></div><div class="theirs" style="background:${foe.fac.color}"></div></div><div class="b-men"><span class="m0"></span><span class="m1"></span></div></div>
             ${ui.emblem(foe.faction, 34)}
           </div>
           <div class="b-clock">
@@ -130,6 +130,12 @@
         be._tip = () => this.unitTip(u);
         be.addEventListener('mousedown', (e) => {
           e.stopPropagation(); e.preventDefault();
+          if (this.targeting) {
+            // Clicking a banner while aiming a spell targets that regiment.
+            if (e.button === 0) { if (RW.castAbility(this.battle, 0, this.targeting, u.x, u.z)) this.targeting = null; else RW.audio.play('error'); }
+            else this.targeting = null;
+            return;
+          }
           if (e.button === 0 && u.side === 0) {
             if (!e.shiftKey) this.selected.clear();
             this.selected.add(u); this.inspect = u; this.refreshCards(); this.refreshInfo();
@@ -649,6 +655,9 @@
       this.$('.b-forcebar .theirs').style.width = (p1 / tot) * 100 + '%';
       this.$('.b-forcebar')._tip = () => `<b>Balance of power</b><br>Your army: ${Math.round(p0)} · Enemy: ${Math.round(p1)}<br>Your men: ${b.units.filter((u) => u.side === 0 && u.active).reduce((a, u) => a + u.alive, 0)} · Enemy men: ${b.units.filter((u) => u.side === 1 && u.active && !u.hidden).reduce((a, u) => a + u.alive, 0)}${b.units.some((u) => u.side === 1 && u.hidden) ? '+ (hidden)' : ''}`;
       this.$('.b-forcebar').classList.add('has-tip');
+      const men = (side) => b.units.filter((u) => u.side === side && u.active && !(side === 1 && u.hidden)).reduce((a, u) => a + u.alive, 0);
+      this.$('.b-men .m0').textContent = men(0) + ' men';
+      this.$('.b-men .m1').textContent = men(1) + (b.units.some((u) => u.side === 1 && u.hidden && !u.gone) ? '+ men' : ' men');
       const left = b.timeLimit - b.time;
       this.$('.b-timer').textContent = U.fmtTime(b.time) + (left < 180 ? ` (${U.fmtTime(left)} left)` : '');
       if (b.map.gate && b.map.gate.hp > 0 && b.phase === 'battle') this.$('.b-map-name').textContent = `Gate: ${Math.round((b.map.gate.hp / b.map.gate.maxHp) * 100)}%` + (b.attackerSide === 0 ? ' · Right-click the gate to batter it' : '');

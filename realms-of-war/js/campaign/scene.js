@@ -587,7 +587,6 @@
       }
       const res = c.autoResolve(setup);
       const out = c.applyBattle(army, setup, res, false);
-      if (out.text && (setup.defFaction !== 'rebels' || army.faction === 'rebels')) c.addLog(out.text);
       this.view.refresh();
       return out;
     }
@@ -678,7 +677,7 @@
       const small = this.rts.dist > 80;
       for (const [tid, el] of this.labelEls) {
         const s = this.view.map.sites[tid];
-        const p = this.screenPos(s.x, this.view.tileHeight(s.x, s.z) + 3.2, s.z);
+        const p = this.screenPos(s.x, this.view.siteHeight(tid) + 3.2, s.z);
         if (!p || p.x < -80 || p.x > W + 80 || p.y < -40 || p.y > H + 40) { el.style.display = 'none'; continue; }
         el.style.display = '';
         el.style.transform = `translate(${p.x | 0}px, ${p.y | 0}px) translate(-50%, -100%)`;

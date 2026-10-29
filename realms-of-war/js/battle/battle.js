@@ -39,7 +39,7 @@
         return {
           idx, faction: s.faction, fac, isPlayer: !!s.isPlayer, commander: s.commander || { name: 'Commander', trait: null, level: 1 },
           upgrades, general: null, generalDead: false, generalDeadT: 0,
-          abilities: fac.abilities.map((id) => ({ id, def: D.ABILITIES[id], cd: 8, cdMax: D.ABILITIES[id].cd * cdMul })),
+          abilities: fac.abilities.map((id) => ({ id, def: D.ABILITIES[id], cd: s.isPlayer ? 0 : 6, cdMax: D.ABILITIES[id].cd * cdMul })),
           startPower: 0, kills: 0, isAIControlled: !s.isPlayer,
         };
       });

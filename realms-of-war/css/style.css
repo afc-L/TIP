@@ -206,6 +206,7 @@ table.stats td:last-child { text-align: right; color: var(--gold2); }
 .b-forces { display: flex; align-items: center; gap: 8px; }
 .b-forcebar { display: flex; width: 220px; height: 12px; border-radius: 6px; overflow: hidden; border: 1px solid var(--line); background: #000; }
 .b-forcebar > div { height: 100%; transition: width 0.4s; }
+.b-men { display: flex; justify-content: space-between; font-size: 10px; color: var(--dim); margin-top: 1px; }
 .b-clock { display: flex; align-items: center; gap: 4px; }
 .b-timer { font-family: var(--serif); color: var(--gold2); min-width: 64px; text-align: center; font-size: 16px; }
 .b-actions { display: flex; gap: 4px; }

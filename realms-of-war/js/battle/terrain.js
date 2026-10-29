@@ -159,7 +159,7 @@
         const inDeploy = Math.abs(z) > 56 && Math.abs(x) < 72;
         const fv = forestNoise(x * 0.025, z * 0.025, 3);
         let thr = 1;
-        if (t === 'forest') thr = inDeploy ? 0.66 : 0.5;
+        if (t === 'forest') thr = inDeploy ? 0.62 : 0.44;
         else if (t === 'grassland') thr = inDeploy ? 0.8 : 0.67;
         else if (t === 'hills') thr = inDeploy ? 0.8 : 0.7;
         else if (t === 'river') thr = 0.72;

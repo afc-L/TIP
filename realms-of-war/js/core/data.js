@@ -249,7 +249,7 @@
     pass: { name: 'Mountain Pass', income: 45, battle: 'pass', color: '#8a8478' },
   };
   const SETTLEMENT = {
-    levels: [null, { name: 'Village', income: 50, garrison: 2 }, { name: 'Town', income: 110, garrison: 4 }, { name: 'City', income: 180, garrison: 6 }],
+    levels: [null, { name: 'Village', income: 70, garrison: 2 }, { name: 'Town', income: 140, garrison: 4 }, { name: 'City', income: 220, garrison: 6 }],
     upgradeCost: [0, 0, 900, 1800],
     buildings: {
       market: { name: 'Market', cost: 600, desc: '+70 gold per turn.' },
