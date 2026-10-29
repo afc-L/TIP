@@ -203,17 +203,19 @@
   }
 
   const cache = new Map();
-  function factionPalette(fid) {
+  function factionPalette(fid, alt) {
     const f = RW.data.FACTIONS[fid];
+    if (alt && f.alt) return { cloth: f.alt.cloth, metal: f.metal, color2: f.color2, color: f.alt.color };
     return { cloth: f.cloth, metal: f.metal, color2: f.color2, color: f.color };
   }
 
   // Geometry for one soldier of a unit type, dressed in a faction's colours.
-  function unitGeometry(typeId, factionId) {
-    const key = typeId + '|' + factionId;
+  // alt = alternate colours, used for the enemy in a same-faction battle.
+  function unitGeometry(typeId, factionId, alt = false) {
+    const key = typeId + '|' + factionId + (alt ? '|alt' : '');
     if (cache.has(key)) return cache.get(key);
     const t = RW.data.UNITS[typeId];
-    const F = factionPalette(factionId || t.faction);
+    const F = factionPalette(factionId || t.faction, alt);
     const b = new Builder();
     const m = t.model;
     if (m.kind === 'foot') {

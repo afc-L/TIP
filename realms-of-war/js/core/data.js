@@ -5,7 +5,7 @@
   // ---------------------------------------------------------------- Factions
   const FACTIONS = {
     valor: {
-      id: 'valor', name: 'Kingdom of Valor', short: 'Valor', adjective: 'Valorian',
+      alt: { color: '#c0503a', cloth: '#9a3a2a' }, id: 'valor', name: 'Kingdom of Valor', short: 'Valor', adjective: 'Valorian',
       color: '#3a6fd0', color2: '#e9dcae', dark: '#1b2f5c', metal: '#b9c1cc', cloth: '#2f5fb3',
       desc: 'Disciplined human kingdoms sworn to the Dawn Crown. Reliable infantry, deadly longbows, and knights whose charge breaks any line.',
       strengths: 'Balanced roster · Elite cavalry charges · Strong shield infantry',
@@ -17,7 +17,7 @@
       starts: [0, 1],
     },
     horde: {
-      id: 'horde', name: 'The Ashen Horde', short: 'Horde', adjective: 'Ashen',
+      alt: { color: '#d08a2a', cloth: '#a8681c' }, id: 'horde', name: 'The Ashen Horde', short: 'Horde', adjective: 'Ashen',
       color: '#c0392b', color2: '#2a2522', dark: '#4a120c', metal: '#6c625a', cloth: '#9e2a1c',
       desc: 'Orc warbands and monstrous beasts boiling out of the burning east. Cheap, brutal and overwhelming in melee.',
       strengths: 'Cheap aggressive infantry · Huge monsters · Excellent melee damage',
@@ -29,7 +29,7 @@
       starts: [11, 12],
     },
     arcane: {
-      id: 'arcane', name: 'The Arcane Dominion', short: 'Dominion', adjective: 'Arcane',
+      alt: { color: '#2fae8f', cloth: '#1f7f6a' }, id: 'arcane', name: 'The Arcane Dominion', short: 'Dominion', adjective: 'Arcane',
       color: '#8e5be0', color2: '#4fd6e3', dark: '#2c1652', metal: '#d8d3ea', cloth: '#6b3fb5',
       desc: 'A magocracy of spire-cities ruled by archmages. Devastating spells and ranged magic, guarded by enchanted constructs.',
       strengths: 'Powerful ranged magic · Battlefield spells · Unbreakable golems',
@@ -41,7 +41,7 @@
       starts: [14, 15],
     },
     rebels: {
-      id: 'rebels', name: 'Free Cities', short: 'Free Cities', adjective: 'Rebel',
+      alt: { color: '#5a6a8a', cloth: '#45506a' }, id: 'rebels', name: 'Free Cities', short: 'Free Cities', adjective: 'Rebel',
       color: '#8a8270', color2: '#4b463c', dark: '#3a362e', metal: '#8f8a80', cloth: '#6f6758',
       desc: 'Independent towns, bandit lords and mercenaries.',
       bonus: { name: '-', desc: '' }, abilities: ['rally_cry'], general: 'rebel_general', startArmy: [], starts: [],

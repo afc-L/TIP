@@ -43,6 +43,12 @@
           startPower: 0, kills: 0, isAIControlled: !s.isPlayer,
         };
       });
+      // Mirror matches: the enemy wears alternate colours.
+      const mirror = this.sides[0].faction === this.sides[1].faction;
+      for (const sd of this.sides) {
+        sd.alt = mirror && sd.idx === 1;
+        sd.color = sd.alt ? sd.fac.alt.color : sd.fac.color;
+      }
       for (let s = 0; s < 2; s++) this.createArmy(s);
       for (let s = 0; s < 2; s++) this.autoDeploy(s);
       for (const sd of this.sides) sd.startPower = this.sidePower(sd.idx);

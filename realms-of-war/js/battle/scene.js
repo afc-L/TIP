@@ -53,7 +53,7 @@
         <div class="b-top panel">
           <div class="b-forces">
             ${ui.emblem(me.faction, 34)}
-            <div class="b-forcewrap"><div class="b-forcebar"><div class="mine" style="background:${me.fac.color}"></div><div class="theirs" style="background:${foe.fac.color}"></div></div><div class="b-men"><span class="m0"></span><span class="m1"></span></div></div>
+            <div class="b-forcewrap"><div class="b-forcebar"><div class="mine" style="background:${me.color}"></div><div class="theirs" style="background:${foe.color}"></div></div><div class="b-men"><span class="m0"></span><span class="m1"></span></div></div>
             ${ui.emblem(foe.faction, 34)}
           </div>
           <div class="b-clock">
@@ -98,7 +98,7 @@
       const cards = this.$('.b-cards');
       this.cardEls = new Map();
       for (const u of b.units.filter((x) => x.side === 0)) {
-        const c = U.html(`<div class="ucard" style="--fc:${me.fac.color}">
+        const c = U.html(`<div class="ucard" style="--fc:${me.color}">
           <div class="uc-top">${RW.unitIcon(u.typeId)}<span class="uc-rank">${'▲'.repeat(u.rank)}</span></div>
           <div class="uc-name">${u.isGeneral ? 'General' : u.name}</div>
           <div class="uc-count"></div>
@@ -125,8 +125,7 @@
       this.bannerEls = new Map();
       const bl = this.$('.b-banners');
       for (const u of b.units) {
-        const fac = b.sides[u.side].fac;
-        const be = U.html(`<div class="ubanner ${u.side === 0 ? 'mine' : 'foe'}" style="--fc:${fac.color}">${RW.unitIcon(u.typeId)}<div class="ub-bar"><div></div></div></div>`);
+        const be = U.html(`<div class="ubanner ${u.side === 0 ? 'mine' : 'foe'}" style="--fc:${b.sides[u.side].color}">${RW.unitIcon(u.typeId)}<div class="ub-bar"><div></div></div></div>`);
         be._tip = () => this.unitTip(u);
         be.addEventListener('mousedown', (e) => {
           e.stopPropagation(); e.preventDefault();
@@ -172,11 +171,10 @@
     }
 
     unitTip(u) {
-      const fac = this.battle.sides[u.side].fac;
       let extra = `<div class="tip-live">${u.side === 0 ? '' : '<b>Enemy</b> · '}${u.alive}/${u.count} men · Morale ${Math.max(0, Math.round(u.morale))} · ${STATE_LABEL[u.state] || u.state}${u.t.range ? ' · Ammo ' + u.ammo + '/' + u.t.ammo : ''}</div>`;
       if (u.buffs.length) extra += `<div class="tip-buffs">${u.buffs.map((x) => x.name).join(', ')}</div>`;
       if (u.isGeneral) extra += `<div class="tip-desc">Commander: <b>${U.escape(u.name)}</b></div>`;
-      return ui.unitTip(u.typeId, extra).replace('<div class="tip-title">', `<div class="tip-title" style="color:${fac.color2 === '#2a2522' ? fac.color : 'inherit'}">`);
+      return ui.unitTip(u.typeId, extra);
     }
 
     renderMiniBg() {
@@ -224,7 +222,7 @@
       for (const u of b.units) {
         if (u.gone || (u.hidden && u.side !== 0)) continue;
         const p = this.worldToMini(u.x, u.z);
-        const col = u.state === 'routing' ? '#ddd' : b.sides[u.side].fac.color;
+        const col = u.state === 'routing' ? '#ddd' : b.sides[u.side].color;
         ctx.save();
         ctx.translate(p.x, p.y);
         ctx.rotate(-u.facing + (b.sideNorth[0] ? Math.PI : 0));
@@ -275,8 +273,8 @@
       let head;
       if (u) {
         const t = u.t;
-        const fac = this.battle.sides[u.side].fac;
-        head = `<div class="bi-head">${RW.unitIcon(u.typeId)}<div><div class="bi-name" style="color:${u.side === 0 ? '#f1e2b0' : fac.color}">${U.escape(u.isGeneral ? u.name : u.name)}${u.side ? ' (enemy)' : ''}</div><div class="bi-sub">${RW.catName[u.cat]} · ${u.alive}/${u.count} men · ${STATE_LABEL[u.state] || ''}</div></div></div>
+        const sideCol = this.battle.sides[u.side].color;
+        head = `<div class="bi-head">${RW.unitIcon(u.typeId)}<div><div class="bi-name" style="color:${u.side === 0 ? '#f1e2b0' : sideCol}">${U.escape(u.name)}${u.side ? ' (enemy)' : ''}</div><div class="bi-sub">${RW.catName[u.cat]} · ${u.alive}/${u.count} men · ${STATE_LABEL[u.state] || ''}</div></div></div>
           <div class="bi-stats">
             <span data-tip="Melee attack">⚔ ${Math.round(t.atk)}</span><span data-tip="Melee defence">🛡 ${Math.round(t.def + u.form.def)}</span><span data-tip="Armour">⛨ ${Math.round(t.armor + u.buffVal('armor'))}</span>
             <span data-tip="Weapon damage">✦ ${Math.round(t.dmg)}</span><span data-tip="Charge bonus">➶ ${Math.round(t.charge)}</span><span data-tip="Speed">» ${t.speed.toFixed(1)}</span>

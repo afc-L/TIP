@@ -24,6 +24,11 @@
       });
       document.addEventListener('mousemove', (e) => { if (this.tipEl.classList.contains('show')) this.placeTip(e.clientX, e.clientY); });
       document.addEventListener('mousedown', () => this.hideTip());
+      // Keep keyboard shortcuts (Space, Enter) from re-triggering the last clicked button.
+      document.addEventListener('mouseup', () => {
+        const a = document.activeElement;
+        if (a && a.tagName === 'BUTTON') setTimeout(() => a.blur(), 0);
+      });
       // UI click sounds
       document.addEventListener('click', (e) => {
         RW.audio.init(); RW.audio.resume();

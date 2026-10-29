@@ -289,15 +289,16 @@
     buildUnits() {
       const groups = new Map();
       for (const u of this.b.units) {
-        const key = u.typeId + '|' + u.faction;
-        if (!groups.has(key)) groups.set(key, { key, typeId: u.typeId, faction: u.faction, units: [], cap: 0 });
+        const alt = this.b.sides[u.side].alt;
+        const key = u.typeId + '|' + u.faction + '|' + alt;
+        if (!groups.has(key)) groups.set(key, { key, typeId: u.typeId, faction: u.faction, alt, units: [], cap: 0 });
         const g = groups.get(key);
         g.units.push(u); g.cap += u.count;
       }
       this.groups = [];
       let totalSoldiers = 0;
       for (const g of groups.values()) {
-        const geo = M.unitGeometry(g.typeId, g.faction);
+        const geo = M.unitGeometry(g.typeId, g.faction, g.alt);
         const mat = this.track(new T.MeshLambertMaterial({ vertexColors: true }));
         const im = new T.InstancedMesh(geo, mat, g.cap);
         im.instanceMatrix.setUsage(T.DynamicDrawUsage);

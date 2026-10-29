@@ -92,4 +92,11 @@ node tools/campaigntest.js normal 40                      # all-AI campaign for 
 node tools/smoke.js <outDir>                              # browser smoke test with screenshots (needs Playwright)
 node tools/maps.js <outDir>                               # screenshot every battlefield type
 node tools/flow.js <outDir>                               # campaign -> battle -> campaign, save/load, resize
+node tools/mouse.js <outDir>                              # box select, right-drag formation, attack, hotkeys, minimap
+node tools/siegeend.js <outDir>                           # full AI-vs-AI siege to the results screen
+node tools/soak.js <outDir> 15                            # 15 campaign turns in the browser, all dialogs auto-answered
+node tools/dialogs.js <outDir>                            # screenshots of help/settings/objectives/armoury/events
 ```
+
+The browser tests use the Playwright Chromium build with software WebGL, so they run slower than the game does
+on real hardware.
