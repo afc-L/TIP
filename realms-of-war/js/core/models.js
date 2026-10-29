@@ -261,8 +261,12 @@
   function houseGeometry(roof = '#8a3b2a') {
     const b = new Builder();
     b.add(box, '#cdbb98', 0, 1.5, 0, 0, 0, 0, 5, 3, 4);
-    b.add(box, '#5b3d26', 0, 1.5, 0, 0, 0, 0, 5.1, 0.2, 4.1);
-    b.add(cone, roof, 0, 4.0, 0, 0, Math.PI / 4, 0, 5.4, 2.2, 4.8);
+    b.add(box, '#5b3d26', 0, 3.0, 0, 0, 0, 0, 5.1, 0.2, 4.1);
+    // Gabled roof: two sloped planks and triangular gable ends.
+    b.add(box, roof, 0, 3.75, -1.05, 0.72, 0, 0, 5.6, 0.22, 3.05);
+    b.add(box, roof, 0, 3.75, 1.05, -0.72, 0, 0, 5.6, 0.22, 3.05);
+    b.add(box, '#cdbb98', -2.45, 3.0, 0, Math.PI / 4, 0, 0, 0.1, 2.1, 2.1);
+    b.add(box, '#cdbb98', 2.45, 3.0, 0, Math.PI / 4, 0, 0, 0.1, 2.1, 2.1);
     b.add(box, '#4a3020', 0, 1.0, 2.01, 0, 0, 0, 0.9, 2.0, 0.05);
     return b.build();
   }

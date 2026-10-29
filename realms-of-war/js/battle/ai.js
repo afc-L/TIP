@@ -328,7 +328,30 @@
         }
       }
 
+      if (this.p.matchups) this.pickFormations(mine, fighting);
       this.useAbilities(mine, foes, fighting);
+    }
+
+    // Brace against charges, spread out under missile fire.
+    pickFormations(mine, fighting) {
+      const b = this.b;
+      for (const u of mine) {
+        if (u.cat === 'monster' || u.cat === 'siege' || u.cat === 'cav' || u.isGeneral) continue;
+        const ad = u.aiData;
+        if (b.time - (ad.formT || -99) < 6) continue;
+        let want = 'line';
+        const engaged = u.engaged.size || u.engagedBy.size;
+        if (u.cat === 'inf' && !engaged && u.order.type !== 'attack') {
+          const chargers = fighting.some((e) => (e.cat === 'cav' || e.cat === 'monster') && e.order.target === u && Math.hypot(e.x - u.x, e.z - u.z) < 50);
+          if (chargers) want = 'defensive';
+        }
+        if (u.cat === 'ranged' && !engaged) {
+          const shotAt = u.recentLoss > u.hpEach * 3;
+          const enemyMissiles = fighting.some((e) => e.t.range && e.ammo > 0 && e.rangedTarget === u);
+          if (shotAt && enemyMissiles) want = 'loose';
+        }
+        if (want !== u.formation) { b.setFormation([u], want); ad.formT = b.time; }
+      }
     }
 
     rangedScore(u, e) {

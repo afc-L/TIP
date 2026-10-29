@@ -35,6 +35,7 @@
     activate() {
       this.active = true;
       this.buildHud();
+      if (this.busy) this.hud.classList.add('ai-turn');
       this.bindInput();
       this.view.refresh();
       this.refreshAll();

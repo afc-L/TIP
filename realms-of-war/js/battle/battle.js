@@ -46,6 +46,7 @@
       for (let s = 0; s < 2; s++) this.createArmy(s);
       for (let s = 0; s < 2; s++) this.autoDeploy(s);
       for (const sd of this.sides) sd.startPower = this.sidePower(sd.idx);
+      this.updateVisibility();
       this.ai = [null, new RW.BattleAI(this, 1, cfg.difficulty || 'normal')];
       if (cfg.aiBoth) this.ai[0] = new RW.BattleAI(this, 0, cfg.difficulty0 || cfg.difficulty || 'normal');
     }
