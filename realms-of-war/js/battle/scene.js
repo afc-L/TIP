@@ -608,9 +608,8 @@
         this.mouse.moved = false;
         const over = document.elementFromPoint(this.mouse.x, this.mouse.y);
         this.hoverUnit = over === this.app.canvas ? this.unitAtScreen(this.mouse.x, this.mouse.y) : null;
-        const cur = this.targeting ? 'crosshair' : this.hoverUnit && this.hoverUnit.side !== 0 && this.selected.size ? 'var(--cur-attack)' : 'default';
-        this.app.canvas.style.cursor = cur === 'var(--cur-attack)' ? 'crosshair' : cur;
-        this.app.canvas.classList.toggle('attack-cursor', !!(this.hoverUnit && this.hoverUnit.side !== 0 && this.selected.size));
+        const attackHover = !!(this.hoverUnit && this.hoverUnit.side !== 0 && this.selected.size);
+        this.app.canvas.style.cursor = this.targeting || attackHover ? 'crosshair' : this.hoverUnit ? 'pointer' : 'default';
       }
       // Targeting ring
       if (this.targeting) {
@@ -724,7 +723,6 @@
       if (this.hud) this.hud.remove();
       ui.hideTip();
       this.app.canvas.style.cursor = 'default';
-      this.app.canvas.classList.remove('attack-cursor');
     }
   }
 

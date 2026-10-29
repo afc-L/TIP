@@ -27,6 +27,25 @@
       // Select the player's first army.
       const a = this.c.armiesOf(this.c.player)[0];
       if (a) this.selectArmy(a);
+      if (this.c.turn === 1) this.welcome();
+    }
+
+    // Short briefing at the start of a new campaign.
+    welcome() {
+      const fd = this.fac, c = this.c;
+      const cap = c.tdef(c.factions[c.player].capital).name;
+      ui.modal({
+        title: `${ui.emblem(c.player, 30)} ${fd.name}`, cls: 'event',
+        body: `<p>Your banners fly over <b>${cap}</b>. Two rival powers and the Free Cities stand between you and mastery of the realm.</p>
+          <ul class="brief">
+            <li><b>Right-click</b> a neighbouring territory to march your army — attacking enemy towns starts a battle you can fight yourself or auto-resolve.</li>
+            <li><b>Recruit</b> in your settlements (right panel) and <b>build</b> to grow your income (left panel).</li>
+            <li>Watch your <b>income vs upkeep</b> in the top bar, then press <b>End Turn</b>.</li>
+            <li>Open <b>Objectives</b> to see the four paths to victory.</li>
+          </ul>
+          <p class="dim">${fd.bonus.name}: ${fd.bonus.desc}</p>`,
+        buttons: [{ label: 'To War!', cls: 'primary' }, { label: 'How to Play', onClick: () => RW.app.showHelp() }],
+      });
     }
     get me() { return this.c.factions[this.c.player]; }
     get fac() { return D.FACTIONS[this.c.player]; }

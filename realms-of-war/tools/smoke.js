@@ -40,6 +40,7 @@ const out = process.argv[2] || '.';
     await page.click('.start');
     await page.waitForTimeout(1500);
     await page.screenshot({ path: out + '/07-campaign.png' });
+    await page.click('.modal-buttons .btn.primary'); // close the welcome briefing
     await page.click('.c-endturn');
     await page.waitForTimeout(6000);
     await page.screenshot({ path: out + '/08-turn2.png' });
