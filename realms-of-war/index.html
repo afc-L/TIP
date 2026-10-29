@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Realms of War</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 4 L56 12 L54 36 Q50 52 32 60 Q14 52 10 36 L8 12 Z' fill='%232f5fb3' stroke='%23e0b84a' stroke-width='4'/%3E%3Cpath d='M20 44 L44 20 M44 44 L20 20' stroke='%23e0b84a' stroke-width='5'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <canvas id="view"></canvas>
+  <div id="hud"></div>
+  <div id="screens"></div>
+  <div id="modal"></div>
+  <div id="toasts"></div>
+  <div id="tooltip"></div>
+  <div id="loading"><div class="spinner"></div><div>Forging the realms…</div></div>
+
+  <!-- Plain scripts (no modules) so the game runs straight from the file system. -->
+  <script src="lib/three.min.js"></script>
+  <script src="js/core/util.js"></script>
+  <script src="js/core/settings.js"></script>
+  <script src="js/core/data.js"></script>
+  <script src="js/core/audio.js"></script>
+  <script src="js/core/models.js"></script>
+  <script src="js/core/camera.js"></script>
+  <script src="js/core/ui.js"></script>
+  <script src="js/battle/terrain.js"></script>
+  <script src="js/battle/units.js"></script>
+  <script src="js/battle/battle.js"></script>
+  <script src="js/battle/abilities.js"></script>
+  <script src="js/battle/ai.js"></script>
+  <script src="js/battle/render.js"></script>
+  <script src="js/battle/scene.js"></script>
+  <script src="js/campaign/mapgen.js"></script>
+  <script src="js/campaign/state.js"></script>
+  <script src="js/campaign/ai.js"></script>
+  <script src="js/campaign/view.js"></script>
+  <script src="js/campaign/scene.js"></script>
+  <script src="js/menus.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

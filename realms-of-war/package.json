@@ -1,0 +1,1 @@
+{ "name": "realms-of-war", "private": true, "type": "commonjs", "scripts": { "sim": "node tools/simtest.js" } }
