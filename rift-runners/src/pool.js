@@ -35,6 +35,7 @@ export class InstancePool {
 
   end() {
     this.mesh.count = this.count;
+    this.mesh.visible = this.count > 0; // skip empty pools entirely (incl. shadow pass)
     this.mesh.instanceMatrix.needsUpdate = true;
     if (this.c) this.mesh.instanceColor.needsUpdate = true;
   }

@@ -3,7 +3,8 @@ import { InstancePool } from './pool.js';
 
 const MAX_PARTICLES = 700;
 const MAX_RINGS = 24;
-const MAX_TELEGRAPHS = 20;
+const MAX_TELEGRAPHS = 44;
+const MAX_TAGS = 16;
 const MAX_BOLT_SEGS = 260;
 const MAX_NUMBERS = 48;
 
@@ -14,7 +15,7 @@ const tmpColor = new THREE.Color();
 export class Effects {
   constructor(scene, layerEl) {
     this.scene = scene;
-    this.settings = { shake: true, numbers: true };
+    this.settings = { shake: true, numbers: true, density: 1, reduceFlash: false };
 
     // Particles (one instanced draw call)
     this.parts = [];
@@ -73,6 +74,17 @@ export class Effects {
     }
     this.numCursor = 0;
 
+    // Elite modifier tags (pooled DOM labels that follow enemies)
+    this.tags = [];
+    for (let i = 0; i < MAX_TAGS; i++) {
+      const el = document.createElement('div');
+      el.className = 'elite-tag';
+      el.style.display = 'none';
+      layerEl.appendChild(el);
+      this.tags.push({ el, text: '', on: false });
+    }
+    this.tagQueue = [];
+
     this.trauma = 0;
     this.shakeOffset = new THREE.Vector3();
     this.flash = 0;
@@ -85,6 +97,7 @@ export class Effects {
     for (const t of this.teles) this.hideTele(t);
     this.bolts.length = 0;
     for (const n of this.numbers) { n.active = false; n.el.style.display = 'none'; }
+    for (const t of this.tags) { t.on = false; t.el.style.display = 'none'; }
     this.trauma = 0;
   }
 
@@ -99,6 +112,7 @@ export class Effects {
   }
 
   burst(x, y, z, count, color, speed = 6, life = 0.5, size = 0.18, grav = 0) {
+    count = Math.max(1, Math.round(count * this.settings.density));
     for (let i = 0; i < count; i++) {
       const a = Math.random() * Math.PI * 2;
       const up = Math.random() * 0.8 + 0.2;
@@ -171,6 +185,21 @@ export class Effects {
     n.el.textContent = kind === 'heal' ? `+${value}` : String(value);
     n.el.className = `dmg-num ${kind}`;
     n.el.style.display = 'block';
+  }
+
+  // --- elite tags --------------------------------------------------------
+  beginTags() { this.tagQueue.length = 0; }
+  tag(x, y, z, text, color) { if (this.tagQueue.length < MAX_TAGS) this.tagQueue.push({ x, y, z, text, color }); }
+  endTags(camera) {
+    const w = window.innerWidth, h = window.innerHeight, v = this.tmpV;
+    for (let i = 0; i < MAX_TAGS; i++) {
+      const slot = this.tags[i], q = this.tagQueue[i];
+      if (!q) { if (slot.on) { slot.on = false; slot.el.style.display = 'none'; } continue; }
+      v.set(q.x, q.y, q.z).project(camera);
+      if (!slot.on) { slot.on = true; slot.el.style.display = 'block'; }
+      if (slot.text !== q.text) { slot.text = q.text; slot.el.textContent = q.text; slot.el.style.borderColor = q.color; }
+      slot.el.style.transform = `translate(${((v.x * 0.5 + 0.5) * w) | 0}px, ${((-v.y * 0.5 + 0.5) * h) | 0}px) translate(-50%, -100%)`;
+    }
   }
 
   // --- shake -----------------------------------------------------------

@@ -3,10 +3,25 @@ import { buildPlayerModel } from './models.js';
 
 export class Player {
   constructor(scene) {
+    this.scene = scene;
     this.model = buildPlayerModel();
     scene.add(this.model.group);
     this.radius = PLAYER_BASE.radius;
+    this.trailColor = '#3be6ff';
+    this.lookKey = '';
     this.reset(100);
+  }
+
+  // Rebuild the model when class colours or cosmetics change.
+  setLook(cloak, trim, trail) {
+    this.trailColor = trail;
+    const key = `${cloak}|${trim}`;
+    if (key === this.lookKey) return;
+    this.lookKey = key;
+    this.scene.remove(this.model.group);
+    this.model.group.traverse((o) => { if (o.isMesh) o.geometry.dispose(); });
+    this.model = buildPlayerModel({ cloak, trim });
+    this.scene.add(this.model.group);
   }
 
   reset(maxHp) {
@@ -19,9 +34,11 @@ export class Player {
     this.invuln = 0;
     this.dashT = 0; this.dashCd = 0; this.dashDirX = 0; this.dashDirZ = 0;
     this.dashHits = new Set();
-    this.pulseCd = 0;
+    this.abilityCd = 0;
+    this.overclockT = 0;
+    this.bulwarkT = 0;
     this.hurtFlash = 0;
-    this.revived = false;
+    this.revives = 0;
     this.alive = true;
     this.model.group.visible = true;
     this.model.group.position.set(this.x, 0, this.z);
@@ -40,9 +57,11 @@ export class Player {
     if (len > 0) { mx /= len; mz /= len; this.moveX = mx; this.moveZ = mz; }
 
     this.dashCd = Math.max(0, this.dashCd - dt);
-    this.pulseCd = Math.max(0, this.pulseCd - dt);
+    this.abilityCd = Math.max(0, this.abilityCd - dt);
     this.invuln = Math.max(0, this.invuln - dt);
     this.hurtFlash = Math.max(0, this.hurtFlash - dt);
+    this.overclockT = Math.max(0, this.overclockT - dt);
+    this.bulwarkT = Math.max(0, this.bulwarkT - dt);
 
     if (input.wasPressed('Space') && this.dashCd <= 0 && !this.dashing) {
       const dx = len > 0 ? mx : this.aimX, dz = len > 0 ? mz : this.aimZ;
@@ -51,7 +70,8 @@ export class Player {
       this.dashCd = PLAYER_BASE.dashCooldown * stats.dashCdMult;
       this.dashHits.clear();
       game.sound.play('dash');
-      game.effects.ring(this.x, this.z, 0.4, 2, 0.3, '#3be6ff');
+      game.effects.ring(this.x, this.z, 0.4, 2, 0.3, this.trailColor);
+      game.onDash();
     }
 
     if (this.dashing) {
@@ -60,17 +80,22 @@ export class Player {
       this.z += this.dashDirZ * PLAYER_BASE.dashSpeed * dt;
       this.invuln = Math.max(this.invuln, 0.12);
       for (let i = 0; i < 2; i++) {
-        game.effects.particle(this.x + (Math.random() - 0.5) * 0.5, 0.4 + Math.random() * 1.1, this.z + (Math.random() - 0.5) * 0.5, 0, 0.5, 0, 0.35, 0.22, '#3be6ff');
+        game.effects.particle(this.x + (Math.random() - 0.5) * 0.5, 0.4 + Math.random() * 1.1, this.z + (Math.random() - 0.5) * 0.5, 0, 0.5, 0, 0.35, 0.22, this.trailColor);
       }
       if (stats.syn.riftslash) game.dashStrike(this);
+      if (stats.relic.chrono) game.dashSlow(this);
     } else {
-      const speed = PLAYER_BASE.speed * stats.moveMult;
+      let speed = PLAYER_BASE.speed * stats.moveMult;
+      if (stats.relic.laststand && this.hp / this.maxHp < (stats.syn.crimson ? 0.5 : 0.35)) speed *= 1.15;
+      if (game.run.buffs.fury > 0) speed *= 1.1;
       // Slight acceleration smoothing keeps it responsive but not twitchy.
       const k = 1 - Math.exp(-dt * 18);
       this.vx += (mx * speed - this.vx) * k;
       this.vz += (mz * speed - this.vz) * k;
       this.x += this.vx * dt;
       this.z += this.vz * dt;
+      // Faint movement trail (cosmetic)
+      if (len > 0 && Math.random() < dt * 12 * game.particleScale) game.effects.particle(this.x, 0.15, this.z, 0, 0.3, 0, 0.35, 0.12, this.trailColor);
     }
     game.world.resolve(this, this.radius);
 
@@ -100,14 +125,14 @@ export class Player {
     m.shard.rotation.y = t * 3;
     m.ring.scale.setScalar(1 + Math.sin(t * 4) * 0.05);
     // Flicker during i-frames (not while dashing)
-    const flicker = this.invuln > 0 && !this.dashing && Math.floor(t * 20) % 2 === 0;
+    const flicker = this.invuln > 0 && !this.dashing && this.bulwarkT <= 0 && Math.floor(t * 20) % 2 === 0;
     m.bodyMesh.visible = !flicker;
-    m.bodyMat.emissive.setRGB(this.hurtFlash * 3, this.hurtFlash * 0.3, this.hurtFlash * 0.3);
-    m.shield.visible = this.shield > 0.5;
+    m.bodyMat.emissive.setRGB(this.hurtFlash * 3 + (this.bulwarkT > 0 ? 0.5 : 0), this.hurtFlash * 0.3 + (this.bulwarkT > 0 ? 0.4 : 0), this.hurtFlash * 0.3 + (this.overclockT > 0 ? 0.3 : 0));
+    m.shield.visible = this.shield > 0.5 || this.bulwarkT > 0;
     if (m.shield.visible) {
-      m.shield.material.opacity = 0.1 + 0.25 * (this.shield / Math.max(1, this.shieldMax));
+      m.shield.material.color.set(this.bulwarkT > 0 ? '#ffd36b' : '#59c8ff');
+      m.shield.material.opacity = this.bulwarkT > 0 ? 0.45 : 0.1 + 0.25 * (this.shield / Math.max(1, this.shieldMax));
       m.shield.rotation.y = t * 0.8;
     }
   }
 }
-

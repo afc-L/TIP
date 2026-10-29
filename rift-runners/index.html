@@ -14,32 +14,43 @@
 
       <!-- In-game HUD -->
       <div id="hud" class="hidden">
-        <div class="hud-tl panel">
-          <div class="row">
-            <div class="lvl-badge"><small>LV</small><b id="lvl-text">1</b></div>
-            <div class="bars">
-              <div class="bar hp"><div class="fill" id="hp-fill"></div><div class="shield-fill" id="shield-fill"></div><span id="hp-text">100 / 100</span></div>
-              <div class="bar xp"><div class="fill" id="xp-fill"></div></div>
+        <div class="hud-tl">
+          <div class="panel hud-vitals">
+            <div class="row">
+              <div class="lvl-badge"><small>LV</small><b id="lvl-text">1</b></div>
+              <div class="bars">
+                <div class="bar hp"><div class="fill" id="hp-fill"></div><div class="shield-fill" id="shield-fill"></div><span id="hp-text">100 / 100</span></div>
+                <div class="bar xp"><div class="fill" id="xp-fill"></div></div>
+              </div>
             </div>
           </div>
+          <div class="relic-row" id="relic-row"></div>
+          <div class="panel objectives" id="objectives"></div>
         </div>
         <div class="hud-tc">
           <div id="wave-text">WAVE 1 / 10</div>
           <div class="bar wave"><div class="fill" id="wave-fill"></div></div>
           <div id="wave-sub">—</div>
+          <div id="wave-preview"></div>
           <div id="boss-bar" class="hidden">
             <div id="boss-name">The Rift Guardian</div>
-            <div class="bar boss"><div class="fill" id="boss-fill"></div></div>
+            <div class="bar boss"><div class="fill" id="boss-fill"></div><div class="phase-marks" id="phase-marks"></div></div>
+            <div id="boss-status"></div>
           </div>
         </div>
         <div class="hud-tr">
           <div class="panel stat-chip" title="Run time">⏱ <span id="timer">00:00</span></div>
+          <div class="panel stat-chip gold" title="Gold (spend at Supply Rifts and shrines this run)">🪙 <span id="gold-text">0</span></div>
           <div class="panel stat-chip" title="Rift Shards (permanent currency)">💎 <span id="shard-text">0</span></div>
           <button id="btn-mute" class="icon-btn" title="Mute (M)">🔊</button>
           <button id="btn-pause" class="icon-btn" title="Pause (Esc)">⏸</button>
         </div>
-        <div class="hud-bl" id="slots"></div>
+        <div class="hud-bl">
+          <div class="status-row" id="status-row"></div>
+          <div class="slots" id="slots"></div>
+        </div>
         <div class="hud-br" id="upgrade-icons"></div>
+        <div id="interact-hint" class="hidden"></div>
         <div id="fps" class="hidden">0 fps</div>
       </div>
 
@@ -52,26 +63,65 @@
           <div class="title-sub">A roguelike of the shattered dimension</div>
           <h1 class="game-title">RIFT RUNNERS</h1>
           <div class="menu-buttons">
-            <button class="btn primary" data-action="play">▶ Play</button>
-            <button class="btn" data-action="shop">💎 Upgrades</button>
-            <button class="btn" data-action="howto">📜 How to Play</button>
-            <button class="btn" data-action="settings">⚙ Settings</button>
+            <button class="btn primary" data-action="play">▶ Campaign</button>
+            <button class="btn" data-action="endless" id="btn-endless">∞ Endless</button>
+            <button class="btn" data-action="shop">💎 Rift Sanctum</button>
+            <button class="btn" data-action="collection">📖 Collection</button>
+            <div class="menu-pair">
+              <button class="btn" data-action="howto">How to Play</button>
+              <button class="btn" data-action="settings">Settings</button>
+            </div>
           </div>
           <div class="menu-stats" id="menu-stats"></div>
         </div>
       </div>
 
-      <!-- Permanent upgrade shop -->
+      <!-- Run setup -->
+      <div id="screen-setup" class="screen dim">
+        <div class="dialog wide">
+          <h2 id="setup-title">New Run</h2>
+          <p class="muted" id="setup-sub"></p>
+          <h3>Difficulty</h3>
+          <div class="choice-row" id="setup-diff"></div>
+          <h3>Character</h3>
+          <div class="class-grid" id="setup-class"></div>
+          <div class="setup-selects">
+            <label>Starting weapon <select id="setup-weapon"></select></label>
+            <label>Loadout <select id="setup-loadout"></select></label>
+            <label>Arena <select id="setup-arena"></select></label>
+            <label>Cloak <select id="setup-cloak"></select></label>
+            <label>Trail <select id="setup-trail"></select></label>
+          </div>
+          <p class="muted small" id="setup-note"></p>
+          <div class="dialog-buttons">
+            <button class="btn" data-action="back">Back</button>
+            <button class="btn primary" data-action="start">Enter the Rift</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rift Sanctum: permanent upgrades and unlocks -->
       <div id="screen-shop" class="screen dim">
         <div class="dialog wide">
           <h2>Rift Sanctum</h2>
-          <p class="muted">Spend Rift Shards on permanent bonuses. Shards are earned from every run, win or lose.</p>
+          <p class="muted">Spend Rift Shards on small permanent bonuses and new options. Shards come from waves cleared, bosses, elites and objectives.</p>
           <div class="shop-balance">💎 <span id="shop-shards">0</span> Rift Shards</div>
+          <div class="tabs" id="shop-tabs"></div>
           <div class="shop-grid" id="shop-grid"></div>
           <div class="dialog-buttons">
-            <button class="btn small ghost" data-action="refund">Refund all</button>
+            <button class="btn small ghost" data-action="refund" id="btn-refund">Refund bonuses</button>
             <button class="btn" data-action="back">Back</button>
           </div>
+        </div>
+      </div>
+
+      <!-- Collection: bestiary, relics, weapons, history -->
+      <div id="screen-collection" class="screen dim">
+        <div class="dialog wide">
+          <h2>Collection</h2>
+          <div class="tabs" id="col-tabs"></div>
+          <div id="col-body" class="col-body"></div>
+          <div class="dialog-buttons"><button class="btn" data-action="back">Back</button></div>
         </div>
       </div>
 
@@ -87,7 +137,8 @@
                 <tr><td><kbd>Mouse</kbd></td><td>Aim</td></tr>
                 <tr><td><kbd>Left Click</kbd> (hold)</td><td>Fire all equipped weapons</td></tr>
                 <tr><td><kbd>Space</kbd></td><td>Dash (brief invulnerability)</td></tr>
-                <tr><td><kbd>Shift</kbd></td><td>Rift Pulse – knockback blast that erases nearby bullets</td></tr>
+                <tr><td><kbd>Shift</kbd> / <kbd>Q</kbd></td><td>Character ability</td></tr>
+                <tr><td><kbd>E</kbd></td><td>Use a Rift Shrine or Supply Rift</td></tr>
                 <tr><td><kbd>Esc</kbd> / <kbd>P</kbd></td><td>Pause</td></tr>
                 <tr><td><kbd>M</kbd></td><td>Mute</td></tr>
                 <tr><td><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd></td><td>Pick an upgrade card</td></tr>
@@ -96,23 +147,16 @@
             <div>
               <h3>Survive the Rift</h3>
               <ul>
-                <li>Clear <b>10 waves</b>. Wave 10 is the <b>Rift Guardian</b> – defeat it to win.</li>
-                <li>Enemies drop <b>experience crystals</b>. Level up to choose 1 of 3 upgrades.</li>
-                <li>Unlock <b>Arc Burst</b> and <b>Void Orb</b> as upgrades. Holding fire uses every weapon.</li>
-                <li>Combine upgrades to trigger <b>synergies</b> – e.g. Ignite + Piercing Rounds = Wildfire.</li>
-                <li>Red / orange zones on the ground are incoming attacks. Dash out of them!</li>
-                <li>Bosses pause after big attacks – that's your window to strike.</li>
-                <li>Earn <b>Rift Shards</b> each run and spend them in the Sanctum.</li>
-                <li>Prefer not to hold the mouse? Turn on <b>Auto-fire</b> in Settings.</li>
+                <li>Clear <b>10 waves</b>: a random <b>mid-boss</b> guards wave 5, the <b>Rift Guardian</b> waits on wave 10.</li>
+                <li>Level up to pick upgrades. Hold up to <b>4 weapons</b> and <b>4 relics</b>.</li>
+                <li>A weapon at <b>level 4</b> plus the right relic <b>evolves</b>. Check the Collection for recipes.</li>
+                <li>Every 2–3 waves a <b>Rift Event</b> changes the rules. Watch the preview between waves.</li>
+                <li><b>Elites</b> have coloured outlines and modifier icons; they drop gold and sometimes relics.</li>
+                <li>Coloured zones on the ground are incoming attacks. Dash out of them!</li>
+                <li>Bosses pause after big attacks — that's your window. Hard and Nightmare unlock new tricks.</li>
+                <li>Beat the campaign to unlock <b>Endless</b> and <b>Nightmare</b>.</li>
               </ul>
             </div>
-          </div>
-          <h3>Enemies</h3>
-          <div class="enemy-grid">
-            <div><b style="color:#c47bff">Crawler</b> – swarms and chases you.</div>
-            <div><b style="color:#38d6d0">Dasher</b> – flashes, then charges in a straight line.</div>
-            <div><b style="color:#9dff3a">Spitter</b> – keeps distance and spits acid.</div>
-            <div><b style="color:#ff8a3a">Brute</b> – slow and tanky; slams the ground.</div>
           </div>
           <div class="dialog-buttons"><button class="btn" data-action="back">Back</button></div>
         </div>
@@ -127,8 +171,16 @@
             <label class="check"><input type="checkbox" id="set-muted" /> Mute all sound</label>
             <label class="check"><input type="checkbox" id="set-shake" /> Screen shake</label>
             <label class="check"><input type="checkbox" id="set-numbers" /> Damage numbers</label>
+            <label class="check"><input type="checkbox" id="set-flash" /> Reduce flashing effects</label>
             <label class="check"><input type="checkbox" id="set-autofire" /> Auto-fire (no need to hold the mouse)</label>
             <label class="check"><input type="checkbox" id="set-fps" /> Show FPS</label>
+            <label>Particle density
+              <select id="set-particles">
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+              </select>
+            </label>
             <label>Graphics quality
               <select id="set-quality">
                 <option value="high">High (shadows, sharper)</option>
@@ -150,6 +202,37 @@
         </div>
       </div>
 
+      <!-- Relic choice -->
+      <div id="screen-relic" class="screen dim">
+        <div class="levelup">
+          <h2 class="glow-text relic-glow">RELIC FOUND</h2>
+          <p class="muted" id="relic-sub">Choose one relic</p>
+          <div class="cards" id="relic-cards"></div>
+          <div id="relic-replace" class="replace hidden"></div>
+          <div class="dialog-buttons center"><button class="btn ghost" data-action="skip" id="relic-skip">Leave it</button></div>
+        </div>
+      </div>
+
+      <!-- Shrine -->
+      <div id="screen-shrine" class="screen dim">
+        <div class="levelup">
+          <h2 class="glow-text shrine-glow">RIFT SHRINE</h2>
+          <p class="muted">The shrine offers a bargain. Read the price before you accept. 🪙 <span id="shrine-gold">0</span> gold</p>
+          <div class="cards" id="shrine-cards"></div>
+          <div class="dialog-buttons center"><button class="btn ghost" data-action="leave">Leave the shrine</button></div>
+        </div>
+      </div>
+
+      <!-- Supply Rift -->
+      <div id="screen-supply" class="screen dim">
+        <div class="dialog">
+          <h2>Supply Rift</h2>
+          <p class="muted">A merchant from beyond the rift. 🪙 <b id="supply-gold">0</b> gold</p>
+          <div class="supply-list" id="supply-list"></div>
+          <div class="dialog-buttons"><button class="btn primary" data-action="leave">Leave</button></div>
+        </div>
+      </div>
+
       <!-- Pause -->
       <div id="screen-pause" class="screen dim">
         <div class="dialog narrow">
@@ -160,6 +243,7 @@
             <button class="btn" data-action="settings">Settings</button>
             <button class="btn" data-action="quit">Main Menu</button>
           </div>
+          <div class="pause-objectives" id="pause-objectives"></div>
           <div class="pause-build" id="pause-build"></div>
         </div>
       </div>
@@ -182,11 +266,13 @@
           <h2 id="end-title" class="end-title">Defeated</h2>
           <p class="muted" id="end-sub"></p>
           <div class="end-stats" id="end-stats"></div>
-          <h3>Upgrades</h3>
+          <h3>Objectives</h3>
+          <div class="end-objectives" id="end-objectives"></div>
+          <h3>Build</h3>
           <div class="end-upgrades" id="end-upgrades"></div>
           <div class="dialog-buttons">
             <button class="btn" data-action="menu">Main Menu</button>
-            <button class="btn" data-action="shop">💎 Upgrades</button>
+            <button class="btn" data-action="shop">💎 Sanctum</button>
             <button class="btn primary" data-action="again">Play Again</button>
           </div>
         </div>

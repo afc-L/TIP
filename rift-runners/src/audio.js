@@ -196,6 +196,24 @@ export class Sound {
       case 'victory':
         [523, 659, 784, 1047, 784, 1047, 1319].forEach((f, i) => this.tone('triangle', f, f, 0.35, 0.12, i * 0.13));
         break;
+      case 'clank':
+        if (!this.throttle(name, 90)) return;
+        this.tone('square', 1900 * r, 1200, 0.06, 0.05);
+        this.noise(0.1, 0.12, 'highpass', 4000, 3000, 0, 1);
+        break;
+      case 'blink':
+        if (!this.throttle(name, 120)) return;
+        this.tone('sine', 300, 1200, 0.18, 0.06);
+        break;
+      case 'slash':
+        if (!this.throttle(name, 70)) return;
+        this.noise(0.12, 0.18, 'bandpass', 1800 * r, 5000, 0, 1.2);
+        break;
+      case 'coin':
+        if (!this.throttle(name, 60)) return;
+        this.tone('square', 1320, 1320, 0.05, 0.03);
+        this.tone('square', 1760, 1760, 0.08, 0.03, 0.05);
+        break;
       case 'gameover':
         [392, 330, 262, 196].forEach((f, i) => this.tone('triangle', f, f * 0.98, 0.45, 0.12, i * 0.2));
         break;

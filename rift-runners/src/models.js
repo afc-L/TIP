@@ -116,16 +116,18 @@ export function buildEnemyModels() {
   return models;
 }
 
-export function buildPlayerModel() {
+export function buildPlayerModel(look = {}) {
+  const cloak = look.cloak || '#2f5aa8', trim = look.trim || '#3be6ff';
+  const hood = new THREE.Color(cloak).offsetHSL(0, 0, 0.05).getStyle();
   const group = new THREE.Group();
   const bodyMat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
   const body = [
-    part(cone(0.5, 1.15, 7), '#2f5aa8', { y: 0.6 }),
-    part(cyl(0.52, 0.56, 0.1, 7), '#3be6ff', { y: 0.06 }),
+    part(cone(0.5, 1.15, 7), cloak, { y: 0.6 }),
+    part(cyl(0.52, 0.56, 0.1, 7), trim, { y: 0.06 }),
     part(sphere(0.27, 7, 5), '#d9c2a5', { y: 1.28 }),
-    part(cone(0.34, 0.55, 7), '#3a66b8', { y: 1.5, z: -0.05, rx: -0.25 }),
+    part(cone(0.34, 0.55, 7), hood, { y: 1.5, z: -0.05, rx: -0.25 }),
     part(box(0.2, 0.2, 0.55), '#2b3f6b', { x: 0.36, y: 0.85, z: 0.3 }),
-    part(box(0.6, 0.06, 0.2), '#3be6ff', { y: 0.95 }),
+    part(box(0.6, 0.06, 0.2), trim, { y: 0.95 }),
   ];
   const bodyMesh = new THREE.Mesh(merge(body), bodyMat);
   bodyMesh.castShadow = true;
@@ -146,7 +148,7 @@ export function buildPlayerModel() {
   // Ground ring helps the player find themself in the chaos.
   const ring = new THREE.Mesh(
     new THREE.RingGeometry(0.75, 0.9, 28).rotateX(-Math.PI / 2),
-    new THREE.MeshBasicMaterial({ color: '#3be6ff', transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false })
+    new THREE.MeshBasicMaterial({ color: trim, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false })
   );
   ring.position.y = 0.04;
   group.add(ring);
