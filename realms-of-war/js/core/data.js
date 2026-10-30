@@ -273,9 +273,10 @@
     arcane: { inf: 0.36, ranged: 0.32, cav: 0.12, monster: 0.14, siege: 0.08 },
     rebels: { inf: 0.55, ranged: 0.3, cav: 0.15, monster: 0, siege: 0 },
   };
-  function genArmy(faction, budget, maxTier = 3, maxUnits = 12, rng = Math.random, existing = []) {
-    const pool = Object.values(U).filter((u) => u.faction === faction && (u.recruitable || faction === 'rebels') && u.cat !== 'general' && u.tier <= maxTier);
-    const w = ROLE_WEIGHTS[faction];
+  // filter(unit) can exclude units (e.g. rare units not yet unlocked).
+  function genArmy(faction, budget, maxTier = 3, maxUnits = 12, rng = Math.random, existing = [], filter = null) {
+    const pool = Object.values(U).filter((u) => u.faction === faction && (u.recruitable || faction === 'rebels') && !u.equip && u.cat !== 'general' && u.tier <= maxTier && (!filter || filter(u)));
+    const w = ROLE_WEIGHTS[faction] || ROLE_WEIGHTS.valor;
     const out = [];
     const counts = { inf: 0, ranged: 0, cav: 0, monster: 0, siege: 0 };
     for (const id of existing) counts[U[id].cat] = (counts[U[id].cat] || 0) + 1;
@@ -302,7 +303,7 @@
     return out;
   }
 
-  RW.data = { genArmy, FACTIONS, PLAYABLE, EMBLEMS, UNITS: U, GARRISONS, ABILITIES, TRAITS, COMMANDER_NAMES, FACTION_TRAITS, UPGRADES, TERRITORIES, TERRAIN_INFO, SETTLEMENT, BATTLE_MAPS, unitPower };
+  RW.data = { ROLE_WEIGHTS, genArmy, FACTIONS, PLAYABLE, EMBLEMS, UNITS: U, GARRISONS, ABILITIES, TRAITS, COMMANDER_NAMES, FACTION_TRAITS, UPGRADES, TERRITORIES, TERRAIN_INFO, SETTLEMENT, BATTLE_MAPS, unitPower };
 
   // ---------------------------------------------------------------- Icons
   const ICON_PATHS = {
@@ -327,7 +328,9 @@
     flag: '<path d="M6 30 L6 2" stroke="currentColor" stroke-width="3"/><path d="M7 3 L28 8 L7 14 Z" fill="currentColor"/>',
   };
   function unitIconKey(t) {
+    if (t.icon) return t.icon;
     if (t.cat === 'general') return 'crown';
+    if (t.fly) return 'wing';
     if (t.cat === 'cav') return 'horse';
     if (t.cat === 'monster') return 'monster';
     if (t.cat === 'siege') return 'siege';
@@ -337,6 +340,7 @@
     if (w === 'axe' || w === 'club') return 'axe';
     return 'sword';
   }
+  RW.ICON_PATHS = ICON_PATHS;
   RW.icon = function (key, cls = '') {
     return `<svg class="ico ${cls}" viewBox="0 0 32 32">${ICON_PATHS[key] || ICON_PATHS.flag}</svg>`;
   };

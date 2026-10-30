@@ -51,10 +51,45 @@
       case 'siegebreaker': if (t.cat === 'siege') t.rdmg *= 1.3; break;
       case 'beastmaster': if (t.cat === 'monster') { t.hp *= 1.2; t.atk += 10; } break;
     }
+    // Army-wide modifiers: legendary passives, equipment, skills, doctrine, technology, landmarks.
+    const A = mods.army || {};
+    const inf = t.cat === 'inf', cav = t.cat === 'cav' || (t.cat === 'general' && t.model.kind === 'mounted'), mon = t.cat === 'monster', gen = t.cat === 'general';
+    if (A.morale) t.morale += A.morale;
+    if (A.dmgMul) t.dmg *= A.dmgMul;
+    if (A.infDmg && inf) t.dmg *= A.infDmg;
+    if (A.rdmgMul && t.range) t.rdmg *= A.rdmgMul;
+    if (A.rangeMul && t.range && t.cat !== 'siege') t.range *= A.rangeMul;
+    if (A.speedAll) t.speed *= A.speedAll;
+    if (A.defAll) t.def += A.defAll;
+    if (inf) { t.def += A.infDef || 0; t.armor += A.infArmor || 0; t.atk += A.infAtk || 0; }
+    if (cav) { t.charge += A.cavCharge || 0; t.atk += A.cavAtk || 0; if (A.cavSpeed) t.speed *= A.cavSpeed; }
+    if ((cav || t.fly) && A.scoutSpeed) t.speed *= A.scoutSpeed;
+    if (mon) { if (A.monHp) t.hp *= A.monHp; t.armor += A.monArmor || 0; }
+    if (gen) {
+      t.atk += A.genAtk || 0; t.def += A.genDef || 0; t.armor += A.genArmor || 0; t.charge += A.genCharge || 0;
+      t.ap = Math.min(0.9, t.ap + (A.genAp || 0)); if (A.genHp) t.hp *= A.genHp;
+    }
+    if (t.cat === 'siege' && A.siegeDmg) t.rdmg *= A.siegeDmg;
+    t.harvest = A.harvest || 0;
+    const drill = mods.drill && mods.drill[typeId];
+    if (drill) { t.atk += drill * 2; t.def += drill * 2; t.morale += drill * 3; }
     t.armor = Math.min(t.armor, 95);
     t.morale += (mods.cmdLevel || 0) * 1.5;
     return t;
   }
+
+  // Flying units ignore terrain: walls, rivers, lava and cliffs.
+  class FlyNav {
+    constructor(map) { this.map = map; }
+    inside(x, z) { const h = this.map.half - 2; return x > -h && x < h && z > -h && z < h; }
+    blocked(x, z) { return !this.inside(x, z); }
+    lineClear(x0, z0, x1, z1) { return this.inside(x1, z1); }
+    nearestFree(x, z) { const h = this.map.half - 3; return { x: U.clamp(x, -h, h), z: U.clamp(z, -h, h) }; }
+    heightAt(x, z) { return this.map.heightAt(x, z); }
+    speedMul() { return 1; }
+    onWall() { return false; }
+  }
+  RW.FlyNav = FlyNav;
 
   let nextId = 1;
 
@@ -70,7 +105,11 @@
       this.base = RW.data.UNITS[spec.typeId];
       this.name = this.base.name;
       this.cat = this.base.cat;
+      this.fly = !!this.base.fly;
+      this.nav = this.fly ? new FlyNav(battle.map) : battle.map;
+      this.alt = this.fly ? 6 : 0;
       this.isGeneral = this.cat === 'general';
+      this.equip = this.base.equip || null;
       this.rank = spec.rank || 0;
       this.count = this.t.count;
       this.hpEach = this.t.hp;
@@ -84,7 +123,8 @@
       this.sf = new Float32Array(n); this.sa = new Uint8Array(n); this.sdie = new Float32Array(n);
       this.sphase = new Float32Array(n); this.sstuck = new Float32Array(n); this.sslot = new Int16Array(n);
       this.scomp = new Float32Array(n).fill(1); this.sfoe = new Int32Array(n).fill(-1); this.sfoeU = new Array(n).fill(null);
-      this.satk = new Float32Array(n); this.smove = new Float32Array(n);
+      this.satk = new Float32Array(n); this.smove = new Float32Array(n); this.sknock = new Float32Array(n);
+      this.rankGained = 0; this.xp0 = spec.xp || 0;
       for (let i = 0; i < n; i++) { this.sa[i] = i < start ? 1 : 0; this.sdie[i] = -999; this.sphase[i] = Math.random() * 6; }
       this.x = 0; this.z = 0; this.facing = 0;
       this.formation = 'line';
@@ -181,7 +221,7 @@
 
     // Place the whole regiment instantly (deployment).
     placeAt(x, z, facing) {
-      const map = this.battle.map;
+      const map = this.nav;
       const p = map.nearestFree(x, z, this.side);
       this.x = p.x; this.z = p.z; this.facing = facing;
       this.reslot();
@@ -200,7 +240,7 @@
     }
     // Pull a slot toward the centre until it is walkable.
     validSlot(wx, wz, lx, lz) {
-      const map = this.battle.map;
+      const map = this.nav;
       if (!map.blocked(wx, wz, this.side) && map.lineClear(this.x, this.z, wx, wz, this.side)) return [wx, wz];
       for (const f of [0.75, 0.5, 0.3, 0.12]) {
         const [x2, z2] = this.toWorld(lx * f, lz * f);
@@ -212,7 +252,7 @@
     // ---------------------------------------------------------------- orders
     orderMove(x, z, facing, keepTarget = false) {
       if (this.state === 'routing' || this.gone) return;
-      const map = this.battle.map;
+      const map = this.nav;
       const g = map.nearestFree(x, z, this.side);
       this.order = { type: 'move', x: g.x, z: g.z, facing: facing == null ? null : facing };
       if (!keepTarget) this.meleeTarget = null;
@@ -228,9 +268,18 @@
       this.disengageT = 0;
       this.computePath(target.x, target.z);
     }
-    orderGate() {
-      const g = this.battle.map.gate;
+    // Siege towers roll up to the wall at x; once docked they open a breach.
+    orderTower(x) {
+      if (this.equip !== 'tower' || this.gone || this.docked) return;
+      const m = this.battle.map;
+      const z = m.wallZ + (this.battle.sideNorth[this.side] ? -5 : 5.5);
+      this.order = { type: 'tower', x, z };
+      this.computePath(x, z);
+    }
+    orderGate(gate) {
+      const g = gate && gate.hp > 0 ? gate : this.battle.map.nearestGate(this.x, this.z);
       if (!g || g.hp <= 0 || this.state === 'routing' || this.gone) return;
+      if (this.equip === 'tower') return;
       const dir = this.battle.sideNorth[this.side] ? -1 : 1;
       if (this.t.splash && this.ammo > 0) {
         // Siege engines bombard the gate from range.
@@ -238,12 +287,12 @@
         const want = this.t.range * 0.8;
         const tx = d > want ? g.x + (this.x - g.x) * (want / d) : this.x;
         const tz = d > want ? g.z + (this.z - g.z) * (want / d) : this.z;
-        this.order = { type: 'gate', x: tx, z: tz, ranged: true };
+        this.order = { type: 'gate', x: tx, z: tz, ranged: true, gate: g };
         this.computePath(tx, tz);
         return;
       }
       const zFront = g.z + dir * 5;
-      this.order = { type: 'gate', x: g.x + (Math.random() - 0.5) * 4, z: zFront };
+      this.order = { type: 'gate', x: g.x + (Math.random() - 0.5) * 4, z: zFront, gate: g };
       this.computePath(this.order.x, zFront);
     }
     halt() {
@@ -253,8 +302,10 @@
       this.meleeTarget = null; this.rangedTarget = null;
     }
     computePath(x, z) {
-      const map = this.battle.map;
-      this.path = RW.findPath(map, this.x, this.z, x, z, this.side);
+      if (this.fly) {
+        const p = this.nav.nearestFree(x, z);
+        this.path = [p];
+      } else this.path = RW.findPath(this.battle.map, this.x, this.z, x, z, this.side);
       this.pathIdx = 0;
       this.pathGoal = { x, z };
       this.repathT = 1 + Math.random() * 0.5;
@@ -263,16 +314,16 @@
 
     // ---------------------------------------------------------------- per-tick movement
     effectiveSpeed() {
-      const map = this.battle.map;
+      const map = this.nav;
       let s = this.t.speed * this.form.speed * this.buffMul('speedMul');
-      s *= map.speedMul(this.x, this.z, this.cat);
+      s *= map.speedMul(this.x, this.z, this.cat) * this.battle.weatherFx.speed;
       if (this.state === 'routing') s *= 1.1;
       if (this.alive < this.count * 0.3 && this.cat !== 'monster' && this.cat !== 'siege') s *= 1.05;
       return s;
     }
 
     moveCenter(dt) {
-      const map = this.battle.map;
+      const map = this.nav;
       let moving = false;
       const ox = this.x, oz = this.z;
       if (this.path.length && this.pathIdx < this.path.length) {
@@ -315,7 +366,11 @@
 
     // Move each soldier toward its slot (or its melee opponent), never into blocked cells.
     updateSoldiers(dt, time) {
-      const map = this.battle.map;
+      const map = this.nav;
+      if (this.fly) {
+        const want = this.state === 'fighting' ? 1.8 : this.state === 'idle' && !this.path.length ? 3.5 : 7;
+        this.alt += (want - this.alt) * Math.min(1, dt * 1.5);
+      }
       const fighting = this.state === 'fighting';
       const routing = this.state === 'routing';
       const spd = this.t.speed * (routing ? 1.15 : 1) * this.buffMul('speedMul');
@@ -379,8 +434,9 @@
         if (faceTo == null) faceTo = (fighting || d < 0.5) ? this.facing : this.sf[i];
         if (routing && moved > 0.01) faceTo = Math.atan2(dx, dz);
         this.sf[i] = U.turnToward(this.sf[i], faceTo, 6 * dt);
-        this.sy[i] = map.heightAt(this.sx[i], this.sz[i]);
+        this.sy[i] = map.heightAt(this.sx[i], this.sz[i]) + (this.fly ? this.alt : map.onWall(this.sx[i], this.sz[i]) ? 8.2 : 0);
         if (this.satk[i] > 0) this.satk[i] = Math.max(0, this.satk[i] - dt);
+        if (this.sknock[i] > 0) this.sknock[i] = Math.max(0, this.sknock[i] - dt);
       }
     }
 
@@ -427,11 +483,25 @@
       }
       if (killed) {
         this.reslot();
-        if (source) source.kills += killed;
+        if (source) {
+          source.kills += killed;
+          source.checkRank();
+          const h = source.t.harvest + source.buffVal('harvest');
+          if (h > 0 && !source.gone) source.heal(killed * this.hpEach * h);
+        }
         this.battle.onCasualties(this, killed);
       }
       if (this.alive <= 0) { this.state = 'dead'; this.pool = 0; this.battle.onUnitDestroyed(this); }
       return killed;
+    }
+    // In-battle veterancy uses the campaign rule: a rank every 30 experience (kills).
+    checkRank() {
+      if (this.isGeneral || this.equip) return;
+      while (this.rank < 3 && this.xp0 + this.kills >= (this.rank + 1) * 30) {
+        this.rank++; this.rankGained++;
+        this.t.atk += 3; this.t.def += 3; this.t.morale += 5; this.morale += 5;
+        this.battle.emit('rankup', this);
+      }
     }
     // Restore HP and revive fallen soldiers near the unit.
     heal(amount) {
@@ -443,7 +513,7 @@
       for (let i = 0; i < this.count && this.alive < want; i++) {
         if (this.sa[i]) continue;
         this.sa[i] = 1; this.alive++;
-        const p = this.battle.map.nearestFree(this.x + (Math.random() - 0.5) * 4, this.z + (Math.random() - 0.5) * 4, this.side);
+        const p = this.nav.nearestFree(this.x + (Math.random() - 0.5) * 4, this.z + (Math.random() - 0.5) * 4, this.side);
         this.sx[i] = p.x; this.sz[i] = p.z;
       }
       this.reslot();

@@ -98,6 +98,68 @@
     },
   };
 
+  // Data-driven abilities (new factions, ultimates, legendary commanders).
+  function fxFor(b, kind, x, z, r, color) {
+    if (kind === 'arrows') {
+      for (let k = 0; k < 40; k++) {
+        const tx = x + (Math.random() - 0.5) * r * 2, tz = z + (Math.random() - 0.5) * r * 2;
+        b.projectiles.push({ kind: 'arrow', x0: tx - 12, y0: b.map.heightAt(tx, tz) + 45, z0: tz + 18, x1: tx, y1: b.map.heightAt(tx, tz), z1: tz, t: -Math.random() * 0.5, dur: 0.9, arc: 0, side: -1 });
+      }
+      return;
+    }
+    if (kind === 'fire') { b.fx.push({ type: 'explosion', x, z, r, color }); return; }
+    if (kind === 'quake') { b.fx.push({ type: 'quake', x, z, r }); return; }
+    if (kind === 'roots') { b.fx.push({ type: 'roots', x, z, r, color }); return; }
+    b.fx.push({ type: 'ring', x, z, r, color, dur: 1.2 });
+    b.fx.push({ type: 'sparkle', x, z, r: r * 0.8, color, up: kind !== 'frost' });
+    if (kind === 'frost') b.fx.push({ type: 'frost', x, z, r });
+  }
+  function generic(b, side, x, z, def) {
+    const e = def.effect, gen = b.sides[side].general;
+    const buff = () => (e.buff ? Object.assign({}, e.buff) : null);
+    switch (e.kind) {
+      case 'area_damage':
+        b.fx.push({ type: 'target', x, z, r: def.radius, color: def.color, dur: 0.6 });
+        b.pending.push({ at: b.time + 0.6, kind: 'fn', fn: () => {
+          b.areaDamage(x, z, def.radius, e.dmg, e.ap, gen, false, e.morale || 0, side);
+          fxFor(b, e.fx === 'arrows' ? 'magic' : e.fx, x, z, def.radius, def.color);
+          b.fx.push({ type: 'magicburst', x, z, r: def.radius * 0.6 });
+          b.emit('impact', { explode: 'fire', x, z });
+        } });
+        if (e.fx === 'arrows') fxFor(b, 'arrows', x, z, def.radius, def.color);
+        return e.fx === 'arrows' ? 'arrows' : 'magic';
+      case 'enemy_area':
+        for (const u of b.units) {
+          if (u.side === side || u.gone || Math.hypot(u.x - x, u.z - z) > def.radius + u.radius * 0.5) continue;
+          if (e.morale) u.morale -= e.morale;
+          const bf = buff(); if (bf) u.addBuff(bf);
+        }
+        if (e.dmg) b.areaDamage(x, z, def.radius, e.dmg, e.ap || 0, gen, false, 0, side);
+        fxFor(b, e.fx, x, z, def.radius, def.color);
+        return e.fx === 'fire' || e.fx === 'quake' ? 'boom' : 'magic';
+      case 'ally_area':
+        for (const u of alliesIn(b, side, x, z, def.radius)) {
+          if (u.state === 'routing') { if (e.rally && !u.shattered) b.rally(u, 45); continue; }
+          if (e.morale) u.morale += e.morale;
+          if (e.heal) u.heal((u.maxPool - u.pool) * e.heal);
+          const bf = buff(); if (bf) u.addBuff(bf);
+        }
+        fxFor(b, e.fx, x, z, def.radius, def.color);
+        if (e.heal) b.fx.push({ type: 'pillar', x, z, r: def.radius, color: def.color, dur: 1.4 });
+        return e.heal ? 'heal' : 'horn';
+      case 'type_buff':
+        for (const u of b.units) {
+          if (u.side !== side || u.gone || u.equip) continue;
+          const ok = e.cats.includes('all') || e.cats.includes(u.cat) || (u.fly && e.cats.includes('cav')) || (u.isGeneral && e.cats.includes('general')) || (u.isGeneral && u.t.model.kind === 'mounted' && e.cats.includes('cav'));
+          if (!ok) continue;
+          u.addBuff(buff());
+          b.fx.push({ type: 'sparkle', x: u.x, z: u.z, r: u.radius, color: def.color });
+        }
+        return 'horn';
+    }
+    return 'magic';
+  }
+
   // Returns true if the ability was cast.
   RW.castAbility = function (b, side, id, x, z) {
     const sd = b.sides[side];
@@ -108,8 +170,9 @@
     if (def.target === 'point') {
       x = Math.max(-115, Math.min(115, x)); z = Math.max(-115, Math.min(115, z));
     }
-    const snd = EFFECTS[id](b, side, x, z, def);
+    const snd = def.effect ? generic(b, side, x, z, def) : EFFECTS[id](b, side, x, z, def);
     ab.cd = ab.cdMax;
+    b.note(`${def.name}`, side);
     b.emit('ability', { side, id, x, z, sound: snd, def });
     b.msg(`${side === 0 ? '' : 'Enemy '}${def.name}!`, side, side === 0 ? 'good' : 'bad');
     return true;

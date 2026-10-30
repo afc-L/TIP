@@ -87,9 +87,17 @@
       this.b = battle;
       this.q = RW.quality();
       const scene = (this.scene = new T.Scene());
-      const skyCol = new T.Color(battle.cfg.mapType === 'siege' ? '#9fb3c4' : '#a9c3d6');
+      const mt = battle.cfg.mapType, w = battle.weather;
+      const SKY = { siege: '#9fb3c4', snow: '#c8d6e2', volcanic: '#7a6a66', desert: '#e0d2b0', ancientforest: '#8fa69a' };
+      let skyCol = new T.Color(SKY[mt] || '#a9c3d6');
+      if (w === 'rain') skyCol = new T.Color('#8a96a2');
+      if (w === 'fog') skyCol = new T.Color('#b8c0c4');
+      if (w === 'snowstorm') skyCol = new T.Color('#d6dee6');
+      if (w === 'ash') skyCol = new T.Color('#6e625e');
       scene.background = skyCol;
-      scene.fog = new T.Fog(skyCol, 180, 560);
+      const fogFar = { fog: 300, snowstorm: 360, rain: 460, ash: 400 }[w] || 560;
+      scene.fog = new T.Fog(skyCol, w === 'fog' ? 50 : w === 'snowstorm' ? 90 : 180, fogFar);
+      this.skyCol = skyCol;
       this.disposables = [];
 
       // Lights
@@ -103,6 +111,9 @@
         const c = sun.shadow.camera; c.left = -140; c.right = 140; c.top = 140; c.bottom = -140; c.near = 10; c.far = 420;
         sun.shadow.bias = -0.0008;
       }
+      if (mt === 'volcanic' || w === 'ash') { sun.color.set('#ffb080'); hemi.intensity = 0.6; }
+      if (w === 'rain' || w === 'fog') { sun.intensity = 0.8; }
+      if (mt === 'snow') hemi.color.set('#f4f8ff');
       scene.add(sun); scene.add(sun.target);
       this.buildSky();
       this.buildTerrain();
@@ -143,6 +154,16 @@
       const c = new T.Color();
       const grassA = new T.Color('#6f9a45'), grassB = new T.Color('#557d35'), dry = new T.Color('#a29a5a'), rock = new T.Color('#85817a'),
         forest = new T.Color('#3d5b2a'), mud = new T.Color('#6e5f43'), sand = new T.Color('#b5a477'), dirt = new T.Color('#8a7a5a'), road = new T.Color('#9b8b68');
+      const PAL = {
+        snow: ['#e8eef3', '#cfdbe4', '#9aa6ae', '#46624a'],
+        desert: ['#d8c08a', '#c6a96e', '#a08a6a', '#7a8a4a'],
+        volcanic: ['#4a403c', '#3a322f', '#2a2422', '#3d4a2a'],
+        ancientforest: ['#4f7a38', '#3f6a2c', '#7a8a5a', '#2c4a22'],
+        courtyard: ['#9a9282', '#8a8272', '#a39b88', '#5a7a3a'],
+        temple: ['#7a9a4a', '#6a8a3e', '#b0a890', '#3d5b2a'],
+      }[map.type];
+      if (PAL) { grassA.set(PAL[0]); grassB.set(PAL[1]); dry.set(PAL[2]); forest.set(PAL[3]); if (map.type === 'snow') rock.set('#7a8088'); }
+      const lava = new T.Color('#ff6a1a'), stone = new T.Color('#c8bea6');
       for (let i = 0; i < pos.count; i++) {
         const x = pos.getX(i), z = pos.getZ(i);
         const out = Math.max(Math.abs(x), Math.abs(z)) - map.half;
@@ -167,6 +188,9 @@
         if (out > 10) c.lerp(dry, U.clamp((out - 10) / 60, 0, 0.35));
         if (f & F.ROAD) c.lerp(road, 0.7);
         if (map.type === 'siege' && z < map.wallZ) c.lerp(dirt, 0.5);
+        if (f & F.LAVA) c.copy(lava).lerp(new T.Color('#ffd040'), n * 0.4);
+        if (map.temple && Math.max(Math.abs(x), Math.abs(z) * 1.25) < 24) c.lerp(stone, 0.8);
+        if (map.capture && Math.hypot(x - map.capture.x, z - map.capture.z) < map.capture.r) c.lerp(stone, 0.6);
         col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
       }
       g.setAttribute('color', new T.BufferAttribute(col, 3));
@@ -236,15 +260,19 @@
         mesh.castShadow = shadows; mesh.receiveShadow = shadows;
         this.scene.add(mesh);
       }
-      if (map.walls.length) {
+      if (map.walls.length || map.towers.length) {
         const b = new M.Builder();
-        const stone = '#a39b88', dark = '#7d7666';
+        const stone = map.type === 'courtyard' ? '#9a9282' : '#a39b88', dark = '#7d7666';
         for (const w of map.walls) {
-          for (let x = w.x0; x < w.x1; x += 4) {
-            const cx = Math.min(x + 2, w.x1 - 0.1);
-            const h = map.heightAt(cx, w.z);
-            b.add(M.PRIM.box, stone, cx, h + 2.5, w.z, 0, 0, 0, 4.05, 10, 4.5);
-            b.add(M.PRIM.box, dark, cx - 1, h + 8, w.z + 1.8, 0, 0, 0, 1.3, 1.2, 1);
+          // Horizontal siege walls use {x0, x1, z}; courtyard walls are general segments.
+          const x0 = w.x0, z0 = w.z0 == null ? w.z : w.z0, x1 = w.x1, z1 = w.z1 == null ? w.z : w.z1;
+          const len = Math.hypot(x1 - x0, z1 - z0), rot = Math.atan2(x1 - x0, z1 - z0);
+          for (let t = 0; t < len; t += 4) {
+            const k = Math.min(t + 2, len - 0.1) / len;
+            const cx = x0 + (x1 - x0) * k, cz = z0 + (z1 - z0) * k;
+            const h = map.heightAt(cx, cz);
+            b.add(M.PRIM.box, stone, cx, h + 2.5, cz, 0, rot, 0, 4.5, 10, 4.05);
+            b.add(M.PRIM.box, dark, cx + Math.cos(rot) * 1.8, h + 8, cz - Math.sin(rot) * 1.8, 0, rot, 0, 1, 1.2, 1.3);
           }
         }
         for (const tw of map.towers) {
@@ -253,11 +281,12 @@
           b.add(M.PRIM.cyl, dark, tw.x, h + 12.5, tw.z, 0, 0, 0, 8, 1.2, 8);
           b.add(M.PRIM.cone, '#7a3a2a', tw.x, h + 15, tw.z, 0, 0, 0, 8.5, 4, 8.5);
         }
-        // Gatehouse arch
-        const g = map.gate, gh = map.heightAt(g.x, g.z);
-        b.add(M.PRIM.box, stone, g.x - 7, gh + 5, g.z, 0, 0, 0, 4, 14, 6);
-        b.add(M.PRIM.box, stone, g.x + 7, gh + 5, g.z, 0, 0, 0, 4, 14, 6);
-        b.add(M.PRIM.box, stone, g.x, gh + 10.5, g.z, 0, 0, 0, 18, 3, 6);
+        for (const g of map.gates) {
+          const gh = map.heightAt(g.x, g.z);
+          b.add(M.PRIM.box, stone, g.x - 7, gh + 5, g.z, 0, 0, 0, 4, 14, 6);
+          b.add(M.PRIM.box, stone, g.x + 7, gh + 5, g.z, 0, 0, 0, 4, 14, 6);
+          b.add(M.PRIM.box, stone, g.x, gh + 10.5, g.z, 0, 0, 0, 18, 3, 6);
+        }
         const wallMesh = new T.Mesh(this.track(b.build()), this.track(new T.MeshLambertMaterial({ vertexColors: true })));
         wallMesh.castShadow = shadows; wallMesh.receiveShadow = shadows;
         this.scene.add(wallMesh);
@@ -266,10 +295,47 @@
         for (let k = -2; k <= 2; k++) gb.add(M.PRIM.box, '#3a2a1c', k * 2, 4, 0.65, 0, 0, 0, 0.3, 8, 0.2);
         gb.add(M.PRIM.box, '#555', 0, 5.5, 0.7, 0, 0, 0, 10, 0.4, 0.2);
         gb.add(M.PRIM.box, '#555', 0, 2.5, 0.7, 0, 0, 0, 10, 0.4, 0.2);
-        this.gateMesh = new T.Mesh(this.track(gb.build()), this.track(new T.MeshLambertMaterial({ vertexColors: true })));
-        this.gateMesh.position.set(g.x, gh - 0.5, g.z);
-        this.gateMesh.castShadow = shadows;
-        this.scene.add(this.gateMesh);
+        const gateGeo = this.track(gb.build()), gateMat = this.track(new T.MeshLambertMaterial({ vertexColors: true }));
+        this.gateMeshes = map.gates.map((g) => {
+          const m = new T.Mesh(gateGeo, gateMat);
+          m.position.set(g.x, map.heightAt(g.x, g.z) - 0.5, g.z);
+          m.castShadow = shadows;
+          this.scene.add(m);
+          return { g, m };
+        });
+      }
+      // Pillars and ruined walls (desert, temple)
+      if (map.pillars.length) {
+        const b = new M.Builder();
+        const col = map.type === 'temple' ? '#d8d2c0' : '#c9b48a';
+        for (const p of map.pillars) {
+          const h = map.heightAt(p.x, p.z);
+          if (p.kind === 'pillar') {
+            b.add(M.PRIM.cyl, col, p.x, h + p.h / 2, p.z, 0, 0, 0, 1.6, p.h, 1.6);
+            b.add(M.PRIM.box, col, p.x, h + p.h + 0.3, p.z, 0, 0.3, 0, 2.2, 0.6, 2.2);
+          } else b.add(M.PRIM.box, col, p.x, h + p.h / 3, p.z, 0, Math.PI / 2 - p.rot, 0, 1.4, p.h * 0.66, 10);
+        }
+        if (map.temple) {
+          const t = map.temple, h = map.heightAt(t.x, t.z);
+          b.add(M.PRIM.box, '#e0d8c4', t.x, h + 0.3, t.z, 0, 0, 0, 18, 0.6, 14);
+          for (const sx of [-1, 1]) for (const sz of [-1, 1]) b.add(M.PRIM.cyl, '#e0d8c4', t.x + sx * 7, h + 4, t.z + sz * 5, 0, 0, 0, 1.2, 8, 1.2);
+          b.add(M.PRIM.cone, '#b8a888', t.x, h + 9.5, t.z, 0, Math.PI / 4, 0, 22, 3.5, 17);
+          b.add(M.PRIM.oct, '#7ae8ff', t.x, h + 3, t.z, 0, 0, 0, 1.4, 2.2, 1.4);
+        }
+        const pm = new T.Mesh(this.track(b.build()), this.track(new T.MeshLambertMaterial({ vertexColors: true })));
+        pm.castShadow = shadows; pm.receiveShadow = shadows;
+        this.scene.add(pm);
+      }
+      // Capture point banner in the plaza
+      if (map.capture) {
+        const c = map.capture, h = map.heightAt(c.x, c.z);
+        const pole = new T.Mesh(this.track(new T.CylinderGeometry(0.2, 0.2, 9, 6)), this.track(new T.MeshLambertMaterial({ color: '#5a3f28' })));
+        pole.position.set(c.x, h + 4.5, c.z); this.scene.add(pole);
+        this.captureFlag = new T.Mesh(this.track(new T.BoxGeometry(3, 2, 0.1)), new T.MeshLambertMaterial({ color: this.b.sides[this.b.defenderSide].color }));
+        this.captureFlag.position.set(c.x + 1.6, h + 7.8, c.z); this.scene.add(this.captureFlag);
+        const ring = new T.Mesh(this.ringGeo || this.track(new T.RingGeometry(0.92, 1, 48).rotateX(-Math.PI / 2)), this.track(new T.MeshBasicMaterial({ color: '#ffd76a', transparent: true, opacity: 0.6, depthWrite: false })));
+        ring.scale.set(c.r, 1, c.r); ring.position.set(c.x, h + 0.3, c.z); this.scene.add(ring);
+        this.captureRing = ring;
       }
       // Deployment zone outline
       const zn = map.deployZone(this.b.sideNorth[0]);
@@ -348,6 +414,8 @@
       this.flashT = 0;
       this.flash = new T.PointLight('#ffaa55', 0, 80);
       this.scene.add(this.flash);
+      const w = this.b.weather;
+      if (w === 'snowstorm' || w === 'rain' || w === 'ash') this.weatherFx = new WeatherFx(this.scene, w, this.q);
     }
 
     // ---------------------------------------------------------------- per frame
@@ -371,16 +439,33 @@
               if (u.sdie[i] < -100 || (this.q.terrainRes < 100 && since > 40)) { writeMatrix(arr, o, 0, -50, 0, 0, 0, 0); continue; }
               const fall = Math.min(1, since * 3);
               const sink = since > 60 ? Math.min(1.5, (since - 60) * 0.05) : 0;
-              if (mounted) writeMatrix(arr, o, u.sx[i], u.sy[i] - sink, u.sz[i], u.sf[i], 0, 1, fall * 1.45);
+              // Flyers drop out of the sky when killed.
+              const ground = u.fly ? b.map.heightAt(u.sx[i], u.sz[i]) + Math.max(0, u.sy[i] - b.map.heightAt(u.sx[i], u.sz[i])) * (1 - fall) : u.sy[i];
+              if (mounted) writeMatrix(arr, o, u.sx[i], ground - sink, u.sz[i], u.sf[i], 0, 1, fall * 1.45);
               else writeMatrix(arr, o, u.sx[i], u.sy[i] - sink, u.sz[i], u.sf[i], -fall * 1.5, 1);
               continue;
             }
             const mv = u.smove[i];
-            let lean = 0, bob = 0;
-            if (mv > 0.3) { bob = Math.abs(Math.sin(u.sphase[i])) * (mounted ? 0.15 : 0.09); lean = mounted ? 0.03 : 0.08; }
-            if (u.satk[i] > 0) lean += Math.sin((0.45 - u.satk[i]) / 0.45 * Math.PI) * (mounted ? 0.12 : 0.45);
+            let lean = 0, bob = 0, roll = 0;
+            const beast = u.t.model.kind === 'beast';
+            if (mv > 0.3) {
+              bob = Math.abs(Math.sin(u.sphase[i])) * (beast ? 0.3 : mounted ? 0.15 : 0.09); lean = mounted ? 0.03 : 0.08;
+              if (beast && !u.fly) roll = Math.sin(u.sphase[i] * 0.5) * 0.07; // lumbering sway
+            }
+            if (u.fly) { bob = Math.sin(time * 6 + i) * 0.35; roll = Math.sin(time * 3 + i * 1.3) * 0.08; }
+            if (u.satk[i] > 0) {
+              const k = Math.sin((0.45 - u.satk[i]) / 0.45 * Math.PI);
+              lean += k * (beast ? 0.3 : mounted ? 0.12 : 0.45);
+              if (beast) roll += k * 0.12;
+              // Sparks where blades meet.
+              if (u.satk[i] > 0.38 && Math.random() < 0.15) this.fire.emit(u.sx[i] + Math.sin(u.sf[i]) * 0.8, u.sy[i] + 1.2, u.sz[i] + Math.cos(u.sf[i]) * 0.8, (Math.random() - 0.5) * 3, 1 + Math.random() * 2, (Math.random() - 0.5) * 3, 0.25, 0.6, this._c.set('#fff2b0'), 6);
+            }
+            if (u.sknock[i] > 0) lean = -Math.min(1.3, u.sknock[i] * 1.6);
             if (u.state === 'routing') lean = 0.25;
-            writeMatrix(arr, o, u.sx[i], u.sy[i] + bob, u.sz[i], u.sf[i], lean, 1);
+            // Dust kicked up by fast cavalry and monsters.
+            if (mv > 9 && !u.fly && Math.random() < 0.04) this.dust.emit(u.sx[i], u.sy[i] + 0.3, u.sz[i], 0, 0.8, 0, 1.0, 2.2, this._c.set(b.map.type === 'snow' ? '#e8eef3' : '#8a7a5e'), 0, 0.45);
+            if (roll) writeMatrix(arr, o, u.sx[i], u.sy[i] + bob, u.sz[i], u.sf[i], 0, 1, roll);
+            else writeMatrix(arr, o, u.sx[i], u.sy[i] + bob, u.sz[i], u.sf[i], lean, 1);
           }
         }
         g.mesh.instanceMatrix.needsUpdate = true;
@@ -447,7 +532,18 @@
       this.dust.update(dt);
 
       // Gate
-      if (this.gateMesh && b.map.gate.hp <= 0 && this.gateMesh.visible) this.gateMesh.visible = false;
+      for (const gm of this.gateMeshes || []) if (gm.g.hp <= 0 && gm.m.visible) gm.m.visible = false;
+      if (this.captureFlag) {
+        const c = b.map.capture, k = c.progress / c.need;
+        this.captureFlag.material.color.set(k >= 0.999 ? b.sides[b.attackerSide].color : b.sides[b.defenderSide].color).lerp(new T.Color(b.sides[b.attackerSide].color), k);
+        this.captureRing.material.color.set(c.contested ? '#ff5a3a' : k > 0 ? b.sides[b.attackerSide].color : '#ffd76a');
+      }
+      if (this.weatherFx) this.weatherFx.update(dt, ui ? ui.rts : null);
+      // Embers over lava
+      if (b.map.lavas && b.map.type === 'volcanic' && Math.random() < 0.6) {
+        const L = b.map.lavas[Math.floor(Math.random() * 2)], x = -110 + Math.random() * 220, z = L.z(x);
+        if (b.map.flagAt(x, z) & RW.MAPF.LAVA) this.fire.emit(x, b.map.heightAt(x, z) + 0.3, z, 0, 2 + Math.random() * 2, 0, 1.5, 1.2, this._c.set('#ff8a2a'), -0.5, 0.9);
+      }
       // Deploy zone
       const dep = b.phase === 'deploy';
       this.deployLine.visible = dep; this.deployFill.visible = dep;
@@ -518,7 +614,8 @@
           break;
         }
         case 'charge': {
-          for (let k = 0; k < 18; k++) this.dust.emit(f.x + (Math.random() - 0.5) * 8, gy(f.x, f.z) + 0.5, f.z + (Math.random() - 0.5) * 8, (Math.random() - 0.5) * 5, 1 + Math.random() * 2, (Math.random() - 0.5) * 5, 1.2, 4, c.set('#8a7a5e'), 1, 0.6);
+          if (f.big) { this.addRing(f.x, f.z, 9, '#e8d0a0', 0.5, { additive: false }); this.flashT = Math.max(this.flashT, 0.15); }
+          for (let k = 0; k < (f.big ? 36 : 18); k++) this.dust.emit(f.x + (Math.random() - 0.5) * 8, gy(f.x, f.z) + 0.5, f.z + (Math.random() - 0.5) * 8, (Math.random() - 0.5) * 5, 1 + Math.random() * 2, (Math.random() - 0.5) * 5, 1.2, 4, c.set('#8a7a5e'), 1, 0.6);
           break;
         }
         case 'ring': this.addRing(f.x, f.z, f.r, f.color, f.dur || 1); break;
@@ -541,6 +638,24 @@
           }
           break;
         }
+        case 'frost': {
+          for (let k = 0; k < 40; k++) {
+            const a = Math.random() * Math.PI * 2, rr = Math.random() * f.r;
+            const x = f.x + Math.cos(a) * rr, z = f.z + Math.sin(a) * rr;
+            this.fire.emit(x, gy(x, z) + 0.2, z, 0, 0.5 + Math.random(), 0, 1.6, 2.2, c.set(k % 2 ? '#dff2ff' : '#9fd8ff'), 0, 0.8);
+          }
+          this.addRing(f.x, f.z, f.r, '#dff2ff', 2.5, { grow: false, additive: false });
+          break;
+        }
+        case 'roots': {
+          this.addRing(f.x, f.z, f.r, f.color || '#7ad860', 1.0);
+          for (let k = 0; k < 45; k++) {
+            const a = Math.random() * Math.PI * 2, rr = Math.random() * f.r;
+            const x = f.x + Math.cos(a) * rr, z = f.z + Math.sin(a) * rr;
+            this.dust.emit(x, gy(x, z) + 0.2, z, 0, 3 + Math.random() * 3, 0, 1.2, 2.5, c.set(k % 3 ? '#5a4028' : '#4f8a34'), 6, 0.95);
+          }
+          break;
+        }
         case 'rally': {
           const u = f.unit;
           for (let k = 0; k < 20; k++) this.fire.emit(u.x + (Math.random() - 0.5) * u.hw * 2, gy(u.x, u.z) + 2, u.z + (Math.random() - 0.5) * 4, 0, 2, 0, 1, 1.5, c.set('#ffd76a'));
@@ -560,11 +675,46 @@
 
     dispose() {
       this.fire.dispose(); this.dust.dispose();
+      if (this.weatherFx) this.weatherFx.dispose();
       for (const d of this.disposables) if (d && d.dispose) d.dispose();
       for (const g of this.groups) g.mesh.dispose && g.mesh.dispose();
       this.scene.traverse((o) => { if (o.isInstancedMesh && o.dispose) o.dispose(); });
     }
   }
+
+  // Falling snow, rain or ash in a box that follows the camera target.
+  class WeatherFx {
+    constructor(scene, kind, q) {
+      const N = Math.round({ snowstorm: 1400, rain: 1600, ash: 900 }[kind] * (q.particles / 900));
+      this.kind = kind; this.N = N;
+      this.p = new Float32Array(N * 3);
+      for (let i = 0; i < N; i++) { this.p[i * 3] = (Math.random() - 0.5) * 160; this.p[i * 3 + 1] = Math.random() * 60; this.p[i * 3 + 2] = (Math.random() - 0.5) * 160; }
+      const g = new T.BufferGeometry();
+      g.setAttribute('position', new T.BufferAttribute(this.p, 3));
+      const col = { snowstorm: '#ffffff', rain: '#a8c0d8', ash: '#4a4240' }[kind];
+      this.mat = new T.PointsMaterial({ color: col, size: kind === 'rain' ? 0.18 : kind === 'ash' ? 0.35 : 0.4, transparent: true, opacity: kind === 'rain' ? 0.55 : 0.85, depthWrite: false });
+      this.pts = new T.Points(g, this.mat);
+      this.pts.frustumCulled = false;
+      this.geo = g;
+      scene.add(this.pts);
+      this.fall = { snowstorm: 6, rain: 40, ash: 3 }[kind];
+      this.drift = { snowstorm: 5, rain: 2, ash: 1.5 }[kind];
+    }
+    update(dt, rts) {
+      const cx = rts ? rts.tx : 0, cz = rts ? rts.tz : 0, cy = rts ? rts.ty : 0;
+      this.pts.position.set(cx, cy, cz);
+      const p = this.p;
+      for (let i = 0; i < this.N; i++) {
+        p[i * 3 + 1] -= this.fall * dt;
+        p[i * 3] += this.drift * dt * (this.kind === 'snowstorm' ? 1 : Math.sin(i));
+        if (p[i * 3 + 1] < -2) { p[i * 3 + 1] = 55 + Math.random() * 10; p[i * 3] = (Math.random() - 0.5) * 160; p[i * 3 + 2] = (Math.random() - 0.5) * 160; }
+        if (p[i * 3] > 80) p[i * 3] -= 160;
+      }
+      this.geo.attributes.position.needsUpdate = true;
+    }
+    dispose() { this.geo.dispose(); this.mat.dispose(); }
+  }
+  RW.WeatherFx = WeatherFx;
 
   RW.BattleRenderer = BattleRenderer;
 })();

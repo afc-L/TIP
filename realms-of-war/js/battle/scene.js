@@ -3,6 +3,7 @@
   const RW = window.RW;
   const T = THREE;
   const U = RW.util;
+  const D = RW.data;
   const ui = RW.ui;
   const STEP = 0.05;
 
@@ -69,6 +70,9 @@
           </div>
         </div>
         <div class="b-map-name">${mapInfo ? mapInfo.name : ''}${b.siege ? (b.attackerSide === 0 ? ' · You are attacking' : ' · You are defending') : ''}</div>
+        <div class="b-weather" data-tip="${U.escape(D.WEATHER[b.weather].desc)}">${D.WEATHER[b.weather].name}</div>
+        <div class="b-capture"><span></span><div class="bar"><div class="fill"></div></div></div>
+        <div class="b-pops"></div>
         <div class="b-msgs"></div>
         <div class="b-deploy panel">
           <div><b>Deployment</b> — drag-select and right-click inside the gold zone to position your army. Right-drag to set a line and facing.</div>
@@ -85,7 +89,7 @@
             <div class="b-mini panel"><canvas width="190" height="190"></canvas></div>
           </div>
         </div>
-        <div class="b-help">WASD/edge: pan · Q/E: rotate · Wheel/R/F: zoom · Middle-drag or Alt+drag: orbit · Ctrl+A: select all · T/Y/U formations · G hold · H halt · Z/X/C abilities</div>
+        <div class="b-help">WASD/edge: pan · Q/E: rotate · Wheel/R/F: zoom · Middle-drag or Alt+drag: orbit · Ctrl+A: select all · T/Y/U formations · G hold · H halt · Z/X/C/V/B abilities</div>
       </div>`);
       this.hud = el;
       this.$ = (s) => el.querySelector(s);
@@ -100,7 +104,7 @@
       for (const u of b.units.filter((x) => x.side === 0)) {
         const c = U.html(`<div class="ucard" style="--fc:${me.color}">
           <div class="uc-top">${RW.unitIcon(u.typeId)}<span class="uc-rank">${'▲'.repeat(u.rank)}</span></div>
-          <div class="uc-name">${u.isGeneral ? 'General' : u.name}</div>
+          <div class="uc-name">${u.isGeneral ? (u.typeId.startsWith('legend_') ? U.escape(u.name.split(' ').slice(-1)[0]) : 'General') : u.name}</div>
           <div class="uc-count"></div>
           <div class="bar hp"><div class="fill"></div></div>
           <div class="bar mor"><div class="fill"></div></div>
@@ -125,7 +129,7 @@
       this.bannerEls = new Map();
       const bl = this.$('.b-banners');
       for (const u of b.units) {
-        const be = U.html(`<div class="ubanner ${u.side === 0 ? 'mine' : 'foe'}" style="--fc:${b.sides[u.side].color}">${RW.unitIcon(u.typeId)}<div class="ub-bar"><div></div></div></div>`);
+        const be = U.html(`<div class="ubanner ${u.side === 0 ? 'mine' : 'foe'}" style="--fc:${b.sides[u.side].color}">${RW.unitIcon(u.typeId)}<div class="ub-bar"><div></div></div><span class="ub-rank"></span></div>`);
         be._tip = () => this.unitTip(u);
         be.addEventListener('mousedown', (e) => {
           e.stopPropagation(); e.preventDefault();
@@ -147,7 +151,7 @@
       }
       // Abilities
       const ab = this.$('.b-abilities');
-      const keys = ['Z', 'X', 'C'];
+      const keys = ['Z', 'X', 'C', 'V', 'B', 'N'];
       this.abilityEls = me.abilities.map((a, i) => {
         const btn = U.html(`<button class="ability" style="--ac:${a.def.color}">${RW.icon(a.def.icon)}<span class="cd"></span><span class="key">${keys[i]}</span></button>`);
         btn._tip = () => ui.abilityTip(a.id, a.cdMax) + (me.general && me.general.gone ? '<div class="tip-warn">Your general is dead — abilities unavailable.</div>' : '');
@@ -217,12 +221,13 @@
       ctx.imageSmoothingEnabled = true;
       ctx.drawImage(this.miniBg, 0, 0, W, W);
       ctx.restore();
-      if (b.map.gate && b.map.gate.hp > 0) { const p = this.worldToMini(b.map.gate.x, b.map.gate.z); ctx.fillStyle = '#5a3c22'; ctx.fillRect(p.x - 4, p.y - 2, 8, 4); }
+      for (const g of b.map.gates) { const p = this.worldToMini(g.x, g.z); ctx.fillStyle = g.hp > 0 ? '#5a3c22' : '#e05a3a'; ctx.fillRect(p.x - 4, p.y - 2, 8, 4); }
+      if (b.map.capture) { const c = b.map.capture, p = this.worldToMini(c.x, c.z); ctx.strokeStyle = '#ffd76a'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(p.x, p.y, c.r * (W / b.map.size), 0, Math.PI * 2); ctx.stroke(); }
       const s = W / b.map.size;
       for (const u of b.units) {
         if (u.gone || (u.hidden && u.side !== 0)) continue;
         const p = this.worldToMini(u.x, u.z);
-        const col = u.state === 'routing' ? '#ddd' : b.sides[u.side].color;
+        const col = u.state === 'routing' ? (Math.floor(b.time * 3) % 2 ? '#fff' : '#888') : b.sides[u.side].color;
         ctx.save();
         ctx.translate(p.x, p.y);
         ctx.rotate(-u.facing + (b.sideNorth[0] ? Math.PI : 0));
@@ -250,7 +255,9 @@
         c.classList.toggle('routing', u.state === 'routing');
         c.classList.toggle('fighting', u.state === 'fighting');
         c.classList.toggle('wavering', u.active && u.morale < 25);
-        c.querySelector('.uc-count').textContent = `${u.alive}/${u.count}`;
+        c.querySelector('.uc-count').textContent = `${u.alive}/${u.count}` + (u.kills ? ` · ${u.kills}☠` : '');
+        c.querySelector('.uc-rank').textContent = '▲'.repeat(u.rank);
+        c.classList.toggle('flying', u.fly && u.alt > 4);
         c.querySelector('.hp .fill').style.width = (u.alive / u.count) * 100 + '%';
         c.querySelector('.mor .fill').style.width = U.clamp(u.morale / 100, 0, 1) * 100 + '%';
         const am = c.querySelector('.ammo .fill');
@@ -530,12 +537,22 @@
         if (target && target.side !== 0) { this.attackOrder(target); return; }
         const g = this.groundAt(e.clientX, e.clientY);
         if (!g) return;
-        const gate = this.battle.map.gate;
-        if (gate && gate.hp > 0 && this.battle.attackerSide === 0 && this.battle.phase === 'battle' && Math.hypot(g.x - gate.x, g.z - gate.z) < 9) {
-          for (const u of this.selList) u.orderGate();
+        const map = this.battle.map;
+        const gate = map.nearestGate(g.x, g.z);
+        if (gate && this.battle.attackerSide === 0 && this.battle.phase === 'battle' && Math.hypot(g.x - gate.x, g.z - gate.z) < 9) {
+          for (const u of this.selList) u.orderGate(gate);
           this.view.orderMarker(gate.x, gate.z + 4, '#ffb03a');
           RW.audio.play('order');
           ui.toast('Attacking the gate!');
+          return;
+        }
+        // Siege towers: right-click the wall to send them against it.
+        const towers = this.selList.filter((u) => u.equip === 'tower' && !u.docked);
+        if (towers.length && map.siegeWalls && Math.abs(g.z - map.wallZ) < 12 && this.battle.phase === 'battle') {
+          towers.forEach((u, i) => u.orderTower(U.clamp(g.x + (i - (towers.length - 1) / 2) * 14, -110, 110)));
+          this.view.orderMarker(g.x, map.wallZ + 6, '#ffb03a');
+          RW.audio.play('order');
+          ui.toast('Siege towers advancing on the wall.');
           return;
         }
         this.moveOrder(g.x, g.z);
@@ -551,6 +568,9 @@
       else if (k === 'KeyZ') this.useAbility(0);
       else if (k === 'KeyX') this.useAbility(1);
       else if (k === 'KeyC') this.useAbility(2);
+      else if (k === 'KeyV') this.useAbility(3);
+      else if (k === 'KeyB') this.useAbility(4);
+      else if (k === 'KeyN') this.useAbility(5);
       else if (k === 'KeyT') this.setFormation('line');
       else if (k === 'KeyY') this.setFormation('defensive');
       else if (k === 'KeyU') this.setFormation('loose');
@@ -581,7 +601,10 @@
       b.on('volley', (u, kind) => { if (this.near(u)) RW.audio.play(kind === 'boulder' ? 'thud' : kind === 'magic' || kind === 'bolt' ? 'magic' : 'arrows', 120); });
       b.on('impact', (p) => { RW.audio.play(p.explode === 'meteor' || p.explode === 'fire' || p.explode === 'quake' ? 'boom' : 'thud', 80); });
       b.on('charge', (a) => { if (this.near(a)) RW.audio.play('charge', 300); });
-      b.on('rout', (u) => { if (u.side === 0) RW.audio.play('rout', 400); });
+      b.on('rout', (u) => { if (u.side === 0) RW.audio.play('rout', 400); this.popup(u, u.shattered ? 'Shattered!' : 'Routing!', 'bad'); });
+      b.on('rally', (u) => this.popup(u, 'Rallied!', 'good'));
+      b.on('rankup', (u) => { this.popup(u, 'Rank up! ' + '▲'.repeat(u.rank), 'gold'); if (u.side === 0) RW.audio.play('coin', 300); });
+      b.on('destroyed', (u) => { if (u.t.large) RW.audio.play('roar', 300); });
       b.on('ability', (a) => RW.audio.play(a.sound || 'magic'));
       b.on('gate', () => RW.audio.play('boom'));
       b.on('gatehit', () => RW.audio.play('thud', 400));
@@ -616,6 +639,7 @@
         if (g) { this.targetRing.visible = true; this.targetRing.position.set(g.x, b.map.heightAt(g.x, g.z) + 0.6, g.z); this.targetRing.scale.set(def.radius, 1, def.radius); }
       } else this.targetRing.visible = false;
       this.updateBanners();
+      this.updatePops();
       this.uiTimer -= dt;
       if (this.uiTimer <= 0) {
         this.uiTimer = 0.2;
@@ -624,6 +648,11 @@
         this.updateTop();
         ui.refreshTip();
         for (const u of [...this.selected]) if (u.gone) this.selected.delete(u);
+        for (const u of b.units) {
+          const w = u.active && u.morale < 25;
+          if (w && !u._waver && u.side === 0) this.popup(u, 'Wavering!', 'warn');
+          u._waver = w;
+        }
         let engaged = 0;
         for (const u of b.units) if (u.state === 'fighting') engaged++;
         RW.audio.din(b.phase === 'battle' && !this.paused ? engaged / 8 : 0);
@@ -657,10 +686,34 @@
       this.$('.b-men .m1').textContent = men(1) + (b.units.some((u) => u.side === 1 && u.hidden && !u.gone) ? '+ men' : ' men');
       const left = b.timeLimit - b.time;
       this.$('.b-timer').textContent = U.fmtTime(b.time) + (left < 180 ? ` (${U.fmtTime(left)} left)` : '');
-      if (b.map.gate && b.map.gate.hp > 0 && b.phase === 'battle') this.$('.b-map-name').textContent = `Gate: ${Math.round((b.map.gate.hp / b.map.gate.maxHp) * 100)}%` + (b.attackerSide === 0 ? ' · Right-click the gate to batter it' : '');
-      else if (b.map.gate) this.$('.b-map-name').textContent = 'The gate is broken!';
+      if (b.map.gates.length && b.phase === 'battle') {
+        const gs = b.map.gates.map((g, i) => `${i ? 'East' : 'West'} gate ${g.hp > 0 ? Math.round((g.hp / g.maxHp) * 100) + '%' : 'broken'}`).join(' · ');
+        this.$('.b-map-name').textContent = gs + (b.map.breaches.length ? ` · ${b.map.breaches.length} breach${b.map.breaches.length > 1 ? 'es' : ''}` : '') + (b.attackerSide === 0 && b.map.gates.some((g) => g.hp > 0) ? ' · Right-click a gate to batter it' : '');
+      }
+      const c = b.map.capture, cap = this.$('.b-capture');
+      if (c && b.phase === 'battle' && (c.progress > 0 || c.contested)) {
+        cap.style.display = 'flex';
+        cap.querySelector('span').textContent = c.contested ? 'Plaza contested' : `Plaza: ${Math.round((c.progress / c.need) * 100)}%`;
+        cap.querySelector('.fill').style.width = (c.progress / c.need) * 100 + '%';
+      } else cap.style.display = 'none';
     }
 
+    // Floating text above a regiment (morale changes, rank-ups).
+    popup(u, text, kind) {
+      if (u.hidden && u.side !== 0) return;
+      const el = U.html(`<div class="bpop ${kind} ${u.side === 0 ? 'mine' : 'foe'}">${U.escape(text)}</div>`);
+      el._unit = u; el._t = 0;
+      this.$('.b-pops').appendChild(el);
+      setTimeout(() => el.remove(), 1800);
+    }
+    updatePops() {
+      for (const el of this.$('.b-pops').children) {
+        const u = el._unit;
+        const p = this.screenPos(u.x, this.battle.map.heightAt(u.x, u.z) + (u.large ? 10 : 7), u.z);
+        if (!p) { el.style.display = 'none'; continue; }
+        el.style.transform = `translate(${p.x | 0}px, ${p.y | 0}px)`;
+      }
+    }
     updateBanners() {
       const W = window.innerWidth, H = window.innerHeight;
       const far = this.rts.dist > 220;
@@ -673,7 +726,9 @@
         el.style.transform = `translate(${p.x | 0}px, ${p.y | 0}px)`;
         el.classList.toggle('sel', this.selected.has(u));
         el.classList.toggle('routing', u.state === 'routing');
+        el.classList.toggle('waver', u.active && u.morale < 25);
         el.classList.toggle('small', far);
+        el.querySelector('.ub-rank').textContent = u.rank ? '▲'.repeat(u.rank) : '';
         el.firstElementChild.nextElementSibling.firstElementChild.style.width = (u.alive / u.count) * 100 + '%';
       }
     }
@@ -683,24 +738,68 @@
       this.ended = true;
       this.paused = false;
       RW.audio.din(0);
-      setTimeout(() => {
-        RW.audio.play(res.playerWon ? 'victory' : 'defeat');
-        const b = this.battle;
-        const rows = b.units.filter((u) => u.side === 0).map((u) => `<tr class="${u.state === 'dead' ? 'dead' : ''}"><td>${RW.unitIcon(u.typeId)} ${U.escape(u.isGeneral ? u.name : u.name)}</td><td>${u.state === 'dead' ? 0 : u.alive}/${u.startAlive}</td><td>${u.kills}</td></tr>`).join('');
-        const title = res.reason === 'retreat' ? 'Retreat' : res.playerWon ? (res.lost[1] / Math.max(1, res.start[1]) > 0.75 && res.lost[0] / Math.max(1, res.start[0]) < 0.3 ? 'Heroic Victory!' : 'Victory!') : 'Defeat';
-        const sub = res.reason === 'time' ? 'Time ran out.' : res.reason === 'retreat' ? 'You withdrew from the field.' : res.playerWon ? 'The enemy flees the field!' : 'Your army has been broken.';
-        ui.modal({
-          title: `<span class="${res.playerWon ? 'win' : 'lose'}">${title}</span>`,
-          cls: 'results',
-          body: `<p class="center">${sub} · Battle time ${U.fmtTime(res.duration)}</p>
-            <div class="res-grid">
-              <div><h3>${ui.emblem(b.sides[0].faction, 26)} Your army</h3><p>Lost ${res.lost[0]} of ${res.start[0]} · Killed ${res.kills[0]}</p></div>
-              <div><h3>${ui.emblem(b.sides[1].faction, 26)} Enemy</h3><p>Lost ${res.lost[1]} of ${res.start[1]} · Killed ${res.kills[1]}</p></div>
-            </div>
-            <table class="res-units"><tr><th>Unit</th><th>Survivors</th><th>Kills</th></tr>${rows}</table>`,
-          buttons: [{ label: 'Continue', cls: 'primary', onClick: () => this.finish(res) }],
-        });
-      }, res.reason === 'retreat' ? 100 : 1500);
+      // Campaign (or another mode) resolves the outcome now so rewards can be shown here.
+      const rewards = this.cfg.resolve ? this.cfg.resolve(res) : null;
+      this.resolved = true;
+      setTimeout(() => this.showAftermath(res, rewards), res.reason === 'retreat' ? 100 : 1500);
+    }
+
+    // Aftermath: casualties, experience, rewards and a replay summary of the battle.
+    showAftermath(res, rw) {
+      RW.audio.play(res.playerWon ? 'victory' : 'defeat');
+      const b = this.battle;
+      const rows = b.units.filter((u) => u.side === 0 && !u.equip).map((u) => `<tr class="${u.state === 'dead' ? 'dead' : ''}"><td>${RW.unitIcon(u.typeId)} ${U.escape(u.name)}${u.rankGained ? ` <span class="rk-up">+${u.rankGained} rank ${'▲'.repeat(u.rank)}</span>` : ''}</td><td>${u.state === 'dead' ? 0 : u.alive}/${u.startAlive}</td><td>${u.kills}</td></tr>`).join('');
+      const title = res.reason === 'retreat' ? 'Retreat' : res.playerWon ? (res.lost[1] / Math.max(1, res.start[1]) > 0.75 && res.lost[0] / Math.max(1, res.start[0]) < 0.3 ? 'Heroic Victory!' : 'Victory!') : 'Defeat';
+      const sub = { time: 'Time ran out.', retreat: 'You withdrew from the field.', capture: res.playerWon ? 'You seized the plaza!' : 'The enemy seized the plaza.' }[res.reason] || (res.playerWon ? 'The enemy flees the field!' : 'Your army has been broken.');
+      const ranked = b.units.filter((u) => u.side === 0 && u.rankGained).length;
+      let rewardHtml = '';
+      if (rw) {
+        const items = (rw.items || []).map((it) => `<span class="item r-${it.rarity}">${RW.icon('gem')} ${U.escape(it.name)}</span>`).join('');
+        rewardHtml = `<div class="rewards">
+          ${rw.gold ? `<div>${RW.icon('gold', 'gold')} <b>+${rw.gold}</b> gold</div>` : ''}
+          ${rw.cmdXp ? `<div>${RW.icon('crown')} ${U.escape(rw.cmdName || 'Commander')} +${rw.cmdXp} XP${rw.levelUp ? ` · <b>Level ${rw.levelUp}!</b>` : ''}</div>` : ''}
+          ${rw.text ? `<div class="dim">${U.escape(rw.text)}</div>` : ''}
+          ${items ? `<div>Found: ${items}</div>` : ''}
+          ${(rw.extra || []).map((x) => `<div>${x}</div>`).join('')}
+        </div>`;
+      }
+      const tl = (res.timeline || []).map((e) => `<div class="tl ${e.side === 0 ? 'mine' : 'foe'}"><span>${U.fmtTime(e.t)}</span>${U.escape(e.text)}</div>`).join('') || '<div class="dim">A quick, decisive clash.</div>';
+      const body = U.html(`<div class="aftermath">
+        <p class="center">${sub} · ${U.fmtTime(res.duration)} · ${RW.data.BATTLE_MAPS[res.mapType].name}${res.weather !== 'clear' ? ' · ' + RW.data.WEATHER[res.weather].name : ''}</p>
+        <div class="res-grid">
+          <div><h3>${ui.emblem(b.sides[0].faction, 26)} Your army</h3><p>Lost ${res.lost[0]} of ${res.start[0]}</p><p class="dim">Killed ${res.kills[0]}${res.risen[0] ? ` · ${res.risen[0]} rose again` : ''}</p></div>
+          <div><h3>${ui.emblem(b.sides[1].faction, 26)} Enemy</h3><p>Lost ${res.lost[1]} of ${res.start[1]}</p><p class="dim">Killed ${res.kills[1]}${res.risen[1] ? ` · ${res.risen[1]} rose again` : ''}</p></div>
+        </div>
+        ${rewardHtml}
+        <div class="tabs"><button class="btn sm on" data-t="units">Units${ranked ? ` (${ranked} ranked up)` : ''}</button><button class="btn sm" data-t="replay">Battle replay</button></div>
+        <div class="tab t-units"><table class="res-units"><tr><th>Unit</th><th>Survivors</th><th>Kills</th></tr>${rows}</table></div>
+        <div class="tab t-replay" hidden><canvas class="graph" width="560" height="140"></canvas><div class="legend"><span class="mine">Your strength</span><span class="foe">Enemy strength</span></div><div class="timeline">${tl}</div></div>
+      </div>`);
+      body.querySelectorAll('.tabs button').forEach((btn) => (btn.onclick = () => {
+        body.querySelectorAll('.tabs button').forEach((x) => x.classList.toggle('on', x === btn));
+        body.querySelector('.t-units').hidden = btn.dataset.t !== 'units';
+        body.querySelector('.t-replay').hidden = btn.dataset.t !== 'replay';
+        if (btn.dataset.t === 'replay') this.drawGraph(body.querySelector('.graph'), res.samples || [], [b.sides[0].color, b.sides[1].color]);
+      }));
+      ui.modal({ title: `<span class="${res.playerWon ? 'win' : 'lose'}">${title}</span>`, cls: 'results wide', body, buttons: [{ label: 'Continue', cls: 'primary', onClick: () => this.finish(res) }] });
+    }
+
+    // Army strength over time, both sides on one scale.
+    drawGraph(cv, samples, cols) {
+      const ctx = cv.getContext('2d'), W = cv.width, H = cv.height;
+      ctx.clearRect(0, 0, W, H);
+      if (samples.length < 2) return;
+      const tMax = samples[samples.length - 1][0] || 1;
+      const pMax = Math.max(1, ...samples.map((s) => Math.max(s[1], s[2])));
+      ctx.strokeStyle = 'rgba(255,255,255,0.08)'; ctx.lineWidth = 1;
+      for (let k = 1; k < 4; k++) { ctx.beginPath(); ctx.moveTo(0, (H * k) / 4); ctx.lineTo(W, (H * k) / 4); ctx.stroke(); }
+      for (const side of [1, 2]) {
+        ctx.beginPath();
+        samples.forEach((s, i) => { const x = (s[0] / tMax) * (W - 4) + 2, y = H - 4 - (s[side] / pMax) * (H - 10); if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); });
+        ctx.strokeStyle = cols[side - 1]; ctx.lineWidth = 2.5; ctx.stroke();
+      }
+      ctx.fillStyle = 'rgba(234,223,196,0.7)'; ctx.font = '11px sans-serif';
+      ctx.fillText('0:00', 2, H - 2); ctx.fillText(U.fmtTime(tMax), W - 34, H - 2);
     }
     finish(res) {
       const done = this.onDone;

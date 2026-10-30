@@ -92,6 +92,8 @@
     },
     charge() { noise(0.9, 'lowpass', 300, 1, 0.35, 0.1); tone('sawtooth', 130, 170, 0.5, 0.04); },
     rout() { tone('sawtooth', 300, 120, 0.6, 0.05); },
+    roar() { tone('sawtooth', 90, 45, 0.8, 0.12); noise(0.7, 'lowpass', 500, 2, 0.25, 0.05); },
+    hooves() { for (let k = 0; k < 6; k++) { noise(0.06, 'lowpass', 300, 1, 0.12, 0.003); } },
     victory() { [392, 494, 587, 784].forEach((f, i) => tone('triangle', f, f, 0.9, 0.12, sfxBus, i * 0.18)); },
     defeat() { [392, 349, 311, 262].forEach((f, i) => tone('triangle', f, f * 0.98, 1.0, 0.12, sfxBus, i * 0.3)); },
   };

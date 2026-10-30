@@ -9,7 +9,7 @@
   class CampaignView {
     constructor(campaign) {
       this.c = campaign;
-      this.map = RW.campaignMap();
+      this.map = campaign.map;
       this.q = RW.quality();
       const scene = (this.scene = new T.Scene());
       scene.background = new T.Color('#1d2a36');
@@ -20,7 +20,7 @@
       if (this.q.shadows) {
         sun.castShadow = true;
         sun.shadow.mapSize.set(this.q.shadowSize, this.q.shadowSize);
-        const c = sun.shadow.camera; c.left = -70; c.right = 70; c.top = 60; c.bottom = -60; c.near = 1; c.far = 160;
+        const c = sun.shadow.camera; const ex = campaign.map.extent; const hw = ex.x / 2 + 12, hh = ex.z / 2 + 12; c.left = -hw; c.right = hw; c.top = hh; c.bottom = -hh; c.near = 1; c.far = 200;
         sun.shadow.bias = -0.001;
       }
       const ext = this.map.extent;
@@ -97,8 +97,31 @@
       peaks.count = peakTiles.length;
       peaks.castShadow = this.q.shadows;
       this.scene.add(peaks);
+      // Landmarks and ruins (Greater Realm)
+      this.ruinGlows = new Map();
+      for (const td of this.map.territories) {
+        const site = this.map.sites[td.id];
+        if (td.landmark) {
+          const mesh = new T.Mesh(this.track(M.landmarkGeometry(td.landmark)), this.track(new T.MeshLambertMaterial({ vertexColors: true })));
+          mesh.scale.setScalar(0.5);
+          mesh.position.set(site.x + 2.0, this.tileHeight(site.x + 2.0, site.z - 1.6), site.z - 1.6);
+          mesh.castShadow = this.q.shadows;
+          this.scene.add(mesh);
+        }
+        if (td.ruins) {
+          const mesh = new T.Mesh(this.track(M.ruinsGeometry()), this.track(new T.MeshLambertMaterial({ vertexColors: true })));
+          mesh.scale.setScalar(0.45);
+          const rx = site.x - 2.4, rz = site.z - 1.5;
+          mesh.position.set(rx, this.tileHeight(rx, rz), rz);
+          this.scene.add(mesh);
+          const glow = new T.PointLight('#ffcf6a', 0.9, 6);
+          glow.position.set(rx, mesh.position.y + 1.2, rz);
+          this.scene.add(glow);
+          this.ruinGlows.set(td.id, glow);
+        }
+      }
       // Shrines
-      for (const td of D.TERRITORIES) {
+      for (const td of this.map.territories) {
         if (!td.shrine) continue;
         const site = this.map.sites[td.id];
         const mesh = new T.Mesh(this.track(M.shrineGeometry()), this.track(new T.MeshLambertMaterial({ vertexColors: true, emissive: '#113', emissiveIntensity: 0.4 })));
@@ -121,6 +144,19 @@
       return this._siteH[tid];
     }
     tileHeight(x, z) {
+      // Fast path: look up the hex under the point, falling back to a full search near the coast.
+      const HEX = this.map.HEX, r = Math.round(z / (1.5 * HEX)), c = Math.round((x - (r & 1 ? Math.sqrt(3) * HEX / 2 : 0)) / (Math.sqrt(3) * HEX));
+      if (r >= 0 && c >= 0 && r < this.map.H && c < this.map.W) {
+        let best = null, bd = Infinity;
+        for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+          const rr = r + dr, cc = c + dc;
+          if (rr < 0 || cc < 0 || rr >= this.map.H || cc >= this.map.W) continue;
+          const tl = this.map.tiles[rr * this.map.W + cc];
+          const d = (tl.x - x) ** 2 + (tl.z - z) ** 2;
+          if (d < bd) { bd = d; best = tl; }
+        }
+        if (best) return best.t === -1 ? 0.12 : best.h;
+      }
       let best = null, bd = Infinity;
       for (const tl of this.map.tiles) { const d = (tl.x - x) ** 2 + (tl.z - z) ** 2; if (d < bd) { bd = d; best = tl; } }
       return best ? (best.t === -1 ? 0.12 : best.h) : 0.5;
@@ -154,7 +190,7 @@
         if (tl.t === -1) { col.set('#2b4f6e'); im.setColorAt(i, col); return; }
         if (tl.water) { col.set('#3f78a8'); im.setColorAt(i, col); return; }
         const t = c.terr(tl.t);
-        tc.set(D.TERRAIN_INFO[D.TERRITORIES[tl.t].terrain].color);
+        tc.set(tl.lava ? '#d2571e' : D.TERRAIN_INFO[this.map.territories[tl.t].terrain].color);
         oc.set(D.FACTIONS[t.owner].color);
         col.copy(tc).lerp(oc, t.owner === 'rebels' ? 0.15 : 0.42);
         if (tl.border) col.lerp(oc, 0.35).multiplyScalar(0.8);
@@ -166,12 +202,13 @@
       im.instanceColor.needsUpdate = true;
       // Settlements
       for (const t of c.territories) {
-        const key = `${t.owner}|${t.level}|${t.buildings.walls}`;
+        const key = `${t.owner}|${t.level}|${t.buildings.walls}|${this.bannerOf(t.owner)}`;
         let s = this.settlements.get(t.id);
         if (s && s.key === key) continue;
         if (s) { this.scene.remove(s.mesh); s.mesh.geometry.dispose(); }
         const site = this.map.sites[t.id];
-        const geo = M.settlementGeometry(t.level, D.FACTIONS[t.owner].color, t.buildings.walls);
+        const F = D.FACTIONS[t.owner];
+        const geo = M.settlementGeometry(t.level, this.bannerOf(t.owner), t.buildings.walls, F.style, F.color2);
         const mesh = new T.Mesh(geo, this.settleMat || (this.settleMat = this.track(new T.MeshLambertMaterial({ vertexColors: true }))));
         mesh.scale.setScalar(0.62);
         mesh.position.set(site.x, this.tileHeight(site.x, site.z), site.z);
@@ -184,23 +221,26 @@
       for (const a of c.armies) {
         alive.add(a.id);
         let tok = this.tokens.get(a.id);
+        if (tok && tok.color !== this.bannerOf(a.faction)) { this.scene.remove(tok.mesh); tok.mesh.geometry.dispose(); this.tokens.delete(a.id); tok = null; }
         if (!tok) {
           const f = D.FACTIONS[a.faction];
-          const mesh = new T.Mesh(M.armyTokenGeometry(f.color, f.color2), this.tokenMat || (this.tokenMat = this.track(new T.MeshLambertMaterial({ vertexColors: true }))));
+          const mesh = new T.Mesh(M.armyTokenGeometry(this.bannerOf(a.faction), f.color2), this.tokenMat || (this.tokenMat = this.track(new T.MeshLambertMaterial({ vertexColors: true }))));
           mesh.scale.setScalar(0.55);
           mesh.castShadow = this.q.shadows;
           this.scene.add(mesh);
           const p = this.tokenPos(a.tid);
           mesh.position.set(p.x, p.y, p.z);
-          tok = { mesh, army: a, from: null, t: 1 };
+          tok = { mesh, army: a, from: null, t: 1, color: this.bannerOf(a.faction) };
           this.tokens.set(a.id, tok);
         }
         tok.army = a;
         const p = this.tokenPos(a.tid);
+        tok.baseY = p.y;
         if (Math.hypot(tok.mesh.position.x - p.x, tok.mesh.position.z - p.z) > 0.1 && (!tok.to || tok.to.x !== p.x || tok.to.z !== p.z)) {
           tok.from = tok.mesh.position.clone(); tok.to = p; tok.t = 0;
         }
       }
+      for (const [tid, glow] of this.ruinGlows) glow.visible = !c.explored.includes(tid);
       for (const [id, tok] of this.tokens) if (!alive.has(id)) { this.scene.remove(tok.mesh); tok.mesh.geometry.dispose(); this.tokens.delete(id); }
       // Selection ring
       if (this.selectedT >= 0) {
@@ -209,13 +249,17 @@
         this.selRing.position.set(s.x, this.tileHeight(s.x, s.z) + 0.1, s.z);
       } else this.selRing.visible = false;
     }
+    bannerOf(f) {
+      const fs = this.c.factions[f];
+      return (fs && fs.banner) || D.FACTIONS[f].color;
+    }
     tokenPos(tid) {
       const s = this.map.sites[tid];
       const x = s.x - 2.1, z = s.z + 1.2;
       return { x, y: this.tileHeight(x, z), z };
     }
     // Promise resolves when the token has walked to its new territory.
-    animateArmy(a, ms = 450) {
+    animateArmy(a, ms = RW.settings.fastCampaign ? 220 : 450) {
       this.refresh();
       return new Promise((res) => setTimeout(res, ms));
     }
@@ -230,12 +274,16 @@
       this.time += dt;
       for (const tok of this.tokens.values()) {
         if (tok.from && tok.t < 1) {
-          tok.t = Math.min(1, tok.t + dt * 2.4);
+          tok.t = Math.min(1, tok.t + dt * (RW.settings.fastCampaign ? 5 : 2.4));
           const k = tok.t * tok.t * (3 - 2 * tok.t);
           tok.mesh.position.set(U.lerp(tok.from.x, tok.to.x, k), U.lerp(tok.from.y, tok.to.y, k) + Math.sin(k * Math.PI) * 1.2, U.lerp(tok.from.z, tok.to.z, k));
           if (tok.t >= 1) tok.from = null;
         }
-        tok.mesh.rotation.y = Math.sin(this.time * 1.5 + tok.army.id) * 0.15;
+        // Idle armies sway like a camp in the wind; marching ones bob with each step.
+        const marching = tok.from && tok.t < 1;
+        tok.mesh.rotation.y = marching ? Math.atan2(tok.to.x - tok.from.x, tok.to.z - tok.from.z) * 0.3 : Math.sin(this.time * 1.5 + tok.army.id) * 0.15;
+        tok.mesh.rotation.z = marching ? Math.sin(this.time * 18) * 0.08 : 0;
+        if (!marching) tok.mesh.position.y = tok.baseY + Math.abs(Math.sin(this.time * 2 + tok.army.id)) * 0.08;
       }
       if (this.selRing.visible) this.selRing.material.opacity = 0.6 + Math.sin(this.time * 4) * 0.3;
     }

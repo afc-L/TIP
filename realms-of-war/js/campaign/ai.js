@@ -49,7 +49,7 @@
     // ---- Construction
     const mine = c.owned(f);
     const cap = c.terr(fs.capital);
-    const threatened = (t) => c.adj(t.id).some((n) => { const a = c.armyAt(n); return a && a.faction !== f && a.faction !== 'rebels'; });
+    const threatened = (t) => c.adj(t.id).some((n) => { const a = c.armyAt(n); return a && a.faction !== f && a.faction !== 'rebels' && c.atWar(f, a.faction); });
     if (cap && cap.owner === f) {
       if (smart && threatened(cap) && !cap.buildings.walls && fs.gold > c.buildingCost(cap, 'walls') + 200) c.build(cap, 'walls');
       if (cap.level < 3 && fs.gold > c.upgradeCost(cap) + 1200) c.upgradeSettlement(cap);
@@ -82,7 +82,9 @@
       if (slots <= 0 || a.units.length >= RW.MAX_UNITS) continue;
       const budget = fs.gold - reserve;
       if (budget < 250) continue;
-      const want = D.genArmy(f, budget, t.level, Math.min(RW.MAX_UNITS, a.units.length + slots), Math.random, a.units.map((u) => u.typeId));
+      // Classic campaign: the AI keeps its original rosters so the challenge is unchanged.
+      const filter = (u) => (c.grand || !u.added) && c.rareOk(f, u, t);
+      const want = D.genArmy(f, budget, t.level, Math.min(RW.MAX_UNITS, a.units.length + slots), Math.random, a.units.map((u) => u.typeId), filter);
       for (const id of want) if (c.recruit(a, id)) break;
     }
 
@@ -111,7 +113,7 @@
 
     // Defend the capital if an enemy army stronger than its garrison is next to it.
     if (ctx.smart && capT && capT.owner === f && a.tid !== capT.id) {
-      const threat = c.adj(capT.id).map((n) => c.armyAt(n)).filter((x) => x && x.faction !== f && x.faction !== 'rebels');
+      const threat = c.adj(capT.id).map((n) => c.armyAt(n)).filter((x) => x && x.faction !== f && x.faction !== 'rebels' && c.atWar(f, x.faction));
       const tp = threat.reduce((s, x) => s + c.armyPower(x), 0);
       if (tp > c.garrisonPower(capT) * 1.1 && !c.armyAt(capT.id)) {
         const step = firstStep(c, a.tid, capT.id, (n) => { const o = c.armyAt(n); return !o; });
@@ -120,7 +122,7 @@
     }
     // Stay to defend the capital when it's threatened.
     if (ctx.smart && capT && a.tid === capT.id) {
-      const threat = c.adj(capT.id).map((n) => c.armyAt(n)).filter((x) => x && x.faction !== f && x.faction !== 'rebels');
+      const threat = c.adj(capT.id).map((n) => c.armyAt(n)).filter((x) => x && x.faction !== f && x.faction !== 'rebels' && c.atWar(f, x.faction));
       if (threat.length) {
         // Strike first if clearly stronger, otherwise hold.
         const weakest = threat.sort((x, y) => c.armyPower(x) - c.armyPower(y))[0];
@@ -151,8 +153,9 @@
       const other = c.armyAt(n);
       const Dp = c.defensePower(n, f) * (c.isSiege(n, other ? other.faction : t.owner) && !a.units.some((u) => D.UNITS[u.typeId].cat === 'siege') ? 1.15 : 1);
       if (S < Dp * need) continue;
-      let value = 1 + t.level * 0.5 + (t.shrine ? 1 : 0) + (D.PLAYABLE.some((g) => c.factions[g].startCapital === n && g !== f) ? 2 : 0);
+      let value = 1 + t.level * 0.5 + (t.shrine ? 1 : 0) + (c.majors.some((g) => c.factions[g].startCapital === n && g !== f) ? 2 : 0);
       const owner = other ? other.faction : t.owner;
+      value *= warBias(c, f, owner);
       if (owner === ctx.player) value *= 1 + 0.4 * ctx.P.aggression;
       if (other && owner !== 'rebels') value += 1.5; // hunt weak armies
       if (owner === 'rebels') value *= 0.85;
@@ -166,12 +169,12 @@
     const dist = distances(c, a.tid, (n) => { const o = c.armyAt(n); return (!o || o.faction === f) && (c.terr(n).owner === f || n === a.tid); });
     let goal = null, gs = 0;
     for (const t of c.territories) {
-      if (t.owner === f) continue;
+      if (t.owner === f || !c.atWar(f, t.owner)) continue;
       const d = dist.get(t.id);
       if (d == null || d > 6) continue;
       const Dp = c.defensePower(t.id, f);
       if (S < Dp * (need - 0.1)) continue;
-      let v = (1 + t.level * 0.5 + (t.shrine ? 1 : 0)) * (t.owner === ctx.player ? 1 + 0.3 * ctx.P.aggression : 1);
+      let v = (1 + t.level * 0.5 + (t.shrine ? 1 : 0)) * (t.owner === ctx.player ? 1 + 0.3 * ctx.P.aggression : 1) * warBias(c, f, t.owner);
       const sc = v / (d + 0.5);
       if (sc > gs) { gs = sc; goal = t.id; }
     }
@@ -184,6 +187,16 @@
       }
     }
     return false;
+  }
+
+  // Diplomacy shapes targets: an ally's request focuses the army, and shared enemies of allies are preferred.
+  function warBias(c, f, owner) {
+    if (!c.grand || owner === 'rebels') return 1;
+    let m = 1;
+    const fs = c.factions[f];
+    if (fs.focus && fs.focus.target === owner) m *= 2.2;
+    if (c.majors.some((x) => x !== f && x !== owner && c.rel(f, x).state === 'alliance' && c.atWar(x, owner))) m *= 1.35;
+    return m;
   }
 
   async function doMove(c, a, to, hooks) {

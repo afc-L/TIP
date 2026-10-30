@@ -75,7 +75,7 @@ const out = process.argv[2] || '.';
   await page.waitForTimeout(300);
   // End turn + save/load
   console.log('step', '() => RW.app.campaignScene.endTurn()');
-  await page.evaluate(() => RW.app.campaignScene.endTurn());
+  await page.evaluate(() => { RW.app.campaignScene.endTurn(); });
   await page.waitForTimeout(5000);
   const saved = await page.evaluate(() => { const c = RW.Campaign.load(); return c && { turn: c.turn, owned: c.owned(c.player).length }; });
   console.log('saved', JSON.stringify(saved));

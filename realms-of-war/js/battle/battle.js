@@ -29,18 +29,29 @@
       this.result = null;
       this.listeners = {};
       this.visTimer = 0; this.endTimer = 0;
+      this.weather = cfg.weather || 'clear';
+      this.weatherFx = D.WEATHER[this.weather] || D.WEATHER.clear;
+      this.timeline = []; this.samples = []; this.sampleT = 0; this.resT = 0;
       this.sides = cfg.sides.map((s, idx) => {
         const fac = D.FACTIONS[s.faction];
         const upgrades = (s.upgrades || []).map((id) => (D.UPGRADES[s.faction] || []).find((u) => u.id === id)).filter(Boolean);
-        let cdMul = 1;
+        const army = s.army || {};
+        let cdMul = army.cdMul || 1;
         if (s.faction === 'arcane') cdMul *= 0.85;
         if (s.commander && s.commander.trait === 'spellweaver') cdMul *= 0.75;
         for (const up of upgrades) if (up.apply.cdMul) cdMul *= up.apply.cdMul;
+        const cmd = s.commander || { name: 'Commander', trait: null, level: 1 };
+        // Faction abilities, the ultimate (unlocked by technology) and a legendary commander's own two.
+        const ids = fac.abilities.slice();
+        if (s.ultimate && fac.ultimate) ids.push(fac.ultimate);
+        if (cmd.legend && D.LEGENDS[cmd.legend]) ids.push(...D.LEGENDS[cmd.legend].abilityIds);
         return {
-          idx, faction: s.faction, fac, isPlayer: !!s.isPlayer, commander: s.commander || { name: 'Commander', trait: null, level: 1 },
+          idx, faction: s.faction, fac, isPlayer: !!s.isPlayer, commander: cmd, army, drill: s.drill || null,
           upgrades, general: null, generalDead: false, generalDeadT: 0,
-          abilities: fac.abilities.map((id) => ({ id, def: D.ABILITIES[id], cd: s.isPlayer ? 0 : 6, cdMax: D.ABILITIES[id].cd * cdMul })),
+          abilities: ids.map((id) => ({ id, def: D.ABILITIES[id], cd: s.isPlayer ? 0 : 6, cdMax: D.ABILITIES[id].cd * cdMul })),
           startPower: 0, kills: 0, isAIControlled: !s.isPlayer,
+          // Bloodfang: a limited pool of fallen soldiers who rise again.
+          resPool: s.faction === 'blood' ? Math.round(30 * (army.resPool || 1)) : 0, risen: 0,
         };
       });
       // Mirror matches: the enemy wears alternate colours.
@@ -50,6 +61,12 @@
         sd.color = sd.alt ? sd.fac.alt.color : sd.fac.color;
       }
       for (let s = 0; s < 2; s++) this.createArmy(s);
+      // Attackers in a siege bring a ram and (for the player) two siege towers.
+      if (this.siege && !cfg.noEquipment) {
+        const a = this.attackerSide, sd = this.sides[a];
+        const kit = cfg.sides[a].isPlayer || cfg.aiBoth ? ['siege_ram', 'siege_tower', 'siege_tower'] : [];
+        for (const typeId of kit) this.units.push(new RW.Unit(this, a, { typeId, faction: sd.faction }, { upgrades: [] }));
+      }
       for (let s = 0; s < 2; s++) this.autoDeploy(s);
       for (const sd of this.sides) sd.startPower = this.sidePower(sd.idx);
       this.updateVisibility();
@@ -64,8 +81,9 @@
     createArmy(s) {
       const sd = this.sides[s];
       const c = this.cfg.sides[s];
-      const mods = { upgrades: sd.upgrades, trait: sd.commander.trait, cmdLevel: sd.commander.level || 1 };
-      const gen = new RW.Unit(this, s, { typeId: sd.fac.general, faction: sd.faction, hpFrac: c.generalHp == null ? 1 : Math.max(0.25, c.generalHp), rank: Math.min(3, Math.floor((sd.commander.level || 1) / 3)) }, mods);
+      const mods = { upgrades: sd.upgrades, trait: sd.commander.trait, cmdLevel: sd.commander.level || 1, army: sd.army, drill: sd.drill };
+      const genType = sd.commander.legend && D.UNITS['legend_' + sd.commander.legend] ? 'legend_' + sd.commander.legend : sd.fac.general;
+      const gen = new RW.Unit(this, s, { typeId: genType, faction: sd.faction, hpFrac: c.generalHp == null ? 1 : Math.max(0.25, c.generalHp), rank: Math.min(3, Math.floor((sd.commander.level || 1) / 3)) }, mods);
       gen.name = sd.commander.name;
       sd.general = gen;
       this.units.push(gen);
@@ -84,8 +102,10 @@
       const front = north ? z0.z1 - 8 : z0.z0 + 8;
       const mine = this.units.filter((u) => u.side === s);
       const rows = { front: [], second: [], wings: [], back: [] };
+      const equip = [];
       for (const u of mine) {
-        if (u.cat === 'inf' || u.cat === 'monster') rows.front.push(u);
+        if (u.equip) equip.push(u);
+        else if (u.cat === 'inf' || u.cat === 'monster') rows.front.push(u);
         else if (u.cat === 'ranged') rows.second.push(u);
         else if (u.cat === 'cav') rows.wings.push(u);
         else rows.back.push(u);
@@ -105,7 +125,9 @@
       const centred = [];
       rows.front.forEach((u, i) => (i % 2 ? centred.push(u) : centred.unshift(u)));
       layRow(centred, front);
-      layRow(rows.second, front - dir * 16);
+      // Defenders of a walled settlement put their missile troops up on the walls.
+      if (this.map.siegeWalls && s === this.defenderSide) layRow(rows.second, this.map.wallZ);
+      else layRow(rows.second, front - dir * 16);
       const frontW = centred.reduce((a, u) => a + u.hw * 2 + 4, 0);
       rows.wings.forEach((u, i) => {
         const side = i % 2 ? 1 : -1;
@@ -114,12 +136,19 @@
         u.placeAt(x, front - dir * 6, facing);
       });
       layRow(rows.back, front - dir * 32);
+      const towerX = [-70, 70, 0];
+      let ti = 0;
+      for (const u of equip) {
+        const g = this.map.nearestGate(0, 0);
+        const x = u.equip === 'ram' && g ? g.x : towerX[ti++ % 3];
+        u.placeAt(U.clamp(x, z0.x0 + 4, z0.x1 - 4), front - dir * 8, facing);
+      }
     }
 
     // ---------------------------------------------------------------- queries
     sidePower(s) {
       let p = 0;
-      for (const u of this.units) if (u.side === s && u.active) p += u.base.power * u.hpFrac;
+      for (const u of this.units) if (u.side === s && u.active && !u.equip) p += u.base.power * u.hpFrac;
       return p;
     }
     enemiesOf(s) { return this.units.filter((u) => u.side !== s && !u.gone); }
@@ -232,8 +261,12 @@
       for (const u of this.units) if (!u.gone) this.updateUnit(u, dt);
       this.resolveMelee(dt);
       for (const u of this.units) if (!u.gone) this.updateRanged(u, dt);
-      if (this.siege) this.updateTowers(dt);
+      if (this.map.towers.length) this.updateTowers(dt);
       this.updatePending(dt);
+      this.updateResurrection(dt);
+      if (this.map.capture) this.updateCapture(dt);
+      this.sampleT -= dt;
+      if (this.sampleT <= 0) { this.sampleT = 5; this.samples.push([Math.round(this.time), Math.round(this.sidePower(0)), Math.round(this.sidePower(1))]); }
       this.updateProjectiles(dt);
       for (const u of this.units) if (!u.gone) this.updateMorale(u, dt);
       for (const u of this.units) if (!u.gone) u.updateSoldiers(dt, this.time);
@@ -242,16 +275,60 @@
       this.checkEnd(dt);
     }
 
+    // Key moments for the battle replay summary.
+    note(text, side) { this.timeline.push({ t: this.time, text, side }); if (this.timeline.length > 80) this.timeline.shift(); }
+
+    // Bloodfang: every few seconds a fallen soldier of the most-depleted unit rises again.
+    updateResurrection(dt) {
+      this.resT -= dt;
+      if (this.resT > 0) return;
+      this.resT = 3;
+      for (const sd of this.sides) {
+        if (sd.resPool <= 0 || !sd.general || sd.general.gone) continue;
+        let best = null, bl = 0;
+        for (const u of this.units) {
+          if (u.side !== sd.idx || !u.active || u.cat === 'monster' || u.equip) continue;
+          const lost = u.count - u.alive;
+          if (lost > bl) { bl = lost; best = u; }
+        }
+        if (!best) continue;
+        const n = Math.min(2, sd.resPool, best.count - best.alive);
+        best.heal(n * best.hpEach);
+        sd.resPool -= n; sd.risen += n;
+        this.fx.push({ type: 'sparkle', x: best.x, z: best.z, r: best.radius, color: '#9aff8a', up: true });
+      }
+    }
+
+    // Siege capture point: attackers win by holding the plaza uncontested.
+    updateCapture(dt) {
+      const c = this.map.capture;
+      let att = 0, def = 0;
+      for (const u of this.units) {
+        if (!u.active || u.equip) continue;
+        if (Math.hypot(u.x - c.x, u.z - c.z) > c.r + u.radius * 0.5) continue;
+        if (u.side === this.attackerSide) att += u.alive; else def += u.alive;
+      }
+      const before = c.progress;
+      if (att > 0 && def === 0) c.progress = Math.min(c.need, c.progress + dt);
+      else if (def > 0) c.progress = Math.max(0, c.progress - dt * 2);
+      c.contested = att > 0 && def > 0;
+      if (before === 0 && c.progress > 0) { this.msg(this.attackerSide === 0 ? 'Your troops are seizing the plaza!' : 'The enemy is seizing the plaza!', this.attackerSide, 'big'); this.note('Attackers reach the plaza', this.attackerSide); }
+      if (c.progress >= c.need && this.phase === 'battle') { this.msg('The plaza has fallen!', this.attackerSide, 'big'); this.finish(this.attackerSide, 'capture'); }
+    }
+
     updateVisibility() {
-      // Units in forests are hidden from the enemy unless an enemy is close or they recently fired.
+      // Units in forests (or fog) are hidden from the enemy unless an enemy is close or they recently fired.
+      const fog = this.weatherFx.vis || 0;
       for (const u of this.units) {
         if (u.gone) continue;
         let hidden = false;
-        if (this.map.inForest(u.x, u.z) && !u.engaged.size && !u.engagedBy.size && this.time - u.lastShotT > 4 && u.state !== 'routing') {
+        const cover = this.map.inForest(u.x, u.z) && !u.fly;
+        if ((cover || fog) && !u.engaged.size && !u.engagedBy.size && this.time - u.lastShotT > 4 && u.state !== 'routing') {
           hidden = true;
+          const lim = cover ? (fog ? Math.min(42, fog) : 42) : fog;
           for (const e of this.units) {
             if (e.side === u.side || e.gone) continue;
-            if (Math.hypot(e.x - u.x, e.z - u.z) < 42) { hidden = false; break; }
+            if (Math.hypot(e.x - u.x, e.z - u.z) < lim) { hidden = false; break; }
           }
         }
         u.hidden = hidden;
@@ -271,6 +348,7 @@
         for (let j = i + 1; j < units.length; j++) {
           const b = units[j];
           if (b.gone || b.side === a.side) continue;
+          if ((a.fly && a.alt > 4) || (b.fly && b.alt > 4)) continue;
           const dc = Math.hypot(a.x - b.x, a.z - b.z);
           if (dc > a.radius + b.radius + 6) continue;
           const ra = 1.7 + (a.large ? 1.3 : 0) + (b.large ? 1.0 : 0);
@@ -322,7 +400,7 @@
           const want = u.hd + tgt.hd + 0.5;
           if (d > want) {
             const nx = u.x + (dx / d) * dt * 0.8, nz = u.z + (dz / d) * dt * 0.8;
-            if (!this.map.blocked(nx, nz, u.side)) { u.x = nx; u.z = nz; }
+            if (!u.nav.blocked(nx, nz, u.side)) { u.x = nx; u.z = nz; }
           }
         }
         u.foeTimer -= dt;
@@ -366,12 +444,29 @@
         const moving = u.moveCenter(dt);
         u.state = moving ? 'moving' : 'idle';
         // Siege attackers stuck at the gate automatically batter it.
-        if (this.siege && this.map.gate && this.map.gate.hp > 0 && u.side === this.attackerSide && u.path.partial && Math.hypot(u.x - this.map.gate.x, u.z - this.map.gate.z) < 12) u.orderGate();
+        if (this.siege && u.side === this.attackerSide && u.path.partial) {
+          const g = this.map.nearestGate(u.x, u.z);
+          if (g && Math.hypot(u.x - g.x, u.z - g.z) < 12) u.orderGate(g);
+        }
+        return;
+      }
+      if (o.type === 'tower') {
+        const moving = u.moveCenter(dt);
+        u.state = moving ? 'moving' : 'idle';
+        if (!moving && Math.hypot(u.x - o.x, u.z - o.z) < 5) {
+          u.docked = true; u.order = { type: 'idle' };
+          this.map.breach(o.x);
+          this.msg(u.side === 0 ? 'Siege tower docked: the wall is open!' : 'An enemy siege tower has reached the wall!', u.side, 'big');
+          this.note('Siege tower docks at the wall', u.side);
+          this.fx.push({ type: 'impact', x: o.x, z: this.map.wallZ, r: 4 });
+          this.emit('gate');
+        } else if (!moving && u.pathIdx >= u.path.length) u.computePath(o.x, o.z);
         return;
       }
       if (o.type === 'gate') {
-        const g = this.map.gate;
-        if (!g || g.hp <= 0) { u.order = { type: 'idle' }; u.state = 'idle'; return; }
+        let g = o.gate && o.gate.hp > 0 ? o.gate : null;
+        if (!g && this.map.nearestGate(u.x, u.z) && u.equip === 'ram') { u.orderGate(); return; }
+        if (!g) { u.order = { type: 'idle' }; u.state = 'idle'; return; }
         if (o.ranged) {
           const dg = Math.hypot(g.x - u.x, g.z - u.z);
           if (dg <= u.t.range * 0.95 || u.pathIdx >= u.path.length) {
@@ -397,6 +492,7 @@
 
     // Idle player units react to nearby enemies (pursuing routers, defending themselves).
     autoEngage(u) {
+      if (u.equip) return;
       if (u.t.range && u.ammo > 0) return; // missile units auto-fire instead
       if (u.cat === 'siege') return;
       let best = null, bd = Infinity;
@@ -434,6 +530,8 @@
     }
     rally(u, morale = 32) {
       u.state = 'idle'; u.morale = morale; u.order = { type: 'idle' }; u.path = [];
+      this.note(`${u.name} rallied`, u.side);
+      this.emit('rally', u);
       this.msg(`${u.name} ${u.side === 0 ? 'have' : '(enemy) have'} rallied!`, u.side);
       this.fx.push({ type: 'rally', unit: u });
     }
@@ -471,7 +569,10 @@
         const nx = b.sx[k] + fx * push, nz = b.sz[k] + fz * push;
         if (!this.map.blocked(nx, nz, b.side)) { b.sx[k] = nx; b.sz[k] = nz; }
       }
-      this.fx.push({ type: 'charge', x: (a.x + b.x) / 2, z: (a.z + b.z) / 2, side: a.side });
+      this.fx.push({ type: 'charge', x: (a.x + b.x) / 2, z: (a.z + b.z) / 2, side: a.side, big: a.t.charge > 30 });
+      if (a.t.charge > 25) this.note(`${a.name} charge ${b.name}`, a.side);
+      // Knock struck soldiers off their feet briefly.
+      for (let k = 0; k < b.count; k++) if (b.sa[k] && Math.random() < 0.35 * Math.min(1.5, mult) && Math.hypot(b.sx[k] - a.x, b.sz[k] - a.z) < a.radius + 3) b.sknock[k] = 0.9;
       this.emit('charge', a, b);
     }
 
@@ -510,30 +611,36 @@
           if (Math.random() < dt * 2.5) this.emit('clash', a, b);
         }
         // Gate battering.
-        if (a.state === 'gate' && this.map.gate && this.map.gate.hp > 0) {
-          const g = this.map.gate;
-          const mul = this.sides[a.side].commander.trait === 'siegebreaker' ? 3 : 1;
-          const n = Math.min(a.alive, a.cat === 'monster' ? a.alive : 14);
-          g.hp -= n * a.t.dmg * (a.cat === 'monster' ? 1.6 : 0.35) * mul * dt;
+        if (a.state === 'gate' && a.order.gate && a.order.gate.hp > 0) {
+          const g = a.order.gate;
+          const mul = (this.sides[a.side].commander.trait === 'siegebreaker' ? 3 : 1) * (this.sides[a.side].army.gateMul || 1);
+          if (a.equip === 'ram') g.hp -= 95 * mul * dt;
+          else {
+            const n = Math.min(a.alive, a.cat === 'monster' ? a.alive : 14);
+            g.hp -= n * a.t.dmg * (a.cat === 'monster' ? 1.6 : 0.35) * mul * dt;
+          }
           if (Math.random() < dt * 3) { this.emit('gatehit', g); for (let i = 0; i < a.count; i++) if (a.sa[i] && Math.random() < 0.2) a.satk[i] = 0.45; }
-          if (g.hp <= 0) this.destroyGate();
+          if (g.hp <= 0) this.destroyGate(g);
         }
       }
     }
 
-    destroyGate() {
-      const g = this.map.gate;
-      g.hp = 0;
+    destroyGate(g) {
+      if (!g || g.dead) return;
+      g.hp = 0; g.dead = true;
       this.fx.push({ type: 'explosion', x: g.x, z: g.z, r: 8, color: '#c8a070' });
-      this.msg('The gate has been breached!', this.attackerSide, 'big');
-      this.emit('gate');
-      for (const u of this.units) if (u.order.type === 'gate') u.order = { type: 'idle' };
+      this.msg('A gate has been breached!', this.attackerSide, 'big');
+      this.note('Gate breached', this.attackerSide);
+      this.emit('gate', g);
+      for (const u of this.units) if (u.order.type === 'gate' && u.order.gate === g) u.order = { type: 'idle' };
     }
 
     // ---------------------------------------------------------------- missiles
+    // Effective range: height advantage (hills, walls) and weather.
+    unitHeight(u) { return this.map.heightAt(u.x, u.z) + (this.map.onWall(u.x, u.z) && !u.fly ? 8 : 0); }
     effRange(u, tg) {
-      const dh = this.map.heightAt(u.x, u.z) - this.map.heightAt(tg.x, tg.z);
-      return u.t.range * (1 + U.clamp(dh / 40, -0.1, 0.25));
+      const dh = this.unitHeight(u) - this.unitHeight(tg);
+      return u.t.range * (1 + U.clamp(dh / 40, -0.1, 0.25)) * this.weatherFx.range;
     }
     updateRanged(u, dt) {
       if (!u.t.range || u.ammo <= 0 || u.state === 'routing' || u.state === 'fighting' || u.state === 'moving') return;
@@ -541,7 +648,8 @@
       let tg = u.rangedTarget;
       const o = u.order;
       if (o.type === 'gate' && o.ranged) {
-        const g = this.map.gate;
+        const g = o.gate;
+        if (!g) return;
         const d = Math.hypot(g.x - u.x, g.z - u.z);
         if (g.hp <= 0 || d > u.t.range) return;
         u.reloadT -= dt;
@@ -579,7 +687,7 @@
       if (u.state === 'idle' || u.state === 'shooting') u.facing = U.turnToward(u.facing, Math.atan2(tg.x - u.x, tg.z - u.z), 1.2 * dt);
       u.reloadT -= dt;
       if (u.reloadT > 0) return;
-      u.reloadT = u.t.reload * (0.9 + Math.random() * 0.2);
+      u.reloadT = u.t.reload * (0.9 + Math.random() * 0.2) * u.buffMul('reloadMul');
       this.fireVolley(u, tg, d);
     }
 
@@ -591,7 +699,7 @@
       const kind = u.cat === 'siege' ? (u.faction === 'arcane' ? 'bolt' : 'boulder') : (u.t.model.weapon === 'staff' ? 'magic' : u.t.model.weapon === 'javelin' ? 'javelin' : 'arrow');
       const speed = kind === 'boulder' ? 42 : kind === 'magic' || kind === 'bolt' ? 55 : 60;
       const flight = d / speed + 0.3;
-      const hs = this.map.heightAt(u.x, u.z), ht = this.map.heightAt(tg.x, tg.z);
+      const hs = this.unitHeight(u), ht = this.unitHeight(tg);
       // Visual projectiles.
       const nVis = Math.min(shooters, kind === 'arrow' ? 12 : 8);
       for (let k = 0; k < nVis; k++) {
@@ -614,14 +722,16 @@
       let acc = t.acc * U.clamp(1.15 - 0.55 * d / t.range, 0.35, 1.15);
       if (tg.large) acc *= 1.35;
       acc *= tg.form.missile;
-      if (this.map.inForest(tg.x, tg.z)) acc *= 0.6;
+      if (this.map.inForest(tg.x, tg.z) && !tg.fly) acc *= 0.6;
+      if (this.map.onWall(tg.x, tg.z) && !tg.fly) acc *= 0.6; // battlements
       if (hs - ht > 3) acc *= 1.12;
+      acc *= this.weatherFx.acc * tg.buffMul('missileMul');
       if (tg.t.shield && this.attackDir(tg, u.x, u.z) === 'front') acc *= 1 - tg.t.shield;
       const armor = Math.min(95, tg.t.armor + tg.buffVal('armor'));
       const per = Math.min(tg.hpEach, t.rdmg * t.rap + t.rdmg * (1 - t.rap) * (1 - armor / 150));
       const hits = shooters * acc;
       const amount = hits * per * (tg.state === 'routing' ? 1.3 : 1);
-      this.pending.push({ at: this.time + flight, kind: 'hit', target: tg, amount, src: u });
+      this.pending.push({ at: this.time + flight, kind: 'hit', target: tg, amount, src: u, slow: t.slowOnHit });
     }
 
 
@@ -635,6 +745,7 @@
     updateTowers(dt) {
       const def = this.defenderSide;
       for (const tw of this.map.towers) {
+        if (tw.decor) continue;
         tw.cd -= dt;
         if (tw.cd > 0) continue;
         let tg = null, bd = tw.range;
@@ -670,14 +781,16 @@
             amt = Math.floor(frac) * p.target.hpEach + (Math.random() < frac - Math.floor(frac) ? p.target.hpEach : 0) * 0.999;
             p.target.damage(Math.max(0, amt), null, null, p.src);
             if (p.src) p.src.dealt += amt;
+            if (p.slow && !p.target.gone) p.target.addBuff({ name: 'Chilled', speedMul: 0.75, t: 6 });
           }
         } else if (p.kind === 'splash') {
           this.areaDamage(p.x, p.z, p.r, p.dmg, p.ap, p.src, true, 4);
-          if (this.siege && this.map.gate && this.map.gate.hp > 0 && p.src && p.src.side === this.attackerSide && Math.hypot(p.x - this.map.gate.x, p.z - this.map.gate.z) < p.r + 6) {
-            const mul = this.sides[p.src.side].commander.trait === 'siegebreaker' ? 3 : 1;
-            this.map.gate.hp -= p.dmg * 2.2 * mul;
-            this.emit('gatehit', this.map.gate);
-            if (this.map.gate.hp <= 0) this.destroyGate();
+          const g = this.siege && p.src && p.src.side === this.attackerSide ? this.map.nearestGate(p.x, p.z) : null;
+          if (g && Math.hypot(p.x - g.x, p.z - g.z) < p.r + 6) {
+            const mul = (this.sides[p.src.side].commander.trait === 'siegebreaker' ? 3 : 1) * (this.sides[p.src.side].army.gateMul || 1);
+            g.hp -= p.dmg * 2.2 * mul;
+            this.emit('gatehit', g);
+            if (g.hp <= 0) this.destroyGate(g);
           }
           this.fx.push({ type: p.explode === 'bolt' ? 'magicburst' : 'impact', x: p.x, z: p.z, r: p.r });
           this.emit('impact', p);
@@ -726,7 +839,7 @@
     // ---------------------------------------------------------------- morale
     updateMorale(u, dt) {
       const sd = this.sides[u.side];
-      let m = u.t.morale + u.form.morale + u.buffVal('morale');
+      let m = u.t.morale + u.form.morale + u.buffVal('morale') - this.weatherFx.morale;
       m -= 55 * (1 - u.alive / u.startAlive);
       const recent = u.recentLoss / (u.startAlive * u.hpEach);
       m -= Math.min(40, recent * 170);
@@ -775,12 +888,14 @@
       u.chargeT.clear();
       if (u.routCount >= 3 || u.alive < u.count * 0.15) u.shattered = true;
       this.msg(`${u.side === 0 ? 'Your' : 'Enemy'} ${u.name} ${u.shattered ? 'are shattered' : 'are routing'}!`, u.side, u.side === 0 ? 'bad' : 'good');
+      this.note(`${u.name} ${u.shattered ? 'shattered' : 'routed'}`, u.side);
       this.emit('rout', u);
     }
 
     onCasualties(u, n) { this.emit('casualties', u, n); }
     onUnitDestroyed(u) {
       this.msg(`${u.side === 0 ? 'Your' : 'Enemy'} ${u.name} ${u.isGeneral ? 'has fallen' : 'have been destroyed'}!`, u.side, u.side === 0 ? 'bad' : 'good');
+      this.note(`${u.name} ${u.isGeneral ? 'fell' : 'destroyed'}`, u.side);
       if (u.isGeneral) {
         const sd = this.sides[u.side];
         sd.generalDead = true; sd.generalDeadT = this.time;
@@ -792,7 +907,7 @@
     // ---------------------------------------------------------------- end of battle
     checkEnd(dt) {
       const active = [0, 0];
-      for (const u of this.units) if (u.active) active[u.side]++;
+      for (const u of this.units) if (u.active && !u.equip) active[u.side]++;
       if (!active[0] || !active[1]) {
         this.endTimer += dt;
         if (this.endTimer > 1.5) this.finish(active[1] ? 1 : 0, active[0] || active[1] ? 'rout' : 'mutual');
@@ -820,14 +935,15 @@
       const units = this.units.map((u) => ({
         side: u.side, ref: u.spec.ref, typeId: u.typeId, name: u.name, isGeneral: u.isGeneral,
         alive: u.gone && u.state === 'dead' ? 0 : u.alive, count: u.count, start: u.startAlive, kills: u.kills,
-        hpFrac: u.state === 'dead' ? 0 : u.pool / u.maxPool,
+        hpFrac: u.state === 'dead' ? 0 : u.pool / u.maxPool, rankGained: u.rankGained, rank: u.rank, equip: u.equip,
       }));
       const lost = [0, 0], start = [0, 0], kills = [0, 0];
       for (const u of this.units) { lost[u.side] += u.startAlive - (u.state === 'dead' ? 0 : u.alive); start[u.side] += u.startAlive; kills[u.side] += u.kills; }
       this.result = {
         winner, reason, playerWon: winner === 0, duration: this.time, units, lost, start, kills,
         generalDead: [this.sides[0].generalDead, this.sides[1].generalDead],
-        mapType: this.cfg.mapType,
+        mapType: this.cfg.mapType, weather: this.weather, timeline: this.timeline.slice(), samples: this.samples.concat([[Math.round(this.time), Math.round(this.sidePower(0)), Math.round(this.sidePower(1))]]),
+        risen: [this.sides[0].risen, this.sides[1].risen],
       };
       this.emit('end', this.result);
     }

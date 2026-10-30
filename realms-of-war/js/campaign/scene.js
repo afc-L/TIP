@@ -36,12 +36,14 @@
       const cap = c.tdef(c.factions[c.player].capital).name;
       ui.modal({
         title: `${ui.emblem(c.player, 30)} ${fd.name}`, cls: 'event',
-        body: `<p>Your banners fly over <b>${cap}</b>. Two rival powers and the Free Cities stand between you and mastery of the realm.</p>
+        body: `<p>Your banners fly over <b>${cap}</b>. ${c.grand ? `${c.majors.length - 1} rival powers` : 'Two rival powers'} and the Free Cities stand between you and mastery of the realm.</p>
+          ${c.mode === 'conquest' ? '<p><b>Conquest:</b> you begin with a single village and a small warband, but a fuller war chest. Conquer the entire world.</p>' : ''}
           <ul class="brief">
             <li><b>Right-click</b> a neighbouring territory to march your army — attacking enemy towns starts a battle you can fight yourself or auto-resolve.</li>
             <li><b>Recruit</b> in your settlements (right panel) and <b>build</b> to grow your income (left panel).</li>
             <li>Watch your <b>income vs upkeep</b> in the top bar, then press <b>End Turn</b>.</li>
-            <li>Open <b>Objectives</b> to see the four paths to victory.</li>
+            <li>Open <b>Objectives</b> to see the paths to victory.</li>
+            ${c.grand ? '<li><b>Diplomacy</b> lets you make peace, pacts and alliances; <b>Research</b> unlocks technologies and rare units; explore <b>ruins</b> (✧) and seize <b>landmarks</b> (◆) for bonuses.</li>' : ''}
           </ul>
           <p class="dim">${fd.bonus.name}: ${fd.bonus.desc}</p>`,
         buttons: [{ label: 'To War!', cls: 'primary' }, { label: 'How to Play', onClick: () => RW.app.showHelp() }],
@@ -80,14 +82,19 @@
           <div class="c-turn">Turn <b></b> · <span class="c-diff"></span></div>
           <div class="c-btns">
             <button class="btn sm c-obj" data-tip="Victory objectives and progress">Objectives</button>
-            <button class="btn sm c-arm" data-tip="Unlock permanent unit upgrades">Armoury</button>
+            <button class="btn sm c-arm" data-tip="Unlock permanent unit upgrades and drill unit types">Armoury</button>
+            ${this.c.grand ? '<button class="btn sm c-dip" data-tip="Diplomacy: war, peace, pacts, alliances, trade (F2)">Diplomacy</button><button class="btn sm c-tech" data-tip="Technology tree (F3)">Research</button>' : ''}
             <button class="btn sm c-fin" data-tip="Overview of all factions">Factions</button>
+            <button class="btn sm c-stat" data-tip="Campaign statistics">Stats</button>
+            <button class="btn sm c-note" data-tip="Notification history">✉</button>
+            <button class="btn sm c-enc" data-tip="Faction encyclopedia">📖</button>
             <button class="btn sm c-menu" data-tip="Save, settings, quit (Esc)">☰</button>
           </div>
         </div>
         <div class="c-left panel"></div>
         <div class="c-right panel"></div>
         <div class="c-log panel"></div>
+        <canvas class="c-mini panel" width="200" height="150" data-tip="Minimap — click to move the camera"></canvas>
         <div class="c-labels"></div>
         <div class="c-end">
           <button class="btn c-next" data-tip="Select your next army with moves left (Tab)">Next Army</button>
@@ -103,12 +110,17 @@
       this.$('.c-obj').onclick = () => this.showObjectives();
       this.$('.c-arm').onclick = () => this.showArmoury();
       this.$('.c-fin').onclick = () => this.showFactions();
+      this.$('.c-stat').onclick = () => this.showStats();
+      this.$('.c-note').onclick = () => this.showNotifications();
+      this.$('.c-enc').onclick = () => RW.app.showEncyclopedia();
+      if (this.c.grand) { this.$('.c-dip').onclick = () => this.showDiplomacy(); this.$('.c-tech').onclick = () => this.showResearch(); }
+      this.bindMinimap();
       this.$('.c-menu').onclick = () => this.openMenu();
       this.$('.c-skip').onclick = () => { this.fast = true; };
       this.$('.c-gold')._tip = () => {
         const f = this.c.player;
         const rows = this.c.owned(f).map((t) => `<tr><td>${this.c.tdef(t.id).name}</td><td>+${this.c.territoryIncome(t)}</td></tr>`).join('');
-        return `<div class="tip-title">Treasury</div><table class="stats">${rows}<tr><td><b>Income</b></td><td><b>+${this.c.income(f)}</b></td></tr><tr><td>Army upkeep</td><td>-${this.c.upkeep(f)}</td></tr></table>${f === 'valor' ? '<div class="tip-sub">Chivalric Order: +15% income</div>' : ''}`;
+        return `<div class="tip-title">Treasury</div><table class="stats">${rows}<tr><td><b>Income</b></td><td><b>+${this.c.income(f)}</b></td></tr><tr><td>Army upkeep</td><td>-${this.c.upkeep(f)}</td></tr></table>${f === 'valor' ? '<div class="tip-sub">Chivalric Order: +15% income</div>' : ''}${this.c.techEffect(f, 'income') ? `<div class="tip-sub">Technology: +${Math.round(this.c.techEffect(f, 'income') * 100)}% income</div>` : ''}`;
       };
       this.$('.c-net')._tip = () => 'Net gold per turn (income minus army upkeep). If your treasury goes negative, troops desert.';
       this.$('.c-armies')._tip = () => `Armies: ${this.c.armiesOf(this.c.player).length} of ${this.c.maxArmies(this.c.player)} allowed. Hold more territories to field more armies (1 + 1 per 3 territories, max 5).`;
@@ -116,7 +128,7 @@
       // Labels
       const lab = this.$('.c-labels');
       this.labelEls = new Map();
-      for (const td of D.TERRITORIES) {
+      for (const td of this.c.map.territories) {
         const le = U.html(`<div class="tlabel"><div class="tl-name"></div><div class="tl-sub"></div></div>`);
         le.addEventListener('mousedown', (e) => { e.stopPropagation(); if (e.button === 0) this.selectTerritory(td.id); else if (e.button === 2) this.orderMarch(td.id); });
         le.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -132,6 +144,9 @@
       const a = c.armyAt(tid);
       let s = `<div class="tip-title">${td.name}</div><div class="tip-sub">${D.TERRAIN_INFO[td.terrain].name} · ${D.SETTLEMENT.levels[t.level].name} · ${D.FACTIONS[t.owner].name}</div>`;
       if (td.shrine) s += '<div class="tip-desc">✦ Ancient Shrine (objective, +40 gold)</div>';
+      if (td.landmark) s += `<div class="tip-desc">◆ ${D.LANDMARKS[td.landmark].name}: ${D.LANDMARKS[td.landmark].desc}</div>`;
+      if (td.ruins && c.grand) s += `<div class="tip-desc">✧ Ruins${c.explored.includes(tid) ? ' (explored)' : ' — move an army here and explore'}</div>`;
+      if (c.grand && c.majors.includes(t.owner) && t.owner !== c.player) s += `<div class="tip-desc">Relations: ${RW.Campaign.STATES[c.rel(c.player, t.owner).state]}</div>`;
       if (c.factions[t.owner] && c.factions[t.owner].capital === tid) s += '<div class="tip-desc">♛ Capital</div>';
       s += `<div class="tip-desc">Income ${c.territoryIncome(t)} · Garrison strength ${Math.round(c.garrisonPower(t))}${t.buildings.walls ? ' · Walled' : ''}</div>`;
       if (a) s += `<div class="tip-desc">Army: ${U.escape(a.commander.name)} (${D.FACTIONS[a.faction].short}) · ${a.units.length} units · strength ${Math.round(c.armyPower(a))}</div>`;
@@ -152,16 +167,19 @@
       const net = c.net(f);
       this.$('.c-net').innerHTML = `<span class="${net >= 0 ? 'pos' : 'neg'}">${net >= 0 ? '+' : ''}${net}/turn</span>`;
       this.$('.c-armies').innerHTML = `⚑ ${c.armiesOf(f).length}/${c.maxArmies(f)}`;
-      this.$('.c-terrs').innerHTML = `⌂ ${c.owned(f).length}/16`;
+      this.$('.c-terrs').innerHTML = `⌂ ${c.owned(f).length}/${c.territories.length}`;
+      if (c.grand) { const tb = this.$('.c-tech'); const r = fs.research; tb.innerHTML = r ? `Research <span class="dim">${Math.floor(r.progress)}/${c.techList(f).find((x) => x.id === r.id).turns}</span>` : 'Research <i class="dot"></i>'; tb.classList.toggle('alert', !r && fs.techs.length < 12); }
+      this.$('.c-note').classList.toggle('alert', c.notifications.some((n) => n.turn === c.turn));
+      this.drawMinimap();
       this.$('.c-turn b').textContent = c.turn;
       this.$('.c-diff').textContent = c.difficulty[0].toUpperCase() + c.difficulty.slice(1);
       // Labels
       for (const [tid, le] of this.labelEls) {
         const t = c.terr(tid), td = c.tdef(tid);
         const capital = Object.values(c.factions).some((x) => x.capital === tid && x.alive);
-        le.querySelector('.tl-name').innerHTML = `${capital ? '♛ ' : ''}${td.shrine ? '✦ ' : ''}${td.name}`;
+        le.querySelector('.tl-name').innerHTML = `${capital ? '♛ ' : ''}${td.shrine ? '✦ ' : ''}${td.landmark ? '◆ ' : ''}${td.ruins && c.grand && !c.explored.includes(tid) ? '✧ ' : ''}${td.name}`;
         le.querySelector('.tl-sub').innerHTML = `${'★'.repeat(t.level)}${t.buildings.walls ? ' ⛫' : ''}`;
-        le.style.setProperty('--oc', D.FACTIONS[t.owner].color);
+        le.style.setProperty('--oc', this.view.bannerOf(t.owner));
         le.classList.toggle('sel', tid === this.selT);
         le.classList.toggle('target', this.view.targets.has(tid));
       }
@@ -185,7 +203,7 @@
           lab.appendChild(el);
           this.armyEls.set(a.id, el);
         }
-        el.style.setProperty('--fc', D.FACTIONS[a.faction].color);
+        el.style.setProperty('--fc', this.view.bannerOf(a.faction));
         el.querySelector('.ac-n').innerHTML = `${a.units.length}${a.faction === f && a.moves > 0 ? ' <i>•</i>' : ''}`;
         el.classList.toggle('sel', a === this.selArmy);
         el.classList.toggle('mine', a.faction === f);
@@ -198,7 +216,8 @@
 
     armyTip(a) {
       const c = this.c;
-      return `<div class="tip-title">${U.escape(a.commander.name)}</div><div class="tip-sub">${D.FACTIONS[a.faction].name} · Level ${a.commander.level} · ${D.TRAITS[a.commander.trait] ? D.TRAITS[a.commander.trait].name : ''}</div>
+      const leg = a.commander.legend && D.LEGENDS[a.commander.legend];
+      return `<div class="tip-title">${U.escape(a.commander.name)}</div><div class="tip-sub">${D.FACTIONS[a.faction].name} · Level ${a.commander.level} · ${leg ? 'Legendary: ' + leg.title : D.TRAITS[a.commander.trait] ? D.TRAITS[a.commander.trait].name : ''}</div>
         <div class="tip-desc">${a.units.length} units · Strength ${Math.round(c.armyPower(a))}</div>
         <div class="tip-units">${a.units.map((u) => RW.unitIcon(u.typeId)).join('')}</div>`;
     }
@@ -222,8 +241,10 @@
         <div class="row"><span>Settlement</span><b>${lvl.name} ${'★'.repeat(t.level)}</b></div>
         <div class="row"><span>Income</span><b>${RW.icon('gold', 'gold')} ${c.territoryIncome(t)}</b></div>
         <div class="row"><span>Garrison</span><b>${c.garrisonUnits(t).length} units · ${Math.round(t.garrisonHp * 100)}%</b></div>
-        <div class="row"><span>Battlefield</span><b>${D.BATTLE_MAPS[c.isSiege(this.selT, t.owner) ? 'siege' : D.TERRAIN_INFO[td.terrain].battle].name}</b></div>
+        <div class="row"><span>Battlefield</span><b>${D.BATTLE_MAPS[c.battleMapType(this.selT, c.isSiege(this.selT, t.owner))].name}</b></div>
         ${td.shrine ? '<div class="note shrine">✦ Ancient Shrine — hold all three to win.</div>' : ''}
+        ${td.landmark ? `<div class="note shrine">◆ <b>${D.LANDMARKS[td.landmark].name}</b> — ${D.LANDMARKS[td.landmark].desc}</div>` : ''}
+        ${td.ruins && c.grand ? `<div class="note">✧ Ancient ruins${c.explored.includes(this.selT) ? ' (already explored)' : ' — an army standing here can explore them for treasure.'}</div>` : ''}
         <div class="bld">${Object.entries(D.SETTLEMENT.buildings).map(([k, b]) => `<span class="${t.buildings[k] ? 'on' : ''}" data-tip="<b>${b.name}</b><br>${b.desc}">${b.name}</span>`).join('')}</div>`;
       if (mineT) {
         html += '<div class="actions">';
@@ -265,19 +286,27 @@
       if (!a) {
         // Enemy army in the selected territory?
         const other = this.selT >= 0 ? c.armyAt(this.selT) : null;
-        if (other) { el.innerHTML = this.armyReadOnly(other); el.style.display = ''; return; }
+        if (other) {
+          el.innerHTML = this.armyReadOnly(other); el.style.display = '';
+          el.querySelector('.act-inspect').onclick = () => this.inspectArmy(other);
+          return;
+        }
         el.style.display = 'none'; return;
       }
       el.style.display = '';
       const cmd = a.commander, trait = D.TRAITS[cmd.trait];
       const t = c.terr(a.tid);
       const inHome = t.owner === f;
+      const leg = cmd.legend && D.LEGENDS[cmd.legend];
+      const pts = c.skillPoints(a);
       let html = `<h3>${ui.emblem(f, 22)} ${U.escape(cmd.name)}</h3>
-        <div class="sub">Level ${cmd.level} commander · <span data-tip="${trait ? trait.desc : ''}" class="trait">${trait ? trait.name : '-'}</span></div>
+        <div class="sub">Level ${cmd.level} commander · ${leg ? `<span class="trait legend" data-tip="<b>${leg.passive.name}</b><br>${leg.passive.desc}">${leg.title}</span>` : `<span data-tip="${trait ? trait.desc : ''}" class="trait">${trait ? trait.name : '-'}</span>`}</div>
         ${ui.bar(cmd.xp / (cmd.level * 100), 'xp', `XP ${cmd.xp}/${cmd.level * 100}`)}
         <div class="row"><span>Moves</span><b>${a.moves}/${c.armyMoves(a)}</b></div>
         <div class="row"><span>Strength</span><b>${Math.round(c.armyPower(a))}</b></div>
         <div class="row"><span>Upkeep</span><b>-${c.armyUpkeep(a)}/turn</b></div>
+        <div class="row"><span>Doctrine</span><b>${D.DOCTRINES[a.doctrine || 'none'].name}</b></div>
+        <div class="actions"><button class="btn sm act-manage ${pts || this.me.items.length ? 'alert' : ''}" data-tip="Equipment, skills, doctrine and unit details">Manage Army${pts ? ` (${pts} skill pt${pts > 1 ? 's' : ''})` : ''}</button>${c.canExplore(a) ? '<button class="btn sm primary act-explore" data-tip="Spend this army\'s move to search the ruins">✧ Explore Ruins</button>' : ''}</div>
         <div class="units">`;
       a.units.forEach((u, i) => {
         html += `<div class="ucell" data-i="${i}">${RW.unitIcon(u.typeId)}<span class="rk">${'▲'.repeat(u.rank || 0)}</span>${ui.bar(u.hp, 'hp')}<button class="x" data-i="${i}" data-tip="Disband this unit">×</button></div>`;
@@ -289,9 +318,11 @@
         html += `<h4>Recruit at ${c.tdef(a.tid).name} <span class="dim">(${slots} slot${slots === 1 ? '' : 's'} left this turn)</span></h4><div class="recruit">`;
         for (const ut of Object.values(D.UNITS).filter((x) => x.faction === f && x.recruitable)) {
           const cost = c.unitCost(f, ut.id, t);
-          const locked = ut.tier > t.level;
+          const rareLock = !c.rareOk(f, ut, t);
+          const locked = ut.tier > t.level || rareLock;
+          const why = ut.tier > t.level ? 'Needs ' + D.SETTLEMENT.levels[ut.tier].name : rareLock ? (c.grand ? 'Needs research' : `Rare: City + ${ut.rare.wins} wins`) : cost;
           const dis = locked || slots <= 0 || this.me.gold < cost || a.units.length >= RW.MAX_UNITS;
-          html += `<button class="rbtn ${locked ? 'locked' : ''}" data-id="${ut.id}" ${dis ? 'disabled' : ''}>${RW.unitIcon(ut.id)}<span class="rn">${ut.name}</span><span class="rc">${locked ? 'Needs ' + D.SETTLEMENT.levels[ut.tier].name : cost}</span></button>`;
+          html += `<button class="rbtn ${locked ? 'locked' : ''} ${ut.rare ? 'rare' : ''}" data-id="${ut.id}" ${dis ? 'disabled' : ''}>${RW.unitIcon(ut.id)}<span class="rn">${ut.name}</span><span class="rc">${why}</span></button>`;
         }
         html += '</div>';
       } else html += '<div class="note">Move this army into one of your settlements to recruit. Armies replenish faster in friendly territory.</div>';
@@ -301,9 +332,13 @@
         const td = c.tdef(o.n);
         let lab = o.kind === 'battle' ? `⚔ Attack ${td.name}` : `➜ ${td.name}`;
         if (!o.ok) lab = `${td.name}`;
+        if (!o.ok && c.grand && !c.atWar(f, c.terr(o.n).owner) && c.terr(o.n).owner !== f) lab = `🕊 ${td.name}`;
         return `<button class="btn sm mbtn ${o.kind === 'battle' ? 'danger' : ''}" data-n="${o.n}" ${o.ok ? '' : 'disabled'}>${lab}</button>`;
       }).join('')}</div>`;
       el.innerHTML = html;
+      el.querySelector('.act-manage').onclick = () => this.showArmyManager(a);
+      const ex = el.querySelector('.act-explore');
+      if (ex) ex.onclick = () => this.exploreRuins(a);
       el.querySelectorAll('.ucell[data-i]').forEach((cell) => {
         const u = a.units[+cell.dataset.i];
         cell._tip = () => ui.unitTip(u.typeId, `<div class="tip-live">Strength ${Math.round(u.hp * 100)}% · Rank ${u.rank || 0} · XP ${u.xp || 0}</div>`);
@@ -334,7 +369,9 @@
       return `<h3>${ui.emblem(a.faction, 22)} ${U.escape(a.commander.name)}</h3>
         <div class="sub">${D.FACTIONS[a.faction].name} · Level ${a.commander.level} · ${trait ? trait.name : ''}</div>
         <div class="row"><span>Strength</span><b>${Math.round(c.armyPower(a))}</b></div>
-        <div class="units">${a.units.map((u) => `<div class="ucell" data-tip="${U.escape(D.UNITS[u.typeId].name)} · ${Math.round(u.hp * 100)}%">${RW.unitIcon(u.typeId)}${ui.bar(u.hp, 'hp')}</div>`).join('')}</div>`;
+        ${c.grand && c.majors.includes(a.faction) ? `<div class="row"><span>Relations</span><b>${RW.Campaign.STATES[c.rel(c.player, a.faction).state]}</b></div>` : ''}
+        <div class="units">${a.units.map((u) => `<div class="ucell" data-tip="${U.escape(D.UNITS[u.typeId].name)} · ${Math.round(u.hp * 100)}%${u.rank ? ' · Rank ' + u.rank : ''}">${RW.unitIcon(u.typeId)}<span class="rk">${'▲'.repeat(u.rank || 0)}</span>${ui.bar(u.hp, 'hp')}</div>`).join('')}</div>
+        <div class="actions"><button class="btn sm act-inspect" data-army="${a.id}">Inspect army</button></div>`;
     }
 
     // ---------------------------------------------------------------- selection & orders
@@ -382,7 +419,11 @@
       if (a.tid === tid) return;
       if (!c.adj(a.tid).includes(tid)) { ui.toast('Armies can only march to a neighbouring territory.', 'warn'); RW.audio.play('error'); return; }
       if (a.moves <= 0) { ui.toast('This army has already moved this turn.', 'warn'); RW.audio.play('error'); return; }
-      if (!c.canMoveTo(a, tid)) { ui.toast('Another of your armies is already there.', 'warn'); RW.audio.play('error'); return; }
+      if (!c.canMoveTo(a, tid)) {
+        const owner = c.armyAt(tid) ? c.armyAt(tid).faction : c.terr(tid).owner;
+        ui.toast(owner !== c.player && !c.atWar(c.player, owner) ? `You are not at war with ${D.FACTIONS[owner].name}. Declare war in Diplomacy first.` : 'Another of your armies is already there.', 'warn');
+        RW.audio.play('error'); return;
+      }
       const kind = c.moveKind(a, tid);
       if (kind === 'move') {
         a.tid = tid; a.moves--;
@@ -404,14 +445,17 @@
         const mySide = playerAttacking ? setup.att : setup.def;
         const foeSide = playerAttacking ? setup.def : setup.att;
         const pWin = playerAttacking ? odds : 1 - odds;
-        const list = (side) => `<div class="bp-units">${RW.unitIcon(D.FACTIONS[side.faction].general)}${side.units.map((u) => `<span class="bpu" data-tip="${U.escape(D.UNITS[u.typeId].name)} · ${Math.round(u.hpFrac * 100)}%">${RW.unitIcon(u.typeId)}<i style="width:${Math.round(u.hpFrac * 100)}%"></i></span>`).join('')}</div>`;
+        const list = (side) => `<div class="bp-units">${RW.unitIcon(side.generalType || D.FACTIONS[side.faction].general)}${side.units.map((u) => `<span class="bpu ${u.ally ? 'ally' : ''}" data-id="${u.typeId}" data-hp="${Math.round(u.hpFrac * 100)}" data-rk="${u.rank || 0}" data-tip="${U.escape(D.UNITS[u.typeId].name)} · ${Math.round(u.hpFrac * 100)}%${u.rank ? ' · Rank ' + u.rank : ''}${u.ally ? ' · Allied (' + D.FACTIONS[u.faction].short + ')' : ''}">${RW.unitIcon(u.typeId)}<i style="width:${Math.round(u.hpFrac * 100)}%"></i></span>`).join('')}</div>`;
+        const allies = mySide.units.filter((u) => u.ally).length;
         const mapName = D.BATTLE_MAPS[setup.mapType].name;
         const title = playerAttacking ? `Attack ${c.tdef(tid).name}?` : `${c.tdef(tid).name} is under attack!`;
         const body = `<div class="bp">
             <div class="bp-side">${ui.emblem(mySide.faction, 36)}<div><b>${U.escape(mySide.commander.name)}</b><br><span class="dim">Strength ${Math.round(c.sidePower(mySide, !playerAttacking && setup.siege))}</span></div></div>${list(mySide)}
             <div class="bp-vs">VS</div>
             <div class="bp-side">${ui.emblem(foeSide.faction, 36)}<div><b>${U.escape(foeSide.commander.name)}</b><br><span class="dim">Strength ${Math.round(c.sidePower(foeSide, playerAttacking && setup.siege))}</span></div></div>${list(foeSide)}
-            <p class="center">Battlefield: <b>${mapName}</b> — ${D.BATTLE_MAPS[setup.mapType].desc}</p>
+            <p class="center">Battlefield: <b>${mapName}</b> — ${D.BATTLE_MAPS[setup.mapType].desc}${setup.weather !== 'clear' ? `<br>Weather: <b>${D.WEATHER[setup.weather].name}</b> — ${D.WEATHER[setup.weather].desc}` : ''}</p>
+            ${allies ? `<p class="center good">${allies} allied unit${allies > 1 ? 's' : ''} will fight at your side.</p>` : ''}
+            ${setup.siege && playerAttacking ? '<p class="center dim">Siege: your army brings a battering ram and two siege towers. Break a gate, climb the walls, or seize the plaza.</p>' : ''}
             <div class="odds"><span>Auto-resolve odds</span>${ui.bar(pWin, pWin > 0.6 ? 'good' : pWin < 0.4 ? 'bad' : 'mid', Math.round(pWin * 100) + '% victory')}</div>
           </div>`;
         const buttons = [
@@ -422,11 +466,14 @@
             const out = c.applyBattle(attacker, setup, res, false);
             const won = playerAttacking ? out.attWon : !out.attWon;
             RW.audio.play(won ? 'victory' : 'defeat');
-            ui.modal({ title: won ? '<span class="win">Victory!</span>' : '<span class="lose">Defeat</span>', body: `<p class="center">${out.text || (won ? 'Your forces carried the day.' : 'Your forces were beaten.')}</p>`, buttons: [{ label: 'Continue', cls: 'primary', onClick: () => resolve(out) }] });
+            ui.modal({ title: won ? '<span class="win">Victory!</span>' : '<span class="lose">Defeat</span>', body: `<p class="center">${out.text || (won ? 'Your forces carried the day.' : 'Your forces were beaten.')}</p>${this.rewardsHtml(out.rewards)}`, buttons: [{ label: 'Continue', cls: 'primary', onClick: () => resolve(out) }] });
           } },
         ];
         if (playerAttacking) buttons.push({ label: 'Cancel', onClick: () => resolve(null) });
-        ui.modal({ title, body, buttons, cls: 'wide' });
+        const bodyEl = U.html(body);
+        ui.modal({ title, body: bodyEl, buttons, cls: 'wide' });
+        // Detailed unit cards on hover so enemy armies can be inspected before committing.
+        bodyEl.querySelectorAll('.bpu').forEach((el) => { el._tip = () => ui.unitTip(el.dataset.id, `<div class="tip-live">Strength ${el.dataset.hp}% · Rank ${el.dataset.rk}</div>`); });
       });
     }
 
@@ -437,13 +484,15 @@
         const mine = playerAttacking ? setup.att : setup.def, foe = playerAttacking ? setup.def : setup.att;
         const cfg = {
           mapType: setup.mapType, seed: Math.floor(Math.random() * 1e9), attackerSide: playerAttacking ? 0 : 1, difficulty: c.difficulty,
-          sides: [Object.assign({ isPlayer: true }, mine), Object.assign({}, foe)],
+          sides: [Object.assign({ isPlayer: true }, mine), Object.assign({}, foe)], weather: setup.weather,
         };
+        let out = null;
+        // The battle screen asks for the campaign outcome so its aftermath can list the rewards.
+        cfg.resolve = (res) => { out = c.applyBattle(attacker, setup, res, !playerAttacking); return out.rewards; };
         const bs = new RW.BattleScene(this.app, cfg, (res) => {
           this.app.setScene(this);
           this.activate();
-          let out = { attWon: false, text: 'The battle was abandoned.' };
-          if (res) out = c.applyBattle(attacker, setup, res, !playerAttacking);
+          if (!out) out = res ? c.applyBattle(attacker, setup, res, !playerAttacking) : { attWon: false, text: 'The battle was abandoned.' };
           const won = playerAttacking ? out.attWon : !out.attWon;
           ui.toast(out.text || (won ? 'Victory!' : 'Defeat.'), won ? 'good' : 'bad', 5000);
           resolve(out);
@@ -519,7 +568,7 @@
     openMenu() {
       ui.modal({ title: 'Campaign Menu', body: `<p class="center">Turn ${this.c.turn} · ${this.fac.name}</p><p class="center dim">The campaign autosaves at the start of every turn.</p>`, buttons: [
         { label: 'Resume', cls: 'primary' },
-        { label: 'Save Game', onClick: () => { ui.toast(this.c.save() ? 'Game saved.' : 'Could not save (storage unavailable).', 'good'); } },
+        { label: 'Save Game…', onClick: () => this.saveDialog() },
         { label: 'Settings', onClick: () => RW.app.openSettings(() => this.openMenu()) },
         { label: 'How to Play', onClick: () => RW.app.showHelp(() => this.openMenu()) },
         { label: 'Quit to Main Menu', cls: 'danger', onClick: () => { this.c.save(); RW.app.mainMenu(); } },
@@ -539,14 +588,14 @@
         moved: async (army, from, to) => {
           const near = [from, to].some((t) => c.terr(t).owner === c.player || c.adj(t).some((n) => c.terr(n).owner === c.player));
           this.view.refresh();
-          if (near && !this.fast) await new Promise((r) => setTimeout(r, 380));
+          if (near && !this.fast) await new Promise((r) => setTimeout(r, RW.settings.fastCampaign ? 160 : 380));
         },
       };
       try {
-        for (const f of D.PLAYABLE) {
+        for (const f of c.majors) {
           if (f === c.player || !c.factions[f].alive) continue;
           this.$('.c-aiturn span').innerHTML = `${ui.emblem(f, 22)} ${D.FACTIONS[f].name} is moving…`;
-          await new Promise((r) => setTimeout(r, this.fast ? 50 : 350));
+          await new Promise((r) => setTimeout(r, this.fast || RW.settings.fastCampaign ? 50 : 350));
           await RW.campaignAI.runFaction(c, f, hooks);
           this.view.refresh(); this.refreshAll();
           if (this.checkGameOver()) return;
@@ -568,7 +617,8 @@
       ui.toast(`Turn ${c.turn}` + (idle ? '' : ''), 'info');
       // Random event
       const ev = c.rollEvent();
-      if (ev) await this.showEvent(ev);
+      if (ev) { c.notify(`Event: ${ev.title}`, 'info'); await this.showEvent(ev); }
+      this.showTurnNotes();
       c.save();
       this.refreshAll();
     }
@@ -618,12 +668,12 @@
       if (this.hud) this.hud.classList.remove('ai-turn');
       RW.audio.play(end.result === 'victory' ? 'victory' : 'defeat');
       const c = this.c;
-      RW.Campaign.deleteSave();
-      const stats = `<div class="res-grid"><div><h3>Turns</h3><p>${c.turn}</p></div><div><h3>Battles won</h3><p>${c.factions[c.player].wins}</p></div><div><h3>Battles lost</h3><p>${c.factions[c.player].losses}</p></div><div><h3>Territories</h3><p>${c.owned(c.player).length}/16</p></div></div>`;
+      c.save();
+      const stats = `<div class="res-grid"><div><h3>Turns</h3><p>${c.turn}</p></div><div><h3>Battles won</h3><p>${c.factions[c.player].wins}</p></div><div><h3>Battles lost</h3><p>${c.factions[c.player].losses}</p></div><div><h3>Territories</h3><p>${c.owned(c.player).length}/${c.territories.length}</p></div></div>`;
       ui.modal({
         title: end.result === 'victory' ? '<span class="win">Victory!</span>' : '<span class="lose">Defeat</span>', cls: 'results',
         body: end.result === 'victory' ? `<p class="center">${this.fac.name} triumphs through <b>${end.objective}</b>! The realms bow before you.</p>${stats}` : `<p class="center">${end.reason} ${this.fac.name} is no more.</p>${stats}`,
-        buttons: [{ label: 'Main Menu', cls: 'primary', onClick: () => RW.app.mainMenu() }, { label: 'New Campaign', onClick: () => RW.app.newCampaignScreen() }],
+        buttons: [{ label: 'Main Menu', cls: 'primary', onClick: () => RW.app.mainMenu() }, { label: 'Statistics', onClick: () => { this.showStats(() => this.checkGameOverAgain(end)); } }, { label: 'New Campaign', onClick: () => RW.app.newCampaignScreen() }],
       });
       return true;
     }
@@ -666,6 +716,9 @@
         if (e.code === 'Escape') { if (this.selArmy || this.selT >= 0) { this.selArmy = null; this.selT = -1; this.view.selectedT = -1; this.updateTargets(); this.view.refresh(); this.refreshAll(); } else this.openMenu(); }
         else if (e.code === 'Enter') this.endTurn();
         else if (e.code === 'Tab') { e.preventDefault(); this.nextArmy(); }
+        else if (e.code === 'F2' && this.c.grand) { e.preventDefault(); this.showDiplomacy(); }
+        else if (e.code === 'F3' && this.c.grand) { e.preventDefault(); this.showResearch(); }
+        else if (e.code === 'KeyM' && this.selArmy && this.selArmy.faction === this.c.player) this.showArmyManager(this.selArmy);
       });
     }
     pick(cx, cy) {

@@ -1,7 +1,7 @@
 const path = require('path');
 global.window = global;
 const load = (f) => require(path.join(__dirname, '..', 'js', f));
-['core/util.js', 'core/data.js', 'battle/terrain.js', 'battle/units.js', 'battle/battle.js', 'battle/abilities.js', 'battle/ai.js'].forEach(load);
+['core/util.js', 'core/data.js', 'core/data2.js', 'core/mods.js', 'battle/terrain.js', 'battle/units.js', 'battle/battle.js', 'battle/abilities.js', 'battle/ai.js'].forEach(load);
 const RW = global.RW;
 const [mapType = 'grassland', fa = 'valor', fb = 'horde', seed = '1000'] = process.argv.slice(2);
 function army(f) {

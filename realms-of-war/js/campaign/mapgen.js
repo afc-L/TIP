@@ -5,8 +5,8 @@
   const U = RW.util;
 
   const HEX = 1.15;               // hex radius in world units
-  const W = 54, H = 42;           // grid size
   const SQ3 = Math.sqrt(3);
+  let W = 54, H = 42;             // grid size of the map being generated
 
   function tileCenter(c, r) {
     return { x: c * SQ3 * HEX + (r & 1 ? SQ3 * HEX / 2 : 0), z: r * 1.5 * HEX };
@@ -17,12 +17,13 @@
     return d.map(([dc, dr]) => [c + dc, r + dr]).filter(([a, b]) => a >= 0 && b >= 0 && a < W && b < H);
   }
 
-  function generate() {
-    const T = RW.data.TERRITORIES;
-    const noise = U.makeNoise(4242), noise2 = U.makeNoise(777);
-    // Scale territory coordinates (0..100 x 0..72) onto the hex grid's world extent.
+  function generate(def) {
+    const T = def.territories;
+    W = def.W; H = def.H;
+    const noise = U.makeNoise(def.seed), noise2 = U.makeNoise(def.seed === 4242 ? 777 : def.seed + 13);
+    // Scale territory coordinates onto the hex grid's world extent.
     const ext = tileCenter(W - 1, H - 1);
-    const sx = (ext.x - 6) / 100, sz = (ext.z - 6) / 72;
+    const sx = (ext.x - 6) / def.coords[0], sz = (ext.z - 6) / def.coords[1];
     const sites = T.map((t) => ({ id: t.id, x: 3 + t.x * sx, z: 3 + t.y * sz }));
     const tiles = [];
     for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) {
@@ -82,22 +83,31 @@
       else if (terr === 'pass') h = 0.9 + n * 1.2;
       else if (terr === 'forest') h = 0.6 + n * 0.35;
       else if (terr === 'river') h = 0.45 + n * 0.25;
+      else if (terr === 'snow') h = 0.75 + n * 0.9;
+      else if (terr === 'volcanic') h = 0.7 + n * 1.1;
+      else if (terr === 'desert') h = 0.5 + n * 0.2;
       tl.h = h;
-      tl.mountain = terr === 'pass' && n > 0.55 && !tl.border;
+      tl.mountain = (terr === 'pass' || terr === 'snow' || terr === 'volcanic') && n > (terr === 'pass' ? 0.55 : 0.68) && !tl.border;
       tl.peak = (terr === 'hills' && n > 0.72) || tl.mountain;
-      tl.tree = (terr === 'forest' && n > 0.25) || (terr !== 'pass' && noise2(tl.x * 0.4, tl.z * 0.4) > 0.72);
+      tl.tree = (terr === 'forest' && n > 0.25) || (terr === 'snow' && n < 0.3 && noise2(tl.x * 0.4, tl.z * 0.4) > 0.6) ||
+        (!['pass', 'snow', 'volcanic', 'desert'].includes(terr) && noise2(tl.x * 0.4, tl.z * 0.4) > 0.72);
       tl.water = terr === 'river' && Math.abs(noise2(tl.x * 0.15 + 9, tl.z * 0.15) - 0.5) < 0.04;
+      tl.lava = terr === 'volcanic' && !tl.mountain && Math.abs(noise2(tl.x * 0.2 + 3, tl.z * 0.2) - 0.5) < 0.03;
     }
     // Make sure the site tile itself is land and flat enough for a settlement.
     for (const s of sites) {
       let best = null, bd = Infinity;
       for (const tl of tiles) { if (tl.t !== s.id) continue; const d = Math.hypot(tl.x - s.x, tl.z - s.z); if (d < bd) { bd = d; best = tl; } }
-      if (best) { s.x = best.x; s.z = best.z; best.site = true; best.mountain = false; best.peak = false; best.tree = false; best.water = false; }
+      if (best) { s.x = best.x; s.z = best.z; best.site = true; best.mountain = false; best.peak = false; best.tree = false; best.water = false; best.lava = false; }
     }
     return { tiles, W, H, HEX, sites, adj: adj.map((s) => [...s].sort((a, b) => a - b)), extent: ext };
   }
 
-  let cached = null;
-  RW.campaignMap = function () { return cached || (cached = generate()); };
+  const cache = {};
+  RW.campaignMap = function (mapId = 'classic') {
+    if (!cache[mapId]) { const m = generate(RW.data.MAPS[mapId]); m.id = mapId; m.territories = RW.data.MAPS[mapId].territories; cache[mapId] = m; }
+    W = cache[mapId].W; H = cache[mapId].H;
+    return cache[mapId];
+  };
   RW.hexNeighbors = neighbors;
 })();

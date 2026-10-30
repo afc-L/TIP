@@ -41,6 +41,48 @@ hills extend missile range and help melee, rivers and passes make chokepoints, s
 
 **Quick Battle** lets you build an army with a budget and fight a randomised enemy on any battlefield.
 
+### Content update
+
+**Three more factions** (all playable in the Greater Realm, Conquest and every battle mode):
+
+| | Frostborn Clans | Bloodfang Empire | Sylvan Covenant |
+| --- | --- | --- | --- |
+| Style | Defensive northmen, giants and beasts | Vampires and the undead | Elves, beasts and treants |
+| Strengths | Armoured infantry, giants, mammoth; expensive | Heavy cavalry, resurrection, flyers | Archers, fast cavalry, flyers; weak heavy infantry |
+| Campaign bonus | Stronger garrisons, faster healing, +15% recruit cost | 10% heal after victories | +1 move from forests, +25% forest income |
+| Signature ability | Frozen Ground (slow) | Blood Harvest (heal on kill) + limited resurrection | Nature's Wrath (roots) |
+
+**Legendary commanders**: two per faction (12), each with a model on the battlefield, a passive, two
+battle abilities, a starting bonus and a story. All commanders have a skill tree (one point per level).
+
+**Rosters**: every faction gains crossbows/specialist ranged troops, flyers (pegasi, wyverns, drakes,
+eagles, bats, hawks), monsters, siege engines and rare units (unlocked by research in the Greater Realm,
+or a City plus victories in the classic campaign).
+
+**Campaign modes**: *Classic* (the original 16-territory campaign, rules unchanged), *The Greater Realm*
+(28 territories with frozen, desert and volcanic lands, six factions, landmarks, explorable ruins,
+diplomacy, a 12-technology tree, more events) and *Conquest* (start with one village, conquer the world).
+Multiple save slots, campaign statistics, notification history, minimap, an encyclopedia, army
+inspection and a fast-animation option.
+
+**Diplomacy**: peace, non-aggression pacts, alliances, gifts, gold requests, military aid. Factions
+remember what you did. Allies send up to three units to your battles near their armies.
+
+**Equipment & army management**: 25 items in five rarities for commanders, doctrines, per-unit-type
+drill, banner colours.
+
+**Battles**: new battlefields (snowy mountains, ancient forest, volcanic waste, desert ruins, castle
+courtyard, ancient temple), weather (rain, fog, snowstorm, volcanic ash; small effects), sieges with two
+destructible gates, wall towers, battering rams, siege towers and a plaza capture point, flyers,
+veterancy ranks in battle, popups and an aftermath screen with rewards and a strength graph/timeline.
+
+**Custom Battle** (pick both armies, factions, battlefield, weather, legendary commanders) and
+**Survival** (endless waves with gold between waves, records your best wave).
+
+**Difficulty is unchanged**: the AI gets no legendary commanders, equipment, skills, research or siege
+towers; the classic campaign AI keeps its original rosters; new unit costs were balanced with
+`tools/simtest.js` matrices.
+
 ### Battle controls
 
 | Input | Action |
@@ -75,7 +117,9 @@ css/style.css         UI theme
 lib/three.min.js      Three.js r158 (MIT)
 js/core/              util, settings, data (factions/units/abilities/map), audio, models, camera, ui
 js/battle/            terrain + A* pathfinding, units, battle simulation, abilities, AI, renderer, scene/HUD
-js/campaign/          hex map generation, campaign state & economy, campaign AI, 3D view, scene/HUD
+js/core/data2.js      content update: new factions, units, legends, items, techs, weather, Greater Realm
+js/core/mods.js       combines commander/equipment/doctrine/tech bonuses into battle modifiers
+js/campaign/          hex map generation, campaign state, diplomacy, AI, 3D view, scene/HUD, extra screens
 js/menus.js           main menu, new campaign, quick battle, settings, help
 js/main.js            app shell, main loop, scene switching
 tools/                headless tests (see below)
@@ -88,7 +132,8 @@ touch the DOM or Three.js, so it also runs in Node.
 
 ```bash
 node tools/simtest.js grassland valor horde normal 6     # AI vs AI battles: win counts and kills per unit type
-node tools/campaigntest.js normal 40                      # all-AI campaign for 40 turns with auto-resolve
+node tools/campaigntest.js normal 40 grand frost           # all-AI campaign (classic|grand|conquest) with auto-resolve
+node tools/update.js <outDir>                             # browser test of the new modes and campaign screens
 node tools/smoke.js <outDir>                              # browser smoke test with screenshots (needs Playwright)
 node tools/maps.js <outDir>                               # screenshot every battlefield type
 node tools/flow.js <outDir>                               # campaign -> battle -> campaign, save/load, resize

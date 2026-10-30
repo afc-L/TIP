@@ -3,7 +3,7 @@ const path = require('path');
 global.window = global;
 global.performance = global.performance || { now: () => Date.now() };
 const load = (f) => require(path.join(__dirname, '..', 'js', f));
-['core/util.js', 'core/data.js', 'battle/terrain.js', 'battle/units.js', 'battle/battle.js', 'battle/abilities.js', 'battle/ai.js'].forEach(load);
+['core/util.js', 'core/data.js', 'core/data2.js', 'core/mods.js', 'battle/terrain.js', 'battle/units.js', 'battle/battle.js', 'battle/abilities.js', 'battle/ai.js'].forEach(load);
 const RW = global.RW;
 const [mapType = 'grassland', fa = 'valor', fb = 'horde', diff = 'normal', runs = '3'] = process.argv.slice(2);
 const BUDGET = +(process.env.BUDGET || 7000);

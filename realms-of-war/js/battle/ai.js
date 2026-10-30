@@ -42,6 +42,7 @@
         const g = b.map.gate;
         this.anchor = { x: 0, z: g.z + (north ? -22 : 22) };
       }
+      if (b.map.temple && this.p.holdHill) { const t = b.map.temple; this.anchor = { x: t.x, z: t.z + (north ? -10 : 10) }; this.onHill = true; }
     }
 
     update(dt) {
@@ -127,7 +128,7 @@
       const myP = b.sidePower(s), enP = Math.max(1, b.sidePower(1 - s));
       const ratio = myP / enP;
       const siegeDef = b.siege && s === b.defenderSide;
-      const gateUp = b.siege && b.map.gate && b.map.gate.hp > 0;
+      const gateUp = b.siege && b.map.gates.every((g) => g.hp > 0) && !b.map.breaches.length;
       const siegeAtt = b.siege && s === b.attackerSide && gateUp;
 
       // Posture
@@ -143,9 +144,15 @@
 
       const infantry = mine.filter((u) => u.cat === 'inf' || (u.cat === 'ranged' && u.ammo <= 0));
       const ranged = mine.filter((u) => u.cat === 'ranged' && u.ammo > 0);
-      const cav = mine.filter((u) => u.cat === 'cav');
-      const monsters = mine.filter((u) => u.cat === 'monster');
-      const siege = mine.filter((u) => u.cat === 'siege');
+      const cav = mine.filter((u) => u.cat === 'cav' || (u.fly && u.cat === 'monster'));
+      const monsters = mine.filter((u) => u.cat === 'monster' && !u.fly);
+      const siege = mine.filter((u) => u.cat === 'siege' && !u.equip);
+      // Siege equipment: rams to the nearest gate, towers to the wall.
+      mine.filter((u) => u.equip).forEach((u, i) => {
+        if (u.docked || u.engagedBy.size) return;
+        if (u.equip === 'ram' && u.order.type !== 'gate') u.orderGate();
+        if (u.equip === 'tower' && u.order.type !== 'tower') u.orderTower([-70, 70, 15][i % 3]);
+      });
       const general = mine.find((u) => u.isGeneral);
       const assigned = new Set();
 
@@ -250,6 +257,12 @@
           this.attack(u, tg);
           continue;
         }
+        // Defenders of a walled town keep their missile troops on the walls.
+        if (siegeDef && b.map.siegeWalls) {
+          const k = ranged.indexOf(u), n = ranged.length;
+          this.moveTo(u, U.clamp((k - (n - 1) / 2) * 30, -95, 95), b.map.wallZ, north ? 0 : Math.PI);
+          continue;
+        }
         // Move up behind the infantry line.
         if (this.posture === 'defend' || this.posture === 'gatefight' || this.posture === 'siege') {
           const lx = (ranged.indexOf(u) - (ranged.length - 1) / 2) * 24;
@@ -274,7 +287,7 @@
       for (const u of siege) {
         if (u.engaged.size || u.engagedBy.size) continue;
         if (siegeAtt) {
-          const g = b.map.gate;
+          const g = b.map.nearestGate(u.x, u.z) || b.map.gate;
           const d = Math.hypot(g.x - u.x, g.z - u.z);
           if (d > u.t.range * 0.9) this.moveTo(u, g.x + (u.x > 0 ? 18 : -18), g.z - toEnemy * (u.t.range * 0.75));
           else if (u.order.type !== 'gate') u.orderGate();
@@ -382,8 +395,9 @@
       }
       ad.meleeT = 0;
       if (ad.withdrawT > 0) { ad.withdrawT -= p.tick; if (u.order.type === 'move') return; }
-      if (b.siege && b.map.gate && b.map.gate.hp > 0 && u.side === b.attackerSide) {
-        this.moveTo(u, b.map.gate.x + (u.x > 0 ? 40 : -40), b.map.gate.z - toEnemy * 80);
+      if (b.siege && !u.fly && b.map.gates.every((g) => g.hp > 0) && !b.map.breaches.length && u.side === b.attackerSide) {
+        const g = b.map.nearestGate(u.x, u.z);
+        this.moveTo(u, g.x + (u.x > g.x ? 30 : -30), g.z - toEnemy * 80);
         return;
       }
       // Wait on the wing until the lines meet or something juicy is exposed.
@@ -423,6 +437,33 @@
         if (ab.cd > 0 || Math.random() > this.p.abilityChance) continue;
         const def = ab.def;
         const id = ab.id;
+        const k = def.effect ? def.effect.kind : null;
+        if (k === 'enemy_area' || k === 'area_damage') {
+          // Best enemy cluster (these never hit our own men).
+          let best = null, bs = 0;
+          for (const e of fighting) {
+            let n = 0;
+            for (const u of fighting) if (Math.hypot(u.x - e.x, u.z - e.z) < def.radius + u.radius * 0.5) n += u.alive * (u.large ? 4 : 1);
+            if (n > bs) { bs = n; best = e; }
+          }
+          if (best && bs >= (k === 'area_damage' ? 12 : 20)) { RW.castAbility(b, s, id, best.x, best.z); return; }
+          continue;
+        }
+        if (k === 'ally_area') {
+          let best = null, bs = 0;
+          for (const a of mine) {
+            let sc = 0;
+            for (const u of mine) if (Math.hypot(u.x - a.x, u.z - a.z) < def.radius + u.radius * 0.5) sc += (def.effect.heal ? (u.maxPool - u.pool) / u.hpEach : 0) + (u.engaged.size || u.engagedBy.size ? 10 : 0) + (u.morale < 30 ? 8 : 0);
+            if (sc > bs) { bs = sc; best = a; }
+          }
+          if (best && bs >= 18) { RW.castAbility(b, s, id, best.x, best.z); return; }
+          continue;
+        }
+        if (k === 'type_buff') {
+          const busy = mine.filter((u) => (u.order.type === 'attack' && u.order.target && Math.hypot(u.order.target.x - u.x, u.order.target.z - u.z) < 55) || u.engaged.size);
+          if (busy.length >= 2) { RW.castAbility(b, s, id, 0, 0); return; }
+          continue;
+        }
         if (id === 'fireball' || id === 'meteor' || id === 'earthshaker') {
           const ff = id !== 'earthshaker';
           let best = null, bs = 0;

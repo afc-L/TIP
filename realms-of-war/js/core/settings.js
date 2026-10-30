@@ -2,7 +2,7 @@
 (function () {
   const RW = window.RW;
   const KEY = 'realmsOfWar.settings.v1';
-  const DEFAULTS = { quality: 'medium', volume: 0.7, music: true, sfx: true, camSens: 1.0, edgeScroll: true, tooltips: true, difficulty: 'normal' };
+  const DEFAULTS = { quality: 'medium', volume: 0.7, music: true, sfx: true, camSens: 1.0, edgeScroll: true, tooltips: true, difficulty: 'normal', fastCampaign: false };
 
   function load() {
     try {

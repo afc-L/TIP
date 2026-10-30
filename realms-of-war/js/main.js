@@ -76,8 +76,8 @@
       RW.menus.main();
     },
     newCampaignScreen() { this.mainMenu(); RW.menus.newCampaign(); },
-    continueCampaign() {
-      const c = RW.Campaign.load();
+    continueCampaign(slot) {
+      const c = RW.Campaign.load(slot);
       if (!c) { ui.toast('No saved campaign found.', 'warn'); return; }
       this.startCampaign(c);
     },
@@ -89,11 +89,14 @@
       this.campaignScene = cs;
       ui.toast(`Turn ${c.turn} — ${RW.data.FACTIONS[c.player].name}`, 'info');
     },
-    startQuickBattle(cfg) {
+    startQuickBattle(cfg) { this.startBattle(cfg, () => this.mainMenu()); },
+    // Stand-alone battle (quick, custom, survival); done(result) runs after the aftermath screen.
+    startBattle(cfg, done) {
       ui.show(null); ui.closeModal();
-      const bs = new RW.BattleScene(this, cfg, () => { this.mainMenu(); });
+      const bs = new RW.BattleScene(this, cfg, (res) => done(res));
       this.setScene(bs);
     },
+    showEncyclopedia(back) { RW.menus.encyclopedia(back); },
     openSettings(back) { RW.menus.settings(back); },
     showHelp(back) { RW.menus.help(back); },
   };
