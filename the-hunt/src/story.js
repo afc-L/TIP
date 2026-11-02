@@ -175,6 +175,11 @@ export class Story {
       this.startBurning();
     } });
 
+    // ---- doors
+    g.world.doors.forEach((d, i) => {
+      this.addInteract({ id: 'door_' + i, pos: d.pos, r: 2.0, label: () => (d.open ? 'Close door' : 'Open door'), action: () => g.toggleDoor(d) });
+    });
+
     // ---- towers: climbing
     S.towers.forEach((t, i) => {
       this.addInteract({ id: 'tower_up_' + i, pos: t.ladderBottom, r: 1.8, label: () => 'Climb tower', action: () => g.climb(t, true) });

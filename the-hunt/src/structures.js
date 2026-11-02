@@ -29,6 +29,7 @@ function mats() {
     red: new THREE.MeshLambertMaterial({ color: 0x7a1a12 }),
     bark: new THREE.MeshLambertMaterial({ map: barkTexture(), color: 0xc8c0b0 }),
     glass: new THREE.MeshLambertMaterial({ color: 0x1a2a30, transparent: true, opacity: 0.55 }),
+    door: new THREE.MeshLambertMaterial({ map: grey, color: 0xc08a64 }),
   };
   return MATS;
 }
@@ -100,6 +101,45 @@ export class Builder {
     if (!this.byMat.has(matName)) this.byMat.set(matName, []);
     this.byMat.get(matName).push(g);
   }
+  /**
+   * Hinged door filling an opening. axis 'x': wall runs along local x at z = at, opening a..b.
+   * axis 'z': wall runs along local z at x = at. Swings by `swing` radians when opened.
+   */
+  door(axis, a, b, at, floorY, h, swing = 1.6) {
+    const M = mats();
+    const w = b - a - 0.04;
+    const pivot = new THREE.Group();
+    const leaf = new THREE.Group();
+    if (axis === 'x') {
+      pivot.position.set(a + 0.02, floorY, at);
+      const m = new THREE.Mesh(boxGeo(w, h - 0.03, 0.06, 1), M.door);
+      m.position.set(w / 2, h / 2, 0);
+      leaf.add(m);
+      const knob = new THREE.Mesh(new THREE.SphereGeometry(0.035, 6, 4), M.metal);
+      knob.position.set(w - 0.1, 1.0, 0.06);
+      const knob2 = knob.clone(); knob2.position.z = -0.06;
+      leaf.add(knob, knob2);
+    } else {
+      pivot.position.set(at, floorY, a + 0.02);
+      const m = new THREE.Mesh(boxGeo(0.06, h - 0.03, w, 1), M.door);
+      m.position.set(0, h / 2, w / 2);
+      leaf.add(m);
+      const knob = new THREE.Mesh(new THREE.SphereGeometry(0.035, 6, 4), M.metal);
+      knob.position.set(0.06, 1.0, w - 0.1);
+      const knob2 = knob.clone(); knob2.position.x = -0.06;
+      leaf.add(knob, knob2);
+    }
+    leaf.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    pivot.add(leaf);
+    this.group.add(pivot);
+    const mid = (a + b) / 2;
+    const c = axis === 'x' ? this.toWorld(mid, floorY, at) : this.toWorld(at, floorY, mid);
+    const box = this.world.addBox(c.x, c.z, axis === 'x' ? (b - a) / 2 : 0.08, axis === 'x' ? 0.08 : (b - a) / 2, -this.rot, this.y + floorY, this.y + floorY + h);
+    const d = { pivot, box, open: false, ang: 0, swing, pos: { x: c.x, y: c.y + 1.0, z: c.z } };
+    this.world.doors.push(d);
+    return d;
+  }
+
   anchor(lx, ly, lz, tag = 'floor') {
     const p = this.toWorld(lx, ly, lz);
     p.tag = tag;
@@ -123,6 +163,7 @@ export class Builder {
 
 /** Wall along local x from x0..x1 at z, with optional openings [{a, b, y0, y1}] in x-range. */
 function wallX(B, x0, x1, z, floorY, h, mat, openings = [], t = 0.16) {
+  openings = [...openings].sort((p, q) => p.a - q.a); // cut pieces must go left to right
   const cuts = [x0, ...openings.flatMap((o) => [o.a, o.b]), x1];
   for (let i = 0; i < cuts.length - 1; i += 2) {
     const a = cuts[i], b = cuts[i + 1];
@@ -135,6 +176,7 @@ function wallX(B, x0, x1, z, floorY, h, mat, openings = [], t = 0.16) {
   }
 }
 function wallZ(B, z0, z1, x, floorY, h, mat, openings = [], t = 0.16) {
+  openings = [...openings].sort((p, q) => p.a - q.a);
   const cuts = [z0, ...openings.flatMap((o) => [o.a, o.b]), z1];
   for (let i = 0; i < cuts.length - 1; i += 2) {
     const a = cuts[i], b = cuts[i + 1];
@@ -196,6 +238,7 @@ export function buildCabin(world, scene, L, rot, { name = 'cabin', ruined = fals
   wallX(B, -W / 2, W / 2, D / 2, F, H, 'wood', [{ a: 0.6, b: 1.65, y0: 0, y1: 2.15 }, { a: -2.0, b: -1.0, y0: 1.0, y1: 1.9 }]);
   wallZ(B, -D / 2, D / 2, -W / 2, F, H, 'wood');
   wallZ(B, -D / 2, D / 2, W / 2, F, H, 'wood', [{ a: -0.6, b: 0.6, y0: 1.0, y1: 1.9 }]);
+  B.door('x', 0.6, 1.65, D / 2, F, 2.15);
   gableRoof(B, W, D, F + H, 1.6, ruined ? 'greyWood' : 'roof');
   // porch
   B.box(W, 0.3, 1.8, 0, 0.15, D / 2 + 0.95, 'greyWood', { collide: false, walk: true });
@@ -259,6 +302,8 @@ export function buildStation(world, scene, L, rot) {
   wallZ(B, -D / 2, D / 2, W / 2, F, H, 'paint');
   // interior partition: office (front/left) vs back room (right)
   wallZ(B, -D / 2, D / 2, 1.8, F, H, 'wood', [{ a: 0.4, b: 1.4, y0: 0, y1: 2.15 }]);
+  B.door('x', -0.6, 0.6, D / 2, F, 2.2);
+  B.door('z', 0.4, 1.4, 1.8, F, 2.15, -1.6);
   gableRoof(B, W, D, F + H, 1.8, 'roof');
   // porch + steps + sign
   B.box(W, 0.35, 2.2, 0, 0.17, D / 2 + 1.15, 'greyWood', { collide: false, walk: true });
@@ -311,6 +356,7 @@ export function buildRelay(world, scene, L, rot) {
   B.box(W + 0.2, F, D + 0.2, 0, F / 2, 0, 'greyWood', { collide: false, walk: true });
   wallX(B, -W / 2, W / 2, -D / 2, F, H, 'metal');
   wallX(B, -W / 2, W / 2, D / 2, F, H, 'metal', [{ a: -0.5, b: 0.5, y0: 0, y1: 2.0 }]);
+  B.door('x', -0.5, 0.5, D / 2, F, 2.0);
   wallZ(B, -D / 2, D / 2, -W / 2, F, H, 'metal', [{ a: -0.5, b: 0.4, y0: 1.0, y1: 1.6 }]);
   wallZ(B, -D / 2, D / 2, W / 2, F, H, 'metal');
   B.box(W + 0.5, 0.1, D + 0.6, 0, F + H + 0.05, 0, 'metal', { collide: false, rx: 0.05 });

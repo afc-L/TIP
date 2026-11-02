@@ -587,6 +587,27 @@ export class AudioEngine {
     }
   }
 
+  door(pos, open) {
+    if (!this.ready) return;
+    const ctx = this.ctx, t = ctx.currentTime;
+    const o = this.out(pos, { ref: 3, reverb: 0.4 });
+    // latch click, then a hinge creak
+    this.click(open ? 1800 : 1200, 0.25);
+    const os = ctx.createOscillator(); os.type = 'sawtooth';
+    const f0 = 150 + rand() * 60;
+    os.frequency.setValueAtTime(f0, t + 0.05);
+    os.frequency.linearRampToValueAtTime(f0 * (open ? 1.6 : 0.7), t + 0.65);
+    const bp = this.filter('bandpass', 900, 9);
+    const g = ctx.createGain();
+    this.env(g.gain, t + 0.05, 0.08, 0.06, 0.55);
+    os.connect(bp).connect(g).connect(o); os.start(t + 0.05); os.stop(t + 0.8);
+    if (!open) {
+      const s = this.noise(); const lp = this.filter('lowpass', 400); const g2 = ctx.createGain();
+      this.env(g2.gain, t + 0.55, 0.005, 0.5, 0.15);
+      s.connect(lp).connect(g2).connect(o); s.start(t + 0.55, rand(), 0.2);
+    }
+  }
+
   /** Short dissonant swell for sightings. */
   stinger(vol = 1) {
     if (!this.ready) return;

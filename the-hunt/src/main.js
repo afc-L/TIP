@@ -311,6 +311,7 @@ class Game {
     this.setStationPower(false);
     this.setHollowFire(false);
     this.stopHelicopter();
+    for (const d of this.world.doors) { d.open = false; d.ang = 0; d.pivot.rotation.y = 0; d.box.off = false; }
     const st = this.player.stats;
     Object.assign(st, { health: 100, hunger: 85, stamina: 100, fear: 0, battery: 100 });
     this.player.dead = false;
@@ -444,6 +445,23 @@ class Game {
   stopHelicopter() {
     this.heliSound?.stop(); this.heliSound = null; this.heli = null; this.heliLanded = false;
     if (this.heliSrc) { this.heliSrc.active = false; this.heliSrc.intensity = 0; }
+  }
+
+  toggleDoor(d, open = !d.open) {
+    if (d.open === open) return;
+    d.open = open;
+    if (open) d.box.off = true; // walkable as soon as it starts to swing
+    this.audio.door(d.pos, open);
+  }
+
+  updateDoors(dt) {
+    for (const d of this.world.doors) {
+      const target = d.open ? d.swing : 0;
+      d.ang = damp(d.ang, target, 7, dt);
+      if (Math.abs(d.ang - target) < 0.002) d.ang = target;
+      d.pivot.rotation.y = d.ang;
+      if (!d.open && d.ang === 0) d.box.off = false;
+    }
   }
 
   climb(tower, up) {
@@ -651,6 +669,7 @@ class Game {
     this.campfire.update(dt, this.time);
     this.hollowFire.update(dt, this.time);
     this.puffs.update(dt);
+    this.updateDoors(dt);
     this.updateHeli(dt);
     this.lights.update(p.pos.x, p.pos.z);
 

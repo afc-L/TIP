@@ -55,6 +55,7 @@ export class World {
     this.noise2 = makeNoise2D(4242);
     this.circles = new Map(); // spatial hash of round colliders (trees, rocks)
     this.boxes = []; // oriented box colliders {cx, cz, hx, hz, c, s, y0, y1}
+    this.doors = []; // hinged doors (see Builder.door)
     this.surfaces = []; // walkable tops {cx, cz, hx, hz, c, s, top, kind}
     this.chunks = [];
     this.chunkSize = 60;
@@ -422,7 +423,9 @@ export class World {
     return 'grass';
   }
 
-  inWater(x, z) { return this.heightAt(x, z) < this.waterLevel - 0.05; }
+  // Water only exists inside the lake; low ground elsewhere (the Hollow, valley dips) is dry land.
+  inWater(x, z) { return this.lakeEdge(x, z) > -2 && this.heightAt(x, z) < this.waterLevel - 0.05; }
+  deepWater(x, z) { return this.lakeEdge(x, z) > -2 && this.heightAt(x, z) < this.waterLevel - 1.0; }
 
   addCircle(x, z, r, kind) {
     const key = ((Math.floor(x / 8) + 100) << 8) | (Math.floor(z / 8) + 100);
@@ -444,7 +447,9 @@ export class World {
   }
 
   addBox(cx, cz, hx, hz, rot, y0, y1) {
-    this.boxes.push({ cx, cz, hx, hz, c: Math.cos(rot), s: Math.sin(rot), y0, y1, br: Math.hypot(hx, hz) });
+    const b = { cx, cz, hx, hz, c: Math.cos(rot), s: Math.sin(rot), y0, y1, br: Math.hypot(hx, hz), off: false };
+    this.boxes.push(b);
+    return b;
   }
 
   addSurface(cx, cz, hx, hz, rot, top, kind = 'wood') {
@@ -463,6 +468,7 @@ export class World {
       }
     }
     for (const b of this.boxes) {
+      if (b.off) continue;
       if (b.y1 <= feetY + 0.5 || b.y0 >= headY) continue;
       const dx = pos.x - b.cx, dz = pos.z - b.cz;
       if (dx * dx + dz * dz > (b.br + radius + 0.5) ** 2) continue;
@@ -500,6 +506,7 @@ export class World {
     // boxes (analytic slab test in box space, ignoring rotation of y)
     if (boxes) {
       for (const b of this.boxes) {
+      if (b.off) continue;
         const rx = ox - b.cx, rz = oz - b.cz;
         const lox = rx * b.c + rz * b.s, loz = -rx * b.s + rz * b.c;
         const ldx = dx * b.c + dz * b.s, ldz = -dx * b.s + dz * b.c;

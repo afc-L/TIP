@@ -76,7 +76,8 @@ bindings are saved in the browser, and all on-screen hints show your keys.
   and save.
 - **A big forest.** About 720 × 720 m of pine and spruce, clearings, a lake with an
   old dock, logging roads and trails, four climbable hunting towers, two cabins, an
-  abandoned campsite, a radio relay on a hill, the old ranger station, a locked north
+  abandoned campsite, a radio relay on a hill, the old ranger station (cabins, the station and
+  the relay shack all have doors you open and close with Interact), a locked north
   gate, and somewhere in the north-west, a place that isn't on any map.
 - **Day/night and weather.** Overcast, mist, heavy fog, rain and storms with
   lightning. One in-game hour takes one real minute. Nights are dark: the flashlight

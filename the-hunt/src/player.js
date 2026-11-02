@@ -129,7 +129,7 @@ export class Player {
     this.pos.y += this.vy * dt;
 
     // deep water is a wall
-    if (w.heightAt(this.pos.x, this.pos.z) < w.waterLevel - 1.0 && !this.onDock()) {
+    if (w.deepWater(this.pos.x, this.pos.z) && !this.onDock()) {
       this.pos.x = prev.x; this.pos.z = prev.z;
       this.vel.x *= -0.2; this.vel.z *= -0.2;
     }
