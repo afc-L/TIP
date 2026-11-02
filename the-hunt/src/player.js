@@ -68,6 +68,7 @@ export class Player {
     }
     this.game.audio.hurt();
     this.game.ui.damageFlash(amount);
+    if (amount >= 8) this.game.gore.screen(Math.min(1, amount / 45));
     if (this.stats.health <= 0) {
       this.stats.health = 0;
       this.dead = true;

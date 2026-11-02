@@ -91,7 +91,7 @@ export class Events {
       case 'flicker': g.equip.flicker = 1.2 + rand(); break;
       case 'scream': au.shriek(this.around(120, 180), 0.25); break;
       case 'totem': { const p = this.around(25, 40, false, true); this.plantTotemNear(p, 0, 3); break; }
-      case 'carcass': this.spawnCarcass(); break;
+      case 'carcass': if (g.story.stage >= 4 && rand() < 0.5) this.spawnStrung(); else this.spawnCarcass(); break;
       case 'stampede': this.stampede(); break;
       case 'wrongdeer': this.spawnWrongDeer(); break;
       case 'crows': { const p = this.around(30, 60); g.animals.spawnFlock(p.x, p.z); break; }
@@ -131,7 +131,43 @@ export class Events {
     g.scene.add(grp);
     this.props.push(grp);
     for (let i = 0; i < 6; i++) g.animals.blood.add(p.x + (rand() - 0.5) * 3, g.world.heightAt(p.x, p.z), p.z + (rand() - 0.5) * 3, rand() * 6, 1 + rand() * 2);
+    // torn open: a wide pool, entrails dragged away, blood smeared toward the trees
+    g.gore.pool(p.x, p.z, 2.2 + rand(), 2);
+    g.gore.dress({ x: p.x, z: p.z, yaw: grp.rotation.y, kind: 'deer', body: d.body, group: d.group });
+    const drag = rand() * Math.PI * 2;
+    for (let k = 0; k < 14; k++) g.gore.splash(p.x + Math.cos(drag) * k * 0.9, p.z + Math.sin(drag) * k * 0.9, 2, 0.6, 1.4);
     g.animals.spawnFlock(p.x, p.z, 4);
+  }
+
+  /** A deer strung up by its hind legs from a branch, still dripping. */
+  spawnStrung() {
+    const g = this.game;
+    const p = this.around(25, 40, false, true);
+    const y0 = g.world.heightAt(p.x, p.z);
+    const grp = new THREE.Group();
+    grp.position.set(p.x, y0, p.z);
+    const d = makeDeer(rand() < 0.5);
+    d.group.rotation.x = Math.PI; // upside down
+    d.group.position.y = 2.9;
+    d.neck.rotation.x = 0.4;
+    d.legs.forEach((l) => { l.hip.rotation.x = l.front ? 0.3 : -0.2; });
+    d.group.traverse((o) => { if (o.isMesh) { o.material = o.material.clone(); o.material.color.lerp(new THREE.Color(0x5a1410), 0.7); } });
+    grp.add(d.group);
+    // rope and a crossbar between two posts
+    const wood = new THREE.MeshLambertMaterial({ color: 0x3a3026 });
+    const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 3.2, 5), wood);
+    bar.rotation.z = Math.PI / 2; bar.position.y = 3.6;
+    const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 1.2, 3), new THREE.MeshLambertMaterial({ color: 0x8a7a5a }));
+    rope.position.set(0, 3.0, 0.4);
+    grp.add(bar, rope);
+    for (const sx of [-1.5, 1.5]) { const post = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 3.8, 5), wood); post.position.set(sx, 1.85, 0); grp.add(post); }
+    grp.rotation.y = rand() * 6;
+    g.scene.add(grp);
+    this.props.push(grp);
+    g.gore.pool(p.x, p.z, 1.6, 30);
+    g.gore.splash(p.x, p.z, 10, 1.2, 1.3);
+    g.gore.dress({ x: p.x, z: p.z, yaw: grp.rotation.y, kind: 'deer', body: d.body, group: d.group });
+    g.audio.treeCreak({ x: p.x, y: y0 + 3, z: p.z });
   }
 
   stampede() {

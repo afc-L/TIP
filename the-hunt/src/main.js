@@ -14,6 +14,7 @@ import { Inventory } from './inventory.js';
 import { UI } from './ui.js';
 import { ENDINGS, TIPS } from './content.js';
 import { Fire, LightPool, Puffs } from './effects.js';
+import { Gore } from './gore.js';
 import { clamp, damp, rand } from './util.js';
 import { binds, K, ACTIONS, keyName } from './keybinds.js';
 
@@ -23,7 +24,7 @@ const $ = (id) => document.getElementById(id);
 
 const DEFAULT_SETTINGS = {
   sens: 1, invert: false, fov: 72, master: 0.8, music: 0.7, sfx: 1,
-  quality: 'medium', scale: 0.8, shadows: true, viewDistance: 150, voice: true, grain: true, fps: false,
+  quality: 'medium', scale: 0.8, shadows: true, viewDistance: 150, voice: true, grain: true, fps: false, gore: true,
 };
 
 function loadSettings() {
@@ -91,6 +92,7 @@ class Game {
     this.events = new Events(this);
     this.story = new Story(this);
     this.puffs = new Puffs(this.scene);
+    this.gore = new Gore(this);
     this.lights = new LightPool(this.scene, 2);
     // campfire, station lamp, hollow fire, helicopter light
     this.campfire = new Fire(this.scene, new THREE.Vector3(this.structures.camp.fireWorld.x, this.structures.camp.fireWorld.y - 0.25, this.structures.camp.fireWorld.z), 1);
@@ -213,7 +215,7 @@ class Game {
     bindRange('setSfx', 'sfx', (v) => Math.round(v * 100) + '%');
     bindRange('setView', 'viewDistance', (v) => v + ' m');
     const bindCheck = (id, key) => $(id).addEventListener('change', () => { s[key] = $(id).checked; this.applySettings(); });
-    bindCheck('setInvert', 'invert'); bindCheck('setShadows', 'shadows'); bindCheck('setVoice', 'voice'); bindCheck('setGrain', 'grain'); bindCheck('setFps', 'fps');
+    bindCheck('setInvert', 'invert'); bindCheck('setShadows', 'shadows'); bindCheck('setVoice', 'voice'); bindCheck('setGrain', 'grain'); bindCheck('setFps', 'fps'); bindCheck('setGore', 'gore');
     $('setQuality').addEventListener('change', () => { s.quality = $('setQuality').value; this.applySettings(); });
     $('setScale').addEventListener('change', () => { s.scale = parseFloat($('setScale').value); this.applySettings(); });
   }
@@ -226,7 +228,7 @@ class Game {
     $('setMusic').value = s.music; $('valMusic').textContent = Math.round(s.music * 100) + '%';
     $('setSfx').value = s.sfx; $('valSfx').textContent = Math.round(s.sfx * 100) + '%';
     $('setView').value = s.viewDistance; $('valView').textContent = s.viewDistance + ' m';
-    $('setInvert').checked = s.invert; $('setShadows').checked = s.shadows; $('setVoice').checked = s.voice; $('setGrain').checked = s.grain; $('setFps').checked = s.fps;
+    $('setInvert').checked = s.invert; $('setShadows').checked = s.shadows; $('setVoice').checked = s.voice; $('setGrain').checked = s.grain; $('setFps').checked = s.fps; $('setGore').checked = s.gore !== false;
     $('setQuality').value = s.quality;
     $('setScale').value = String(s.scale);
     if (!$('setScale').value) $('setScale').value = '0.8';
@@ -296,6 +298,7 @@ class Game {
     this.ui.explored.fill(0);
     this.playTime = 0;
     this.startPlay();
+    this.animals.populate();
     this.tutorial = { step: 0, t: 0 };
     setTimeout(() => this.ui.toast('Blackpine State Forest. Your camp spot is just up the road.', 5), 1200);
     setTimeout(() => this.ui.toast(`${K('forward')}${K('left')}${K('back')}${K('right')} move · Mouse look · ${K('sprint')} sprint · ${K('crouch')} crouch · ${K('interact')} interact`, 6), 4000);
@@ -306,6 +309,7 @@ class Game {
     this.creature.reset();
     this.animals.reset();
     this.events.reset();
+    this.gore.reset();
     this.campfire.setLit(false);
     this.structures.camp.tent.visible = false;
     this.setStationPower(false);
@@ -497,10 +501,17 @@ class Game {
     const ch = this.creature.rayHit(o, d, wall);
     if (ch && (!ah || ch.dist < ah.dist)) {
       this.creature.shot();
+      const hp = o.clone().addScaledVector(d, ch.dist);
+      this.gore.spray(hp, d, 14, 4);
     } else if (ah) {
-      this.animals.hit(ah.animal, ah.zone, ah.dist);
+      const a = ah.animal;
+      this.animals.hit(a, ah.zone, ah.dist);
       const hp = o.clone().addScaledVector(d, ah.dist);
-      this.puffs.spawn(hp, 0x5a1008, 0.25);
+      // entry burst, then a bigger exit spray out the far side
+      const big = ah.zone === 'head' || a.kind === 'rabbit';
+      this.gore.spray(hp, d.clone().negate().setY(0.4), big ? 12 : 8, 2.5);
+      this.gore.spray(hp.clone().addScaledVector(d, 0.4), d, big ? 40 : ah.zone === 'vitals' ? 28 : 18, big ? 7 : 5.5);
+      this.gore.splash(hp.x + d.x * 1.5, hp.z + d.z * 1.5, big ? 10 : 6, 2.2, 1.3);
     } else if (wall < max) {
       const hp = o.clone().addScaledVector(d, wall);
       this.puffs.spawn(hp, 0x8a7a60, 0.35);
@@ -582,6 +593,7 @@ class Game {
     this.playTime = data.playTime || 0;
     this.creature.cooldown = 60;
     this.startPlay();
+    this.animals.populate();
     this.ui.toast(`Day ${this.env.day}. Welcome back.`, 3);
   }
 
@@ -669,6 +681,7 @@ class Game {
     this.campfire.update(dt, this.time);
     this.hollowFire.update(dt, this.time);
     this.puffs.update(dt);
+    this.gore.update(dt);
     this.updateDoors(dt);
     this.updateHeli(dt);
     this.lights.update(p.pos.x, p.pos.z);

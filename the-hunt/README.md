@@ -87,6 +87,11 @@ bindings are saved in the browser, and all on-screen hints show your keys.
   shouldn't, and later in the story hunts you at night. It is never unfair: hold your
   light on it to drive it off, shoot it to stagger it, or stand by a lit campfire,
   which it won't approach. The more animals you kill, the sooner it comes.
+- **Gore.** Bullets throw blood mist and droplets that splash wet stains on the ground, and
+  exit wounds spray out the far side. Kills bleed out into spreading pools. Field dressing leaves
+  a gut pile and a skinned carcass with its ribs showing. The creature's attacks put blood on the
+  screen, and you leave a trail of your own when you're badly hurt. Later you find gorier
+  carcasses and deer strung up from crossbars. Turn it all off with **Blood & gore** in Settings.
 - **Horror events.** Branch snaps behind you, wood knocks far away, sudden total
   silence, whispers, flickering flashlight, stick effigies that weren't there before,
   mutilated carcasses, stampedes running from something, and a deer that stands on its
@@ -124,6 +129,7 @@ the-hunt/
     content.js        all written text (documents, radio, endings)
     audio.js          procedural WebAudio sound design (HRTF positional)
     effects.js        fire, impact puffs, pooled point lights
+    gore.js           blood droplets, pools, gut piles, screen blood
     inventory.js      backpack
     keybinds.js       rebindable controls (actions, defaults, key names)
     ui.js             HUD, compass, map, backpack, document reader

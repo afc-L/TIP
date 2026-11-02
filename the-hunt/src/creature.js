@@ -382,6 +382,10 @@ export class Creature {
     g.audio.impact(1);
     const dmg = 34 + rand() * 14 + (this.relentless > 0 ? 6 : 0);
     p.hurt(dmg, this.pos.x, this.pos.z, 9);
+    // it tears into you
+    g.gore.screen(1);
+    g.gore.spray(new THREE.Vector3(p.pos.x, p.pos.y + 1.3, p.pos.z), new THREE.Vector3(p.pos.x - this.pos.x, 0.5, p.pos.z - this.pos.z).normalize(), 30, 5);
+    g.gore.pool(p.pos.x, p.pos.z, 1.1, 6);
     p.stats.fear = 1;
     g.ui.jumpscare();
     g.equip.flicker = 1.2;

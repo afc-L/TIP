@@ -629,6 +629,7 @@ export class Story {
       g.player.stats.fear = 0;
       g.creature.hide();
       g.creature.cooldown = 60;
+      g.animals.populate();
       // sometimes the morning brings a new totem at the edge of camp
       if (this.stage >= 4 && rand() < 0.6) g.events.plantTotemNear(g.structures.camp.fireWorld, 9, 14);
       g.save();

@@ -184,3 +184,5 @@ ul.tips li { margin-bottom: 8px; }
 .bind-grid button.flash { border-color: #c06040; }
 .btns.left { justify-content: flex-start; }
 @media (max-width: 600px) { .bind-grid { grid-template-columns: 1fr 80px 80px; } }
+
+#splatter { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }

@@ -6,17 +6,19 @@ import { makeDeer, makeRabbit, makeCrow } from './models.js';
 // bolt at gunshots, and leave tracks / blood trails you can follow.
 
 const SPECIES = {
-  buck: { name: 'Whitetail Buck', speed: 1.3, run: 10.5, score: 150, meat: 3, hearing: 1.0, sight: 60 },
-  doe: { name: 'Whitetail Doe', speed: 1.2, run: 10, score: 100, meat: 2, hearing: 1.1, sight: 60 },
+  buck: { name: 'Whitetail Buck', speed: 1.3, run: 10.5, score: 150, meat: 3, hearing: 0.8, sight: 48 },
+  doe: { name: 'Whitetail Doe', speed: 1.2, run: 10, score: 100, meat: 2, hearing: 0.9, sight: 48 },
   rabbit: { name: 'Cottontail Rabbit', speed: 0, run: 7.5, score: 30, meat: 1, hearing: 1.3, sight: 25 },
 };
 
 class Decals {
-  constructor(scene, color, size, max, opacity) {
+  constructor(scene, color, size, max, opacity, wet = false) {
     const g = new THREE.CircleGeometry(size, 6);
     g.rotateX(-Math.PI / 2);
     g.scale(0.7, 1, 1.25);
-    this.mesh = new THREE.InstancedMesh(g, new THREE.MeshLambertMaterial({ color, transparent: true, opacity, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }), max);
+    const opts = { color, transparent: true, opacity, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 };
+    const mat = wet ? new THREE.MeshPhongMaterial({ ...opts, specular: 0x703030, shininess: 80 }) : new THREE.MeshLambertMaterial(opts);
+    this.mesh = new THREE.InstancedMesh(g, mat, max);
     this.mesh.count = 0;
     this.mesh.frustumCulled = false;
     this.mesh.renderOrder = 2;
@@ -52,7 +54,7 @@ export class Animals {
     this.list = [];
     this.flocks = [];
     this.prints = new Decals(game.scene, 0x120d09, 0.085, 600, 0.9);
-    this.blood = new Decals(game.scene, 0x4a0705, 0.07, 300, 0.85);
+    this.blood = new Decals(game.scene, 0x420504, 0.08, 800, 0.9, true);
     this.spawnT = 0;
     this.herdId = 0;
     this.kills = [];
@@ -120,14 +122,40 @@ export class Animals {
     return { x: px, z: pz, herd };
   }
 
+  /**
+   * Somewhere 55-130 m away that the player isn't staring straight at (or is far enough
+   * that the fog hides the pop-in). Deer prefer open ground: clearings and meadows.
+   */
+  pickSpawn(p, fwd, rMin = 55, rMax = 130) {
+    const w = this.game.world;
+    let best = null, bestScore = -1;
+    for (let i = 0; i < 8; i++) {
+      const pt = w.randomForestPoint(rand, p.x, p.z, rMin, rMax);
+      const dx = pt.x - p.x, dz = pt.z - p.z, d = Math.hypot(dx, dz);
+      const inView = (dx * fwd.x + dz * fwd.z) / (d * Math.hypot(fwd.x, fwd.z) || 1) > 0.55;
+      if (inView && d < 95) continue;
+      const score = w.openness(pt.x, pt.z) + rand() * 0.6;
+      if (score > bestScore) { bestScore = score; best = pt; }
+    }
+    return best;
+  }
+
+  /** Fill the woods around the player right away (new game / continue / after sleeping). */
+  populate() {
+    const p = this.game.player.pos, fwd = this.game.player.forward(this._f);
+    for (let i = 0; i < 4; i++) { const pt = this.pickSpawn(p, fwd, 45, 140); if (pt) this.spawnHerd(pt.x, pt.z, 2 + Math.floor(rand() * 3)); }
+    for (let i = 0; i < 3; i++) { const pt = this.pickSpawn(p, fwd, 30, 100); if (pt) this.spawn('rabbit', pt.x, pt.z); }
+  }
+
   maxCounts() {
     const g = this.game;
     const night = g.env.nightness;
     const calm = g.creature.forestCalm;
-    const late = g.story.stage >= 6 ? 0.5 : g.story.stage >= 4 ? 0.75 : 1;
+    const late = g.story.stage >= 6 ? 0.7 : g.story.stage >= 4 ? 0.85 : 1;
+    const c = Math.max(calm, 0.3);
     return {
-      deer: Math.round(lerp(7, 3, night) * calm * late),
-      rabbit: Math.round(lerp(5, 2, night) * calm * late),
+      deer: Math.round(lerp(14, 6, night) * c * late),
+      rabbit: Math.round(lerp(6, 3, night) * c * late),
     };
   }
 
@@ -202,6 +230,7 @@ export class Animals {
     a.killDist = dist ?? a.shotDist ?? 50;
     a.clean = clean;
     if (a.kind !== 'rabbit') g.audio.deerBleat(a.group.position);
+    setTimeout(() => g.gore.pool(a.x, a.z, a.kind === 'rabbit' ? 0.45 : 1.3 + rand() * 0.6, 14), 500);
     if (dist !== undefined) g.ui.hitMarker(clean ? (a.kind === 'rabbit' ? 'Kill' : 'Clean kill') : 'Kill');
     g.story.onAnimalKilled(a);
   }
@@ -220,8 +249,9 @@ export class Animals {
     this.kills.push({ species: sp.name, dist: Math.round(a.killDist), clean: a.clean, pts, day: g.env.day });
     g.ui.toast(`${sp.name} — ${Math.round(a.killDist)} m${a.clean ? ' · clean kill' : ''} · +${pts} pts${got < sp.meat ? ' (backpack full)' : ''}`, 4);
     g.story.onHarvest(a);
-    // remains: darken and flatten
-    a.group.traverse((o) => { if (o.isMesh) { o.material = o.material.clone(); o.material.color.multiplyScalar(0.45); o.material.color.r += 0.08; } });
+    // remains: gutted and skinned (or just darkened with gore switched off)
+    if (g.gore.on) g.gore.dress(a);
+    else a.group.traverse((o) => { if (o.isMesh) { o.material = o.material.clone(); o.material.color.multiplyScalar(0.45); o.material.color.r += 0.08; } });
     a.removeT = 240;
   }
 
@@ -274,21 +304,14 @@ export class Animals {
     // spawn / despawn
     this.spawnT -= dt;
     if (this.spawnT <= 0) {
-      this.spawnT = 3;
+      this.spawnT = 2;
       const max = this.maxCounts();
       const deer = this.list.filter((a) => a.kind !== 'rabbit' && !a.dead).length;
       const rabbits = this.list.filter((a) => a.kind === 'rabbit' && !a.dead).length;
       const fwd = g.player.forward(this._f);
-      const pickBehind = () => {
-        for (let i = 0; i < 10; i++) {
-          const pt = w.randomForestPoint(rand, p.x, p.z, 80, 170);
-          const dx = pt.x - p.x, dz = pt.z - p.z;
-          if ((dx * fwd.x + dz * fwd.z) / Math.hypot(dx, dz) < 0.3) return pt;
-        }
-        return null;
-      };
-      if (deer < max.deer && rand() < 0.5) { const pt = pickBehind(); if (pt) this.spawnHerd(pt.x, pt.z, 1 + Math.floor(rand() * Math.min(3, max.deer - deer))); }
-      if (rabbits < max.rabbit && rand() < 0.5) { const pt = pickBehind(); if (pt) this.spawn('rabbit', pt.x, pt.z); }
+      const pickBehind = () => this.pickSpawn(p, fwd);
+      if (deer < max.deer && rand() < 0.85) { const pt = pickBehind(); if (pt) this.spawnHerd(pt.x, pt.z, 2 + Math.floor(rand() * Math.min(3, Math.max(1, max.deer - deer - 1)))); }
+      if (rabbits < max.rabbit && rand() < 0.6) { const pt = pickBehind(); if (pt) this.spawn('rabbit', pt.x, pt.z); }
       if (this.flocks.length < 2 && rand() < 0.2 && g.env.nightness < 0.5 && g.creature.forestCalm > 0.5) {
         const pt = w.randomForestPoint(rand, p.x, p.z, 40, 90);
         this.spawnFlock(pt.x, pt.z);
@@ -371,13 +394,13 @@ export class Animals {
           const facing = -(dx * fx + dz * fz) / (distToPlayer || 1);
           a.canSee = facing > -0.3 && w.lineOfSight(a.x, a.y + 1.2, a.z, pl.pos.x, pl.pos.y + 1.2, pl.pos.z);
         }
-        seen = a.canSee && (pl.speed > 1.5 || distToPlayer < daySight * 0.35) && !(pl.crouch && pl.speed < 0.6 && distToPlayer > 12);
+        seen = a.canSee && (pl.speed > 2.2 || distToPlayer < daySight * 0.3) && !(pl.crouch && pl.speed < 0.6 && distToPlayer > 10);
       }
       const flash = g.equip.flashOn && distToPlayer < 35 && g.env.nightness > 0.5;
-      if (heard || seen || flash) a.alert += dt * (heard ? 1.4 : 0.9) * (distToPlayer < 20 ? 2 : 1);
-      else a.alert = Math.max(0, a.alert - dt * 0.2);
-      if (a.alert > 0.35 && a.state !== 'alert') { a.state = 'alert'; a.timer = 2 + rand() * 3; }
-      if (a.alert > 1.1) this.startFlee(a, pl.pos.x, pl.pos.z, 6 + rand() * 6);
+      if (heard || seen || flash) a.alert += dt * (heard ? 0.8 : 0.5) * (distToPlayer < 18 ? 1.8 : 1);
+      else a.alert = Math.max(0, a.alert - dt * 0.35);
+      if (a.alert > 0.4 && a.state !== 'alert') { a.state = 'alert'; a.timer = 3 + rand() * 4; }
+      if (a.alert > 1.8) this.startFlee(a, pl.pos.x, pl.pos.z, 6 + rand() * 6);
       // the forest empties when the Keeper is close
       if (creature.visibleInWorld && Math.hypot(creature.pos.x - a.x, creature.pos.z - a.z) < 45) this.startFlee(a, creature.pos.x, creature.pos.z, 20);
     }
@@ -457,7 +480,8 @@ export class Animals {
       const sx = Math.cos(a.yaw) * 0.16 * a.side, sz = -Math.sin(a.yaw) * 0.16 * a.side;
       this.prints.add(a.x + sx, a.y, a.z + sz, a.yaw, a.state === 'flee' ? 1.5 : 1.2, 'deer');
       if (a.wounded) {
-        for (let k = 0; k < 2; k++) {
+        if (rand() < 0.25) g.gore.spray(new THREE.Vector3(a.x, a.y + 0.9, a.z), new THREE.Vector3(-Math.sin(a.yaw), 0.3, -Math.cos(a.yaw)), 4, 2);
+        for (let k = 0; k < 4; k++) {
           const bx = a.x + (rand() - 0.5) * 0.6, bz = a.z + (rand() - 0.5) * 0.6;
           this.blood.add(bx, w.heightAt(bx, bz), bz, rand() * 6, 0.8 + rand() * 1.2, 'blood');
         }

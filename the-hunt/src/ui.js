@@ -167,6 +167,7 @@ export class UI {
     this.setStyle('jumpscare', 'opacity', (this.scare > 0.5 ? (Math.random() < 0.5 ? 0.9 : 0) : this.scare).toFixed(2));
     this.updateGrain(dt, fear);
     this.updateToasts(dt);
+    this.updateSplatter(dt);
     // exploration fog for the map
     const ci = clamp(Math.floor((p.pos.x + WORLD.half) / 20), 0, 35), cj = clamp(Math.floor((p.pos.z + WORLD.half) / 20), 0, 35);
     for (let j = cj - 2; j <= cj + 2; j++) for (let i = ci - 2; i <= ci + 2; i++) {
@@ -267,6 +268,54 @@ export class UI {
     $('hitmark').textContent = text;
     $('hitmark').style.opacity = 1;
     this.hitT = 1.6;
+  }
+
+  /** Blood hitting the lens: blobs with drips that run down and fade. */
+  bloodSplatter(amount) {
+    const cv = $('splatter');
+    if (!this.splat) this.splat = [];
+    const w = cv.width = Math.round(window.innerWidth / 2), h = cv.height = Math.round(window.innerHeight / 2);
+    const n = Math.round(4 + amount * 14);
+    for (let i = 0; i < n; i++) {
+      // mostly around the edges of the view
+      const edge = Math.random() < 0.75;
+      const x = edge ? (Math.random() < 0.5 ? Math.random() * w * 0.3 : w - Math.random() * w * 0.3) : Math.random() * w;
+      const y = Math.random() * h * (edge ? 1 : 0.6);
+      const r = (5 + Math.random() * 16) * (0.6 + amount);
+      // an irregular blot: a cluster of overlapping lobes plus thrown specks
+      const lobes = Array.from({ length: 4 + Math.floor(Math.random() * 6) }, () => ({ a: Math.random() * 6.28, d: Math.random() * r * 0.7, r: r * (0.35 + Math.random() * 0.5) }));
+      const drops = Array.from({ length: 3 + Math.floor(Math.random() * 8) }, () => ({ a: Math.random() * 6.28, d: r * (1 + Math.random() * 1.4), r: 0.6 + Math.random() * r * 0.15 }));
+      const drips = Array.from({ length: Math.floor(Math.random() * 3) }, () => ({ x: (Math.random() - 0.5) * r * 1.2, len: 0, max: 20 + Math.random() * 120, sp: 10 + Math.random() * 30, wd: 1.5 + Math.random() * 3 }));
+      this.splat.push({ x, y, r, lobes, drops, drips, life: 3.5 + Math.random() * 3 * amount, t: 0 });
+    }
+    if (this.splat.length > 60) this.splat.splice(0, this.splat.length - 60);
+  }
+
+  updateSplatter(dt) {
+    if (!this.splat || !this.splat.length) return;
+    const cv = $('splatter'), ctx = cv.getContext('2d');
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    for (let i = this.splat.length - 1; i >= 0; i--) {
+      const s = this.splat[i];
+      s.t += dt;
+      const a = Math.max(0, 1 - s.t / s.life);
+      if (a <= 0) { this.splat.splice(i, 1); continue; }
+      const grd = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r * 1.3);
+      grd.addColorStop(0, `rgba(96,6,4,${0.82 * a})`);
+      grd.addColorStop(1, `rgba(48,0,0,${0.7 * a})`);
+      ctx.fillStyle = grd;
+      ctx.beginPath();
+      for (const l of s.lobes) { const lx = s.x + Math.cos(l.a) * l.d, ly = s.y + Math.sin(l.a) * l.d; ctx.moveTo(lx + l.r, ly); ctx.arc(lx, ly, l.r, 0, Math.PI * 2); }
+      ctx.fill();
+      ctx.fillStyle = `rgba(62,2,1,${0.8 * a})`;
+      for (const d of s.drops) { ctx.beginPath(); ctx.arc(s.x + Math.cos(d.a) * d.d, s.y + Math.sin(d.a) * d.d, d.r, 0, Math.PI * 2); ctx.fill(); }
+      for (const d of s.drips) {
+        d.len = Math.min(d.max, d.len + d.sp * dt);
+        ctx.fillRect(s.x + d.x - d.wd / 2, s.y, d.wd, d.len);
+        ctx.beginPath(); ctx.arc(s.x + d.x, s.y + d.len, d.wd * 0.9, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    if (!this.splat.length) ctx.clearRect(0, 0, cv.width, cv.height);
   }
 
   damageFlash(amount) { this.dmg = Math.min(1, this.dmg + amount / 35); }
