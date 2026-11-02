@@ -4,6 +4,7 @@ import { DOCS, TIPS } from './content.js';
 import { formatTime, clamp, rand } from './util.js';
 import { MAG_SIZE } from './equipment.js';
 import { WEATHERS } from './environment.js';
+import { K } from './keybinds.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -119,8 +120,8 @@ export class UI {
     this.setStyle('ammo', 'display', eq.current === 'rifle' ? '' : 'none');
     this.setText('ammoMag', String(eq.mag));
     this.setText('ammoRes', String(g.inv.count('ammo')));
-    this.setText('weaponHint', eq.current === 'rifle' ? (eq.reloadT > 0 ? 'RELOADING…' : eq.mag === 0 ? 'R TO RELOAD' : 'RMB scope · Shift steady')
-      : eq.current === 'binoculars' ? 'RMB to zoom' : 'Follow the beeping');
+    this.setText('weaponHint', eq.current === 'rifle' ? (eq.reloadT > 0 ? 'RELOADING…' : eq.mag === 0 ? `${K('reload')} TO RELOAD` : `${K('aim')} scope · ${K('sprint')} steady`)
+      : eq.current === 'binoculars' ? `${K('aim')} to zoom` : 'Follow the beeping');
     // clock
     this.setText('clockTime', formatTime(g.env.hours));
     this.setText('clockDay', `Day ${g.env.day}`);
@@ -150,7 +151,7 @@ export class UI {
     // prompt
     const it = g.focus;
     const label = it ? it.label?.() : null;
-    this.setHTML('prompt', label ? `<b>E</b>${label}` : '');
+    this.setHTML('prompt', label ? `<b>${K('interact')}</b>${label}` : '');
     // timers
     if (this.subT > 0) { this.subT -= dt; if (this.subT <= 0) $('subtitle').style.opacity = 0; }
     if (this.bannerT > 0) { this.bannerT -= dt; if (this.bannerT <= 0) $('banner').style.opacity = 0; }

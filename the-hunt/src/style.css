@@ -172,3 +172,15 @@ ul.tips li { margin-bottom: 8px; }
 #endStats { font-family: var(--mono); font-size: 13px; color: var(--ink-faint); line-height: 1.7; border-top: 1px solid var(--line); padding-top: 14px; }
 #clickToPlay { position: fixed; left: 50%; top: 50%; transform: translate(-50%,-50%); z-index: 40; font-size: 18px; letter-spacing: 6px; text-transform: uppercase; background: rgba(0,0,0,0.6); padding: 16px 28px; border: 1px solid var(--line); cursor: pointer; }
 @media (max-width: 900px) { .title { font-size: 56px; letter-spacing: 10px; } .inv-cols, .how-cols { grid-template-columns: 1fr; } .settings-grid { grid-template-columns: 1fr 1fr 40px; } }
+
+/* keybinds */
+.bind-head { margin-top: 22px; border-top: 1px solid var(--line); padding-top: 14px; }
+.hint-inline { color: var(--ink-faint); letter-spacing: 0; font-size: 12px; margin-left: 8px; text-transform: none; }
+.bind-grid { display: grid; grid-template-columns: minmax(150px, 1fr) 110px 110px; gap: 6px 10px; align-items: center; font-size: 14px; }
+.bind-grid .grp { grid-column: 1 / -1; font-size: 10px; letter-spacing: 3px; color: var(--ink-faint); margin-top: 8px; text-transform: uppercase; }
+.bind-grid button { font-family: var(--mono); text-transform: none; letter-spacing: 0; padding: 5px 8px; min-height: 30px; }
+.bind-grid button.empty { color: var(--ink-faint); }
+.bind-grid button.listening { border-color: var(--accent); color: var(--accent); animation: blink 1s infinite; }
+.bind-grid button.flash { border-color: #c06040; }
+.btns.left { justify-content: flex-start; }
+@media (max-width: 600px) { .bind-grid { grid-template-columns: 1fr 80px 80px; } }

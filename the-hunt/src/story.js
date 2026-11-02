@@ -4,6 +4,7 @@ import { DOCS, RANDOM_NOTES, TRANSMISSIONS } from './content.js';
 import { itemMesh } from './models.js';
 import { makeRng, rand, clamp } from './util.js';
 import { ITEMS } from './inventory.js';
+import { K } from './keybinds.js';
 
 // Objectives, interactables, loot, documents, radio transmissions and endings.
 
@@ -309,11 +310,11 @@ export class Story {
       case 1:
         if (!f.tracksFound) out.push({ t: 'Find fresh deer tracks near camp' });
         else if (!f.killed) out.push({ t: 'Follow the tracks and take a deer' });
-        else out.push({ t: 'Harvest the deer [E]' });
+        else out.push({ t: `Harvest the deer [${K('interact')}]` });
         break;
       case 2: out.push({ t: 'Return to camp' }, { t: 'Optional: cook venison at the campfire', sub: true, done: f.cooked }); break;
       case 3: out.push({ t: STAGES[3] }); break;
-      case 4: out.push({ t: 'Track the radio signal to its source' }, { t: 'Equip the radio [3] and follow the beeping', sub: true }); break;
+      case 4: out.push({ t: 'Track the radio signal to its source' }, { t: `Equip the radio [${K('radio')}] and follow the beeping`, sub: true }); break;
       case 5: out.push({ t: STAGES[5] }); break;
       case 6: out.push({ t: `Search the Ranger Station for records (${this.stationDocs}/3)` }); break;
       case 7: case 8: {
@@ -369,13 +370,13 @@ export class Story {
     // stage triggers
     if (this.stage === 1 && !f.tracksFound && this.trackStart && Math.hypot(p.x - this.trackStart.x, p.z - this.trackStart.z) < 6) {
       f.tracksFound = true;
-      g.ui.toast('Fresh tracks. Follow them — scan ahead with binoculars [2], crouch [C] to stay quiet.', 6);
+      g.ui.toast(`Fresh tracks. Follow them — scan ahead with binoculars [${K('binoculars')}], crouch [${K('crouch')}] to stay quiet.`, 6);
       g.ui.objectiveUpdated();
     }
     if (this.stage === 2 && Math.hypot(p.x - g.structures.camp.fireWorld.x, p.z - g.structures.camp.fireWorld.z) < 9 && !f.firstCall) {
       f.firstCall = true;
       g.ui.toast('Your CB radio crackles to life...', 3);
-      this.transmit(TRANSMISSIONS.first, () => { this.setStage(3); g.ui.toast('The campsite by the lake is marked on your map [M].', 4); });
+      this.transmit(TRANSMISSIONS.first, () => { this.setStage(3); g.ui.toast(`The campsite by the lake is marked on your map [${K('map')}].`, 4); });
     }
     if (this.stage === 3 && Math.hypot(p.x - LANDMARKS.abandoned.x, p.z - LANDMARKS.abandoned.z) < 14 && !f.sawAbandoned) {
       f.sawAbandoned = true;

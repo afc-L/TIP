@@ -87,16 +87,16 @@ export class Player {
     let mx = 0, mz = 0;
     const canMove = g.state === 'play' && !g.ui.modalOpen;
     if (canMove) {
-      if (input.down('KeyW')) mz -= 1;
-      if (input.down('KeyS')) mz += 1;
-      if (input.down('KeyA')) mx -= 1;
-      if (input.down('KeyD')) mx += 1;
-      if (input.hit('KeyC') || input.hit('ControlLeft')) this.crouch = !this.crouch;
+      if (input.act('forward')) mz -= 1;
+      if (input.act('back')) mz += 1;
+      if (input.act('left')) mx -= 1;
+      if (input.act('right')) mx += 1;
+      if (input.actHit('crouch')) this.crouch = !this.crouch;
     }
     const moving = mx !== 0 || mz !== 0;
     const len = Math.hypot(mx, mz) || 1;
     mx /= len; mz /= len;
-    const wantSprint = canMove && input.down('ShiftLeft') && mz < 0 && !this.crouch && !g.equip.aiming;
+    const wantSprint = canMove && input.act('sprint') && mz < 0 && !this.crouch && !g.equip.aiming;
     const sprint = wantSprint && moving && !this.exhausted && st.stamina > 0;
     let speed = this.crouch ? 1.7 : sprint ? 6.2 : 3.3;
     if (g.equip.aiming) speed *= 0.5;
@@ -115,7 +115,7 @@ export class Player {
     this.knock.multiplyScalar(0);
 
     // jump / gravity
-    if (canMove && input.hit('Space') && this.grounded && st.stamina > 8) {
+    if (canMove && input.actHit('jump') && this.grounded && st.stamina > 8) {
       this.vy = 5.0;
       this.grounded = false;
       st.stamina -= 8;

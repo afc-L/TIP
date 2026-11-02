@@ -201,13 +201,13 @@ Above it, tied with fishing line, a new figure made of sticks turns slowly in a 
 };
 
 export const TIPS = [
-  'Crouch (C) to move quietly. Deer hear running from far away.',
-  'Hold Shift while scoped to steady your breathing.',
+  'Crouch to move quietly. Deer hear running from far away.',
+  'Hold sprint while scoped to steady your breathing.',
   'Head and heart shots kill cleanly. Gut shots leave a blood trail.',
   'Animals vanish and the forest falls silent when something is near.',
   'Hold your flashlight beam on it. It hates the light.',
   'A lit campfire keeps it away. Your lighter can relight one.',
   'Sleep in your tent to skip the night and save your progress.',
   'Climb hunting towers to scan for game and landmarks.',
-  'Press M for the map. Click it to place markers.',
+  'Open the map and click it to place markers.',
 ];

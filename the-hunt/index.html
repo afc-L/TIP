@@ -114,6 +114,9 @@
         <label>Film grain</label><input id="setGrain" type="checkbox" /><span></span>
         <label>Show FPS</label><input id="setFps" type="checkbox" /><span></span>
       </div>
+      <div class="sub bind-head">CONTROLS <span class="hint-inline">Click a key, then press the new key or mouse button. Esc cancels, Backspace clears.</span></div>
+      <div id="bindList" class="bind-grid"></div>
+      <div class="btns left"><button id="btnBindReset">Reset controls to default</button></div>
       <div class="hint">Shadows and quality changes apply after returning to the menu or restarting. If the game stutters, try Low quality and 67% render scale.</div>
       <div class="btns"><button id="btnSetBack">Back</button></div>
     </div>
@@ -125,23 +128,8 @@
       <div class="how-cols">
         <div>
           <div class="sub">CONTROLS</div>
-          <table class="keys">
-            <tr><td>W A S D</td><td>Move</td></tr>
-            <tr><td>Mouse</td><td>Look</td></tr>
-            <tr><td>Shift</td><td>Sprint · hold while scoped to steady your breath</td></tr>
-            <tr><td>C / Ctrl</td><td>Crouch (quiet)</td></tr>
-            <tr><td>Space</td><td>Jump</td></tr>
-            <tr><td>E</td><td>Interact / pick up / read</td></tr>
-            <tr><td>F</td><td>Flashlight</td></tr>
-            <tr><td>Right mouse</td><td>Aim (scope / binoculars)</td></tr>
-            <tr><td>Left mouse</td><td>Fire</td></tr>
-            <tr><td>R</td><td>Reload</td></tr>
-            <tr><td>1 / 2 / 3, wheel</td><td>Rifle / Binoculars / Radio</td></tr>
-            <tr><td>Q</td><td>Eat · <b>H</b> First aid</td></tr>
-            <tr><td>Tab</td><td>Backpack</td></tr>
-            <tr><td>M</td><td>Map (click to place markers)</td></tr>
-            <tr><td>Esc</td><td>Pause</td></tr>
-          </table>
+          <table class="keys" id="howKeys"></table>
+          <div class="hint">Change any of these in Settings → Controls.</div>
         </div>
         <div>
           <div class="sub">SURVIVAL</div>

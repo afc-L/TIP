@@ -15,6 +15,7 @@ import { UI } from './ui.js';
 import { ENDINGS, TIPS } from './content.js';
 import { Fire, LightPool, Puffs } from './effects.js';
 import { clamp, damp, rand } from './util.js';
+import { binds, K, ACTIONS, keyName } from './keybinds.js';
 
 const SAVE_KEY = 'thehunt_save_v1';
 const SETTINGS_KEY = 'thehunt_settings_v1';
@@ -130,6 +131,7 @@ class Game {
     click('btnSettings2', () => this.openSub('settings'));
     click('btnHowBack', () => this.closeSub('howto'));
     click('btnSetBack', () => this.closeSub('settings'));
+    click('btnBindReset', () => { binds.reset(); this.input.capture = null; this.renderBinds(); this.ui.toast('Controls reset to default', 2); });
     click('btnResume', () => this.resume());
     click('btnQuit', () => { this.save(); this.toMenu(); });
     click('btnEndMenu', () => this.toMenu());
@@ -148,10 +150,52 @@ class Game {
     this.subReturn = this.state === 'paused' ? 'pause' : 'menu';
     this.ui.show(this.subReturn, false);
     this.ui.show(id, true);
-    if (id === 'settings') this.syncSettingsUI();
+    if (id === 'settings') { this.syncSettingsUI(); this.renderBinds(); }
+    if (id === 'howto') this.renderHowKeys();
+  }
+
+  renderBinds() {
+    const list = $('bindList');
+    let html = '', group = '';
+    for (const a of ACTIONS) {
+      if (a.group !== group) { group = a.group; html += `<div class="grp">${group}</div>`; }
+      const b = binds.map[a.id];
+      html += `<span>${a.label}</span>` + [0, 1].map((slot) => `<button type="button" id="bind-${a.id}-${slot}" data-a="${a.id}" data-s="${slot}" class="${b[slot] ? '' : 'empty'}" aria-label="${a.label} ${slot ? 'backup' : 'main'} key">${b[slot] ? keyName(b[slot]) : '—'}</button>`).join('');
+    }
+    list.innerHTML = html;
+    list.querySelectorAll('button').forEach((btn) => btn.addEventListener('click', () => {
+      this.audio.uiClick();
+      list.querySelectorAll('.listening').forEach((x) => x.classList.remove('listening'));
+      btn.classList.add('listening');
+      btn.textContent = 'press…';
+      this.input.capture = (code) => {
+        const action = btn.dataset.a, slot = +btn.dataset.s;
+        if (code === 'Escape') { this.renderBinds(); return; }
+        if (code === 'Backspace' || code === 'Delete') binds.set(action, slot, null);
+        else {
+          const prev = ACTIONS.find((x) => x.id !== action && binds.matches(x.id, code));
+          binds.set(action, slot, code);
+          if (prev) this.ui.toast(`${keyName(code)} moved from "${prev.label}" to "${ACTIONS.find((x) => x.id === action).label}"`, 3);
+        }
+        this.renderBinds();
+      };
+    }));
+  }
+
+  renderHowKeys() {
+    const row = (k, d) => `<tr><td>${k}</td><td>${d}</td></tr>`;
+    const two = (id) => binds.codes(id).map(keyName).join(' / ') || '—';
+    $('howKeys').innerHTML = [
+      row(`${K('forward')} ${K('left')} ${K('back')} ${K('right')}`, 'Move'),
+      row('Mouse', 'Look'),
+      ...ACTIONS.filter((a) => !['forward', 'back', 'left', 'right'].includes(a.id)).map((a) => row(two(a.id), a.label)),
+      row('Wheel', 'Switch rifle / binoculars / radio'),
+      row('Esc', 'Pause'),
+    ].join('');
   }
 
   closeSub(id) {
+    this.input.capture = null;
     this.ui.show(id, false);
     this.ui.show(this.subReturn, true);
   }
@@ -254,7 +298,7 @@ class Game {
     this.startPlay();
     this.tutorial = { step: 0, t: 0 };
     setTimeout(() => this.ui.toast('Blackpine State Forest. Your camp spot is just up the road.', 5), 1200);
-    setTimeout(() => this.ui.toast('WASD move · Mouse look · Shift sprint · C crouch · E interact', 6), 4000);
+    setTimeout(() => this.ui.toast(`${K('forward')}${K('left')}${K('back')}${K('right')} move · Mouse look · ${K('sprint')} sprint · ${K('crouch')} crouch · ${K('interact')} interact`, 6), 4000);
   }
 
   resetWorldState() {
@@ -315,17 +359,18 @@ class Game {
       if (['settings', 'howto'].some((id) => !$(id).classList.contains('hidden'))) { this.closeSub(!$('settings').classList.contains('hidden') ? 'settings' : 'howto'); return; }
     }
     if (this.state !== 'play') return;
-    if (code === 'Tab') { this.ui.openModal('inventory'); return; }
-    if (code === 'KeyM') { this.ui.openModal('map'); return; }
-    if (this.ui.modal === 'doc' && (code === 'KeyE' || code === 'Space')) { this.ui.closeModal(); return; }
+    const is = (a) => binds.matches(a, code);
+    if (is('inventory')) { this.ui.openModal('inventory'); return; }
+    if (is('map')) { this.ui.openModal('map'); return; }
+    if (this.ui.modal === 'doc' && (is('interact') || code === 'Space')) { this.ui.closeModal(); return; }
     if (this.ui.modal) return;
-    if (code === 'KeyE' && this.focus) { this.focus.action(); return; }
-    if (code === 'KeyE') {
+    if (is('interact') && this.focus) { this.focus.action(); return; }
+    if (is('interact')) {
       const c = this.animals.nearestCarcass(this.player.pos.x, this.player.pos.z);
       if (c) this.harvest(c);
     }
-    if (code === 'KeyQ') this.inv.eatBest();
-    if (code === 'KeyH') this.inv.use('medkit');
+    if (is('eat')) this.inv.eatBest();
+    if (is('medkit')) this.inv.use('medkit');
     if (this.debug) {
       if (code === 'F9') { this.godMode = !this.godMode; this.ui.toast('God mode ' + this.godMode); }
       if (code === 'F8') { this.env.hours = (this.env.hours + 3) % 24; }
@@ -675,10 +720,10 @@ class Game {
     if (!tut || this.story.stage > 2) return;
     tut.t += dt;
     const steps = [
-      [20, () => this.ui.toast('F toggles your flashlight. Batteries run down — watch the LIGHT bar.', 5)],
-      [45, () => this.ui.toast('Tab opens your backpack. M opens the map — click to drop markers.', 5)],
-      [80, () => this.ui.toast('RMB to aim. Head and heart shots are clean kills. Hold Shift while scoped to steady.', 6)],
-      [120, () => this.ui.toast('Q eats, H uses a first aid kit. Hunger slowly drains your health if ignored.', 6)],
+      [20, () => this.ui.toast(`${K('flashlight')} toggles your flashlight. Batteries run down — watch the LIGHT bar.`, 5)],
+      [45, () => this.ui.toast(`${K('inventory')} opens your backpack. ${K('map')} opens the map — click to drop markers.`, 5)],
+      [80, () => this.ui.toast(`${K('aim')} to aim. Head and heart shots are clean kills. Hold ${K('sprint')} while scoped to steady.`, 6)],
+      [120, () => this.ui.toast(`${K('eat')} eats, ${K('medkit')} uses a first aid kit. Hunger slowly drains your health if ignored.`, 6)],
     ];
     if (tut.step < steps.length && tut.t > steps[tut.step][0]) { steps[tut.step][1](); tut.step++; }
   }

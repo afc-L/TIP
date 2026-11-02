@@ -38,6 +38,11 @@ You can tick **Show FPS** in Settings to check the frame rate.
 
 ## Controls
 
+These are the defaults. **Every action can be rebound** in Settings → Controls, with a main and a
+backup key per action (mouse buttons work too). Click a slot, then press the new key; Esc cancels,
+Backspace clears it, and taking a key that is already used moves it from the other action. Your
+bindings are saved in the browser, and all on-screen hints show your keys.
+
 | Key | Action |
 | --- | --- |
 | W A S D | Move |
@@ -119,6 +124,7 @@ the-hunt/
     audio.js          procedural WebAudio sound design (HRTF positional)
     effects.js        fire, impact puffs, pooled point lights
     inventory.js      backpack
+    keybinds.js       rebindable controls (actions, defaults, key names)
     ui.js             HUD, compass, map, backpack, document reader
 ```
 

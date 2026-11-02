@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { clamp, damp, lerp, rand } from './util.js';
 import { makeRifle, makeHands, makeBinoculars, makeHandRadio } from './models.js';
 import { glowTexture } from './textures.js';
+import { K } from './keybinds.js';
 
 // What the player holds: rifle (scoped, bolt action), binoculars, handheld radio.
 // Plus the flashlight, which is always available on F.
@@ -117,19 +118,19 @@ export class Equipment {
     const active = g.state === 'play' && !g.ui.modalOpen && !p.climb;
 
     if (active) {
-      if (input.hit('Digit1')) this.select('rifle');
-      if (input.hit('Digit2') || input.hit('KeyB')) this.select(this.current === 'binoculars' && input.hit('KeyB') ? 'rifle' : 'binoculars');
-      if (input.hit('Digit3')) this.select('radio');
+      if (input.actHit('rifle')) this.select('rifle');
+      if (input.actHit('binoculars')) this.select(this.current === 'binoculars' ? 'rifle' : 'binoculars');
+      if (input.actHit('radio')) this.select('radio');
       if (input.mouse.wheel && !this.aiming) this.cycle(input.mouse.wheel > 0 ? 1 : -1);
-      if (input.hit('KeyF')) this.toggleFlashlight();
-      if (input.hit('KeyR')) this.reload();
+      if (input.actHit('flashlight')) this.toggleFlashlight();
+      if (input.actHit('reload')) this.reload();
     }
 
     this.switching = Math.max(0, this.switching - dt);
     const canAim = active && this.switching <= 0 && this.reloadT <= 0 && this.current !== 'radio';
-    this.aiming = canAim && input.mouse.rmb;
+    this.aiming = canAim && input.act('aim');
     this.aimT = damp(this.aimT, this.aiming ? 1 : 0, 14, dt);
-    this.holdBreath = this.aiming && input.down('ShiftLeft') && st.stamina > 5;
+    this.holdBreath = this.aiming && input.act('sprint') && st.stamina > 5;
     if (this.holdBreath) st.stamina = Math.max(0, st.stamina - 14 * dt);
 
     // bolt & reload timers
@@ -144,14 +145,14 @@ export class Equipment {
     }
 
     // fire
-    if (active && input.mouse.lmbPressed && this.switching <= 0) {
+    if (active && input.actHit('fire') && this.switching <= 0) {
       if (this.current === 'rifle') this.fire();
     }
 
     // flashlight
     if (this.flashOn) {
       st.battery = Math.max(0, st.battery - dt * 0.2);
-      if (st.battery <= 0) { this.flashOn = false; g.ui.toast('Flashlight died — find batteries [F to swap]'); g.audio.click(800, 0.3); }
+      if (st.battery <= 0) { this.flashOn = false; g.ui.toast(`Flashlight died — find batteries [${K('flashlight')} to swap]`); g.audio.click(800, 0.3); }
     }
     this.flicker = Math.max(0, this.flicker - dt);
     let fl = this.flashOn ? 1 : 0;
