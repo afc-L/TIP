@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The Hunt</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23101210'/%3E%3Cpath d='M32 6 L46 34 H38 L50 56 H14 L26 34 H18 Z' fill='%232c3a2a'/%3E%3Ccircle cx='40' cy='26' r='2' fill='%23e8e0c8'/%3E%3Ccircle cx='44' cy='26' r='2' fill='%23e8e0c8'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="./src/style.css" />
+</head>
+<body>
+  <canvas id="game"></canvas>
+  <canvas id="grain"></canvas>
+  <div id="vignette"></div>
+  <div id="damage"></div>
+  <div id="jumpscare"></div>
+
+  <!-- HUD -->
+  <div id="hud" class="hidden">
+    <div id="compass"><div id="compassStrip"></div><div id="compassNeedle"></div></div>
+    <div id="objective"><div class="obj-head">OBJECTIVE</div><div id="objList"></div></div>
+    <div id="clock"><span id="clockTime">7:00 AM</span><span id="clockDay">Day 1</span><span id="clockWeather">Mist</span></div>
+    <div id="status">
+      <div class="bar"><label>HEALTH</label><div class="track"><div id="barHealth" class="fill health"></div></div></div>
+      <div class="bar"><label>STAMINA</label><div class="track"><div id="barStamina" class="fill stamina"></div></div></div>
+      <div class="bar"><label>HUNGER</label><div class="track"><div id="barHunger" class="fill hunger"></div></div></div>
+      <div class="bar"><label id="flashLabel">LIGHT</label><div class="track"><div id="barBattery" class="fill battery"></div></div></div>
+    </div>
+    <div id="weapon"><div id="weaponName">RIFLE</div><div id="ammo"><span id="ammoMag">5</span><span class="sep">/</span><span id="ammoRes">10</span></div><div id="weaponHint">R reload · RMB scope</div></div>
+    <div id="crosshair"></div>
+    <div id="prompt"></div>
+    <div id="toasts"></div>
+    <div id="subtitle"></div>
+    <div id="banner"></div>
+    <div id="hitmark"></div>
+    <div id="radioWidget" class="hidden"><div class="rw-label">SIGNAL</div><div id="rwBars"></div><div id="rwText">...</div></div>
+    <div id="fps" class="hidden"></div>
+  </div>
+
+  <div id="scope" class="hidden"><div class="reticle"><i class="h"></i><i class="v"></i><i class="dot"></i></div><div id="scopeInfo"></div></div>
+  <div id="binos" class="hidden"><div class="lenses"></div><div class="bino-ret"></div><div id="binoRange">--- m</div><div id="binoId"></div></div>
+
+  <!-- panels -->
+  <div id="inventory" class="panel hidden">
+    <div class="panel-inner wide">
+      <div class="panel-title">BACKPACK <span class="hint">Tab to close</span></div>
+      <div class="inv-cols">
+        <div><div class="sub">SUPPLIES</div><div id="invList"></div></div>
+        <div><div class="sub">HUNTING RECORD</div><div id="huntRecord"></div><div class="sub">DOCUMENTS</div><div id="docList"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="map" class="panel hidden">
+    <div class="panel-inner map-inner">
+      <div class="panel-title">BLACKPINE STATE FOREST <span class="hint">M to close · click to place / remove a marker</span></div>
+      <canvas id="mapCanvas" width="760" height="760"></canvas>
+    </div>
+  </div>
+
+  <div id="doc" class="panel hidden"><div id="docPaper"><div id="docTitle"></div><div id="docText"></div><div class="doc-close">E / Esc / Click to close</div></div></div>
+
+  <div id="confirm" class="panel hidden"><div class="panel-inner small"><div id="confirmText"></div><div class="btns"><button id="confirmYes">Yes</button><button id="confirmNo">No</button></div></div></div>
+
+  <!-- menus -->
+  <div id="loading" class="screen">
+    <div class="title">THE HUNT</div>
+    <div class="loadbar"><div id="loadFill"></div></div>
+    <div id="loadText">Loading...</div>
+    <div id="loadTip"></div>
+  </div>
+
+  <div id="menu" class="screen hidden">
+    <div class="menu-left">
+      <div class="title">THE HUNT</div>
+      <div class="subtitle-line">BLACKPINE STATE FOREST · HUNTING ZONE 7</div>
+      <div class="menu-btns">
+        <button id="btnContinue">Continue</button>
+        <button id="btnNew">New Game</button>
+        <button id="btnHow">How to Play</button>
+        <button id="btnSettings">Settings</button>
+      </div>
+      <div class="menu-foot">Headphones recommended. Best played in the dark.</div>
+    </div>
+  </div>
+
+  <div id="pause" class="screen dim hidden">
+    <div class="menu-left">
+      <div class="title small">PAUSED</div>
+      <div id="pauseInfo" class="subtitle-line"></div>
+      <div class="menu-btns">
+        <button id="btnResume">Resume</button>
+        <button id="btnHow2">How to Play</button>
+        <button id="btnSettings2">Settings</button>
+        <button id="btnQuit">Save &amp; Quit to Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="settings" class="screen dim hidden">
+    <div class="panel-inner">
+      <div class="panel-title">SETTINGS</div>
+      <div class="settings-grid">
+        <label>Mouse sensitivity</label><input id="setSens" type="range" min="0.2" max="3" step="0.05" /><span id="valSens"></span>
+        <label>Invert mouse Y</label><input id="setInvert" type="checkbox" /><span></span>
+        <label>Field of view</label><input id="setFov" type="range" min="60" max="95" step="1" /><span id="valFov"></span>
+        <label>Master volume</label><input id="setMaster" type="range" min="0" max="1" step="0.05" /><span id="valMaster"></span>
+        <label>Music volume</label><input id="setMusic" type="range" min="0" max="1" step="0.05" /><span id="valMusic"></span>
+        <label>Effects volume</label><input id="setSfx" type="range" min="0" max="1" step="0.05" /><span id="valSfx"></span>
+        <label>Graphics quality</label><select id="setQuality"><option value="low">Low (fastest)</option><option value="medium">Medium</option><option value="high">High</option></select><span></span>
+        <label>Render scale</label><select id="setScale"><option value="0.5">50%</option><option value="0.67">67%</option><option value="0.8">80%</option><option value="1">100%</option></select><span></span>
+        <label>Shadows</label><input id="setShadows" type="checkbox" /><span></span>
+        <label>View distance</label><input id="setView" type="range" min="80" max="220" step="10" /><span id="valView"></span>
+        <label>Radio voices (speech)</label><input id="setVoice" type="checkbox" /><span></span>
+        <label>Film grain</label><input id="setGrain" type="checkbox" /><span></span>
+        <label>Show FPS</label><input id="setFps" type="checkbox" /><span></span>
+      </div>
+      <div class="hint">Shadows and quality changes apply after returning to the menu or restarting. If the game stutters, try Low quality and 67% render scale.</div>
+      <div class="btns"><button id="btnSetBack">Back</button></div>
+    </div>
+  </div>
+
+  <div id="howto" class="screen dim hidden">
+    <div class="panel-inner wide">
+      <div class="panel-title">HOW TO PLAY</div>
+      <div class="how-cols">
+        <div>
+          <div class="sub">CONTROLS</div>
+          <table class="keys">
+            <tr><td>W A S D</td><td>Move</td></tr>
+            <tr><td>Mouse</td><td>Look</td></tr>
+            <tr><td>Shift</td><td>Sprint · hold while scoped to steady your breath</td></tr>
+            <tr><td>C / Ctrl</td><td>Crouch (quiet)</td></tr>
+            <tr><td>Space</td><td>Jump</td></tr>
+            <tr><td>E</td><td>Interact / pick up / read</td></tr>
+            <tr><td>F</td><td>Flashlight</td></tr>
+            <tr><td>Right mouse</td><td>Aim (scope / binoculars)</td></tr>
+            <tr><td>Left mouse</td><td>Fire</td></tr>
+            <tr><td>R</td><td>Reload</td></tr>
+            <tr><td>1 / 2 / 3, wheel</td><td>Rifle / Binoculars / Radio</td></tr>
+            <tr><td>Q</td><td>Eat · <b>H</b> First aid</td></tr>
+            <tr><td>Tab</td><td>Backpack</td></tr>
+            <tr><td>M</td><td>Map (click to place markers)</td></tr>
+            <tr><td>Esc</td><td>Pause</td></tr>
+          </table>
+        </div>
+        <div>
+          <div class="sub">SURVIVAL</div>
+          <ul class="tips">
+            <li>You came to Blackpine to hunt. Track deer by their prints, approach quietly, and aim for the head or heart for a clean kill. Wounded animals leave a blood trail.</li>
+            <li>Watch your <b>health</b>, <b>hunger</b> and <b>flashlight battery</b>. Search cabins, towers and abandoned gear for supplies.</li>
+            <li>Nights are long and dark. A lit campfire is the safest place in the forest. Sleep in your tent to skip the night and save.</li>
+            <li>If the birds stop singing, something is close. If you see something in the trees, it has already seen you.</li>
+            <li>Light drives it back. Gunfire staggers it. Running buys time.</li>
+            <li>There is more than one way out of Blackpine — and what you find, and how much you take, decides how it ends.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="btns"><button id="btnHowBack">Back</button></div>
+    </div>
+  </div>
+
+  <div id="ending" class="screen hidden">
+    <div class="ending-inner">
+      <div id="endTitle" class="title"></div>
+      <div id="endText"></div>
+      <div id="endStats"></div>
+      <div class="btns"><button id="btnEndLoad" class="hidden">Load Last Save</button><button id="btnEndMenu">Main Menu</button></div>
+    </div>
+  </div>
+
+  <div id="clickToPlay" class="hidden">Click to continue</div>
+  <div id="fade"></div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

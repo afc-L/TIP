@@ -6,13 +6,16 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "hunt": "vite the-hunt --open",
+    "hunt:build": "node the-hunt/build.mjs"
   },
   "dependencies": {
     "@dimforge/rapier3d-compat": "^0.21.0",
     "three": "^0.186.1"
   },
   "devDependencies": {
+    "esbuild": "^0.28.2",
     "vite": "^8.3.4"
   }
 }

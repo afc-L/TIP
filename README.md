@@ -1,3 +1,6 @@
+> **Also in this repo:** [**THE HUNT**](the-hunt/README.md) — a first-person survival-horror hunting game.
+> Just open [`the-hunt/TheHunt.html`](the-hunt/TheHunt.html) in a browser (no install), or run `npm run hunt`.
+
 # Steel & Blood
 
 A browser-based, physics-driven medieval sword fighting game inspired by *Half Sword*.
