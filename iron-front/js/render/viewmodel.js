@@ -89,7 +89,7 @@
     const scoped = P.ads > 0.8 && w.scope;
     VM.gunGroup.visible = !scoped && !P.binoc;
     if (!VM.gunGroup.visible) return;
-    VM.cam.fov = 55; VM.cam.updateProjectionMatrix();
+    VM.cam.fov = 50; VM.cam.updateProjectionMatrix();
     // sway & bob
     VM.sway.x = U.lerp(VM.sway.x, -IF.Input.mx * 0.0006, Math.min(1, dt * 8));
     VM.sway.y = U.lerp(VM.sway.y, IF.Input.my * 0.0006, Math.min(1, dt * 8));
@@ -97,8 +97,8 @@
     VM.bob += dt * sp * 2.2;
     const bobK = (P.ads > 0.5 ? 0.15 : 1) * Math.min(1, sp / 3);
     const ads = P.ads;
-    const hipX = 0.16, hipY = -0.17, hipZ = -0.38;
-    const adsX = 0, adsY = -VM.sightY, adsZ = -0.27;
+    const hipX = 0.19, hipY = -0.2, hipZ = -0.52;
+    const adsX = 0, adsY = -VM.sightY, adsZ = -0.4;
     let x = U.lerp(hipX, adsX, ads) + Math.sin(VM.bob) * 0.012 * bobK + VM.sway.x;
     let y = U.lerp(hipY, adsY, ads) - Math.abs(Math.cos(VM.bob)) * 0.01 * bobK + VM.sway.y;
     let z = U.lerp(hipZ, adsZ, ads);

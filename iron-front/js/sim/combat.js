@@ -184,6 +184,7 @@
     const S = B.S;
     const wasDowned = S.st[t] === ST.DOWNED;
     if (t === B.playerIdx && B.playerAlive) { IF.emit('playerDamage', 999, att, kind, head); return; }
+    if (t === B.playerIdx && B.playerDowned) { IF.emit('playerFinished', att, kind); return; }
     S.st[t] = ST.DEAD; S.hp[t] = 0; S.tgt[t] = -1;
     if (S.cover[t] >= 0) { B.W.coverOwner[S.cover[t]] = -1; S.cover[t] = -1; }
     if (S.veh[t] >= 0) { const v = B.vehicles[S.veh[t]]; if (v) { const k = v.passengers.indexOf(t); if (k >= 0) v.passengers.splice(k, 1); const c = v.crew.indexOf(t); if (c >= 0) v.crew.splice(c, 1); } S.veh[t] = -1; }

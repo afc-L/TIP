@@ -140,6 +140,7 @@
   // ------------------------------------------------------------------
   V.drive = function (B, v, th, steer, dt) {
     const W = B.W, T = v.T;
+    if (v.hp < T.hp * 0.12) { th *= 0.15; steer *= 0.3; } // tracks/wheels shot out: barely mobile
     const fwdMax = T.speed, revMax = T.speed * 0.35;
     const slope = (W.terrainAt(v.x + U.dirX(v.yaw) * 4, v.z + U.dirZ(v.yaw) * 4) - W.terrainAt(v.x, v.z)) / 4;
     const slopeK = U.clamp(1 - Math.max(0, slope) * 1.8, 0.35, 1.15);

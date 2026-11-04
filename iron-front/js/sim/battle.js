@@ -47,7 +47,7 @@
     const S = B.S;
     for (const v of B.vehicles) {
       const sq = AI.makeSquad(B, v.team, 'crew');
-      sq.veh = v.id; v.crewSquad = sq.id; sq.state = 'mounted';
+      sq.veh = v.id; v.crewSquad = sq.id; sq.state = 'mounted'; sq.callsign = v.T.short + '-' + (v.id + 1);
       for (let c = 0; c < v.T.crew; c++) {
         const i = next[v.team]++;
         AI.initSoldier(B, i, v.team, R.CREW, sq, c);

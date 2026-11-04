@@ -161,6 +161,7 @@
     P.killer = att;
     IF.emit('playerDied', att, kind);
   };
+  IF.on('playerFinished', (att, kind) => { if (P.B && P.state === 'downed') P.die(att, kind, false); });
   IF.on('revived', (t, by) => {
     const B = P.B; if (!B) return;
     if (t === P.idx && P.state === 'downed') {

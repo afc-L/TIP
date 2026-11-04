@@ -77,7 +77,7 @@
   M.quit = function (silent) {
     $('pause').classList.add('hidden');
     $('hud').classList.add('hidden');
-    $('tacmap').classList.add('hidden');
+    $('tacmap').classList.add('hidden'); $('clickToPlay').classList.add('hidden'); M.mapOpen = false;
     $('endscreen').classList.add('hidden');
     IF.Menu.hideDeploy();
     if (M.running && IF.B && !M.endShown) M.commitProfile(IF.B, IF.Player, false);
@@ -137,6 +137,7 @@
     const now = U.now();
     let dt = (now - M.last) / 1000;
     M.last = now;
+    const realDt = Math.min(1, dt);
     if (dt > 0.1) dt = 0.1;
     if (!M.running || !IF.B) { if (IF.R.ready) { IF.R.renderer.clear(); } return; }
     const B = IF.B, P = IF.Player, R = IF.R;
@@ -177,7 +178,7 @@
     IF.ViewModel.render(R.renderer, dt);
     const t2 = U.now();
     // battle over
-    if (B.over && M.endT > 0) { M.endT -= dt; if (M.endT <= 0 && !M.endShown) { M.endShown = true; I.unlock(); IF.Menu.hideDeploy(); const res = M.commitProfile(B, P, true); IF.Menu.showEnd(B, P, res); } }
+    if (B.over && M.endT > 0) { M.endT -= realDt; if (M.endT <= 0 && !M.endShown) { M.endShown = true; I.unlock(); IF.Menu.hideDeploy(); const res = M.commitProfile(B, P, true); IF.Menu.showEnd(B, P, res); } }
     // perf
     M.fps = U.lerp(M.fps || 60, 1 / Math.max(dt, 0.001), 0.05);
     M.autoQuality(dt);

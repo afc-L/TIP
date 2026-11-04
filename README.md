@@ -1,5 +1,8 @@
 # Steel & Blood
 
+> This repository also contains **OPERATION: IRON FRONT**, a large-scale browser war game with
+> 2,000 AI soldiers. See [`iron-front/README.md`](iron-front/README.md). Open `iron-front/index.html`; no build step needed.
+
 A browser-based, physics-driven medieval sword fighting game inspired by *Half Sword*.
 Nothing in combat is a canned animation: fighters are active ragdolls, weapons are rigid
 bodies held in the hand by a joint, and damage comes from how hard and with what part of

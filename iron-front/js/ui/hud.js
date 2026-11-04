@@ -184,6 +184,7 @@
     const show = IF.Input.down('Tab');
     sb.classList.toggle('hidden', !show);
     if (show) H.scoreboard(B);
+    $('clickToPlay').classList.toggle('hidden', !(P.alive && !IF.Input.locked && !IF.Menu.deployOn && !(IF.Main && (IF.Main.mapOpen || IF.Main.paused)) && !B.over));
     if (IF.Main && IF.Main.showPerf) $('perf').textContent = IF.Main.perfText || '';
     else $('perf').textContent = '';
   };
@@ -299,17 +300,16 @@
     c.fillStyle = 'rgba(0,0,0,0.35)'; c.fillRect(0, 6, W, 22);
     c.strokeStyle = '#cfc9ae'; c.fillStyle = '#cfc9ae'; c.font = '11px Consolas'; c.textAlign = 'center';
     const ppd = 3.2;
-    for (let a = -80; a <= 80; a += 5) {
-      const d = Math.round(deg + a); const dd = ((d % 360) + 360) % 360;
-      const x = W / 2 + (a - (deg - Math.floor(deg))) * ppd + (Math.round(deg) - deg) * 0;
+    for (let d = Math.floor(deg - 72); d <= deg + 72; d++) {
+      const dd = ((d % 360) + 360) % 360;
+      if (dd % 5) continue;
       const xx = W / 2 + (d - deg) * ppd;
+      c.beginPath(); c.moveTo(xx, 8); c.lineTo(xx, dd % 45 === 0 ? 17 : dd % 15 === 0 ? 14 : 11); c.stroke();
       if (dd % 15 === 0) {
-        c.beginPath(); c.moveTo(xx, 8); c.lineTo(xx, dd % 45 === 0 ? 16 : 13); c.stroke();
         const lab = { 0: 'N', 45: 'NE', 90: 'E', 135: 'SE', 180: 'S', 225: 'SW', 270: 'W', 315: 'NW' }[dd];
         c.fillStyle = lab === 'N' ? '#e2cf8e' : '#cfc9ae';
-        c.fillText(lab || String(dd), xx, 27);
+        c.fillText(lab || String(dd), xx, 28);
       }
-      void x;
     }
     // objective pips
     const S = B.S;
