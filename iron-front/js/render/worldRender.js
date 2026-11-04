@@ -62,11 +62,38 @@
     WR.terrain = new THREE.Mesh(tg, new THREE.MeshLambertMaterial({ vertexColors: true, map: detailTexture() }));
     WR.terrain.receiveShadow = true;
     WR.group.add(WR.terrain);
-    // far ground skirt so the horizon never shows a void
-    const skirt = new THREE.Mesh(new THREE.RingGeometry(1350, 6000, 32, 1), new THREE.MeshLambertMaterial({ color: 0x4a5030 }));
-    skirt.rotation.x = -Math.PI / 2; skirt.position.y = 30; WR.group.add(skirt);
-    const ring2 = new THREE.Mesh(new THREE.PlaneGeometry(2900, 2900), new THREE.MeshLambertMaterial({ color: 0x4a5030 }));
-    ring2.rotation.x = -Math.PI / 2; ring2.position.y = 6; WR.group.add(ring2);
+    // land beyond the battlefield: a strip that starts exactly at the map border (never over the map)
+    {
+      const per = [];
+      for (let k = 0; k < Gs - 1; k++) per.push([k, 0]);
+      for (let k = 0; k < Gs - 1; k++) per.push([Gs - 1, k]);
+      for (let k = Gs - 1; k > 0; k--) per.push([k, Gs - 1]);
+      for (let k = Gs - 1; k > 0; k--) per.push([0, k]);
+      per.push(per[0]);
+      const ap = [], ac = [], ai = [];
+      const OUT = 2600;
+      for (let k = 0; k < per.length; k++) {
+        const [ix, iz] = per[k];
+        const vi = iz * Gs + ix;
+        const x = ix * CELL - HALF, z = iz * CELL - HALF, y = W.h[vi];
+        const len = Math.sqrt(x * x + z * z) || 1;
+        const ox = x / len * OUT, oz = z / len * OUT;
+        ap.push(x, y, z, x + ox * 0.08, y + 4, z + oz * 0.08, x + ox, y + 60, z + oz);
+        const r = col[vi * 3] * 0.9, g = col[vi * 3 + 1] * 0.9, b = col[vi * 3 + 2] * 0.9;
+        ac.push(r, g, b, r * 0.85, g * 0.9, b * 0.8, 0.26, 0.3, 0.18);
+        if (k > 0) {
+          const a0 = (k - 1) * 3, a1 = k * 3;
+          ai.push(a0, a1, a0 + 1, a1, a1 + 1, a0 + 1, a0 + 1, a1 + 1, a0 + 2, a1 + 1, a1 + 2, a0 + 2);
+        }
+      }
+      const ag = new THREE.BufferGeometry();
+      ag.setAttribute('position', new THREE.Float32BufferAttribute(ap, 3));
+      ag.setAttribute('color', new THREE.Float32BufferAttribute(ac, 3));
+      ag.setIndex(ai); ag.computeVertexNormals();
+      const apron = new THREE.Mesh(ag, new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide }));
+      apron.receiveShadow = true;
+      WR.group.add(apron);
+    }
 
     // ---- water ----
     if (W.hasRiver) {

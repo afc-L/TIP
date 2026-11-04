@@ -435,6 +435,7 @@
     // ADS
     const wantAds = I.rmb && !P.sprint && P.switchT <= 0;
     P.ads = U.lerp(P.ads, wantAds ? 1 : 0, Math.min(1, dt * 12));
+    if (Math.abs(P.ads - (wantAds ? 1 : 0)) < 0.03) P.ads = wantAds ? 1 : 0; // settle exactly on the sight line
     P.switchT = Math.max(0, P.switchT - dt);
     w.fireCd = Math.max(0, w.fireCd - dt);
     P.heat = Math.max(0, P.heat - dt * 2.5);
@@ -866,7 +867,7 @@
     const [ex, ey, ez] = P.eyePos(B);
     const pitch = P.pitch + P.recoilP * 0.3;
     cam.rotation.set(pitch, P.yaw + P.recoilY * 0.2, -P.lean * 0.12, 'YXZ');
-    const fp = P.firstPerson || P.binoc || (P.ads > 0.6 && w.scope);
+    const fp = P.firstPerson || P.binoc || P.ads > 0.6; // aiming always looks down the real sights
     P.viewFP = fp;
     if (fp) { cam.position.set(ex, ey, ez); }
     else {

@@ -5,42 +5,110 @@
   const VM = (IF.ViewModel = {});
   const DK = [0.12, 0.12, 0.13], MT = [0.22, 0.22, 0.23], WD = [0.36, 0.25, 0.15], SK = [0.78, 0.6, 0.48], GL = [0.25, 0.25, 0.27];
 
+  // sight-line height (gun local Y) for each weapon / optic — ADS centres this on the screen
+  VM.sightLine = function (model, scope, acog, reddot) {
+    if (scope) return model === 'sniper' ? 0.085 : 0.1;
+    if (acog) return 0.1;
+    if (reddot) return 0.095;
+    return model === 'pistol' ? 0.042 : model === 'at' ? 0.105 : 0.075;
+  };
+  const HALF = Math.PI / 2;
+  const tcyl = (b, rT, rB, h, x, y, z, col, seg) => b.add(new THREE.CylinderGeometry(rT, rB, h, seg || 12), x, y, z, HALF, 0, 0, col);
+  function ironSights(b, frontZ, rearZ, SY) {
+    // rear aperture (peep) with protective ears
+    b.add(new THREE.TorusGeometry(0.0085, 0.0028, 6, 16), 0, SY, rearZ, 0, 0, 0, DK);
+    b.rbox(0.004, 0.026, 0.018, 0.016, SY - 0.004, rearZ, DK, 0, 0, 0, 0.0015); b.rbox(0.004, 0.026, 0.018, -0.016, SY - 0.004, rearZ, DK, 0, 0, 0, 0.0015);
+    b.rbox(0.036, 0.016, 0.03, 0, SY - 0.018, rearZ, DK, 0, 0, 0, 0.004);
+    // front post inside a ring guard
+    b.rbox(0.0032, 0.022, 0.004, 0, SY - 0.011, frontZ, DK, 0, 0, 0, 0.001);
+    b.add(new THREE.TorusGeometry(0.014, 0.0022, 6, 18), 0, SY - 0.004, frontZ, 0, 0, 0, DK);
+    b.rbox(0.02, 0.03, 0.02, 0, SY - 0.032, frontZ, DK, 0, 0, 0, 0.004);
+  }
   function gunGeo(model, scope, acog, reddot, suppress) {
     const b = new IF.GEO.Builder();
+    const SY = VM.sightLine(model, scope, acog, reddot);
+    const optic = scope || acog || reddot;
+    let muzzleZ = -0.95;
     if (model === 'rifle' || model === 'smg') {
-      const L = model === 'smg' ? 0.5 : 0.72;
-      b.rbox(0.05, 0.08, L, 0, 0, -L / 2, DK);                 // receiver/barrel shroud
-      b.cyl(0.012, 0.25, 0, 0.01, -L - 0.12, DK, Math.PI / 2, 0, 0);
-      b.rbox(0.04, 0.13, 0.06, 0, -0.09, -0.12, DK, -0.25, 0, 0); // grip
-      b.rbox(0.035, 0.16, 0.07, 0, -0.1, -0.28, MT, 0.15, 0, 0);  // magazine
-      b.rbox(0.045, 0.07, 0.22, 0, -0.01, 0.12, DK);             // stock
-      b.rbox(0.012, 0.03, 0.02, 0, 0.055, -L + 0.04, DK);         // front sight
-      if (!scope && !acog && !reddot) b.rbox(0.03, 0.02, 0.03, 0, 0.055, -0.05, DK);
+      const L = model === 'smg' ? 0.42 : 0.62;
+      b.rbox(0.052, 0.07, 0.32, 0, 0.0, -0.1, DK, 0, 0, 0, 0.012);                 // upper receiver
+      b.rbox(0.05, 0.05, 0.3, 0, -0.05, -0.08, MT, 0, 0, 0, 0.01);                 // lower receiver
+      b.rbox(0.02, 0.014, 0.4, 0, 0.042, -0.18, DK, 0, 0, 0, 0.003);               // top rail
+      for (let k = 0; k < 9; k++) b.rbox(0.024, 0.006, 0.012, 0, 0.051, -0.02 - k * 0.04, MT, 0, 0, 0, 0.002);
+      b.rbox(0.06, 0.065, L - 0.24, 0, 0.0, -0.25 - (L - 0.24) / 2, [0.2, 0.2, 0.21], 0, 0, 0, 0.018); // handguard
+      tcyl(b, 0.011, 0.011, 0.26, 0, 0.0, -L - 0.11, DK, 10);                      // barrel
+      tcyl(b, 0.016, 0.016, 0.05, 0, 0.0, -L - 0.25, DK, 10);                      // flash hider
+      b.rbox(0.034, 0.12, 0.05, 0, -0.1, -0.02, DK, -0.3, 0, 0, 0.01);             // pistol grip
+      b.rbox(0.028, 0.16, 0.06, 0, -0.13, -0.16, MT, 0.18, 0, 0, 0.008);           // magazine
+      b.rbox(0.03, 0.025, 0.06, 0, -0.06, -0.04, DK, 0, 0, 0, 0.006);              // trigger guard
+      b.rbox(0.04, 0.06, 0.2, 0, -0.02, 0.15, DK, 0, 0, 0, 0.014);                 // stock
+      b.rbox(0.045, 0.09, 0.03, 0, -0.03, 0.26, [0.1, 0.1, 0.1], 0, 0, 0, 0.01);   // butt pad
+      if (!optic) ironSights(b, -L + 0.03, -0.02, SY);
+      else b.rbox(0.012, 0.03, 0.012, 0, SY - 0.03, -L + 0.03, DK, 0, 0, 0, 0.002); // folded front sight
+      muzzleZ = -L - 0.3;
     } else if (model === 'mg') {
-      b.rbox(0.08, 0.1, 0.9, 0, 0, -0.45, DK); b.cyl(0.018, 0.35, 0, 0.01, -1.0, DK, Math.PI / 2, 0, 0);
-      b.rbox(0.11, 0.11, 0.14, 0.03, -0.11, -0.3, [0.28, 0.3, 0.22]); b.rbox(0.04, 0.12, 0.06, 0, -0.1, -0.1, DK, -0.25, 0, 0); b.rbox(0.05, 0.08, 0.25, 0, -0.01, 0.15, DK);
-      b.rbox(0.012, 0.03, 0.02, 0, 0.06, -0.85, DK);
+      b.rbox(0.08, 0.1, 0.5, 0, 0, -0.2, DK, 0, 0, 0, 0.02);
+      b.rbox(0.07, 0.07, 0.3, 0, 0.0, -0.6, [0.2, 0.2, 0.21], 0, 0, 0, 0.02);
+      tcyl(b, 0.017, 0.017, 0.4, 0, 0.0, -0.95, DK, 10);
+      b.rbox(0.12, 0.12, 0.14, 0.03, -0.12, -0.22, [0.28, 0.3, 0.22], 0, 0, 0, 0.02);   // ammo box
+      b.rbox(0.035, 0.12, 0.05, 0, -0.1, 0.0, DK, -0.3, 0, 0, 0.01);
+      b.rbox(0.05, 0.08, 0.24, 0, -0.01, 0.18, DK, 0, 0, 0, 0.016);
+      b.rbox(0.09, 0.012, 0.16, 0, 0.055, -0.2, MT, 0, 0, 0, 0.004);                  // feed cover
+      if (!optic) ironSights(b, -0.8, -0.05, SY);
+      muzzleZ = -1.2;
     } else if (model === 'sniper') {
-      b.rbox(0.05, 0.08, 1.0, 0, 0, -0.45, WD); b.cyl(0.013, 0.35, 0, 0.02, -1.1, DK, Math.PI / 2, 0, 0);
-      b.rbox(0.04, 0.12, 0.06, 0, -0.09, -0.08, WD, -0.3, 0, 0); b.rbox(0.05, 0.1, 0.3, 0, -0.02, 0.15, WD);
+      b.rbox(0.055, 0.075, 0.9, 0, -0.01, -0.35, WD, 0, 0, 0, 0.02);
+      b.rbox(0.05, 0.05, 0.28, 0, 0.02, -0.1, DK, 0, 0, 0, 0.012);
+      tcyl(b, 0.012, 0.015, 0.45, 0, 0.01, -1.02, DK, 10);
+      b.rbox(0.04, 0.12, 0.06, 0, -0.09, -0.02, WD, -0.3, 0, 0, 0.012); b.rbox(0.05, 0.1, 0.3, 0, -0.03, 0.2, WD, 0, 0, 0, 0.02);
+      tcyl(b, 0.005, 0.005, 0.12, 0.03, 0.02, -0.02, DK, 6);                        // bolt
+      muzzleZ = -1.3;
     } else if (model === 'pistol') {
-      b.rbox(0.035, 0.05, 0.19, 0, 0, -0.08, DK); b.rbox(0.032, 0.11, 0.05, 0, -0.07, -0.01, DK, -0.2, 0, 0);
+      b.rbox(0.032, 0.035, 0.19, 0, 0.0, -0.08, DK, 0, 0, 0, 0.008);
+      b.rbox(0.03, 0.03, 0.17, 0, -0.03, -0.07, MT, 0, 0, 0, 0.008);
+      b.rbox(0.03, 0.11, 0.05, 0, -0.08, 0.0, DK, -0.2, 0, 0, 0.01);
+      // rear notch + front post
+      b.rbox(0.008, 0.012, 0.01, 0.009, SY - 0.006, 0.005, DK, 0, 0, 0, 0.002); b.rbox(0.008, 0.012, 0.01, -0.009, SY - 0.006, 0.005, DK, 0, 0, 0, 0.002);
+      b.rbox(0.004, 0.012, 0.006, 0, SY - 0.006, -0.165, DK, 0, 0, 0, 0.001);
+      muzzleZ = -0.22;
     } else if (model === 'at') {
-      b.cyl(0.055, 1.05, 0.0, 0.0, -0.25, [0.3, 0.33, 0.24], Math.PI / 2, 0, 0); b.add(new THREE.ConeGeometry(0.06, 0.25, 8), 0, 0, -0.9, -Math.PI / 2, 0, 0, [0.32, 0.3, 0.22]);
-      b.rbox(0.04, 0.12, 0.06, 0, -0.1, -0.1, DK, -0.2, 0, 0); b.rbox(0.03, 0.06, 0.06, -0.06, 0.06, -0.2, DK);
+      tcyl(b, 0.05, 0.05, 1.0, 0.0, 0.0, -0.25, [0.3, 0.33, 0.24], 14);
+      b.add(new THREE.ConeGeometry(0.065, 0.26, 12), 0, 0, -0.88, -HALF, 0, 0, [0.32, 0.3, 0.22]);
+      tcyl(b, 0.06, 0.07, 0.12, 0, 0, 0.27, DK, 14);
+      b.rbox(0.035, 0.11, 0.05, 0, -0.09, -0.08, DK, -0.2, 0, 0, 0.01);
+      // flip-up sights on top
+      b.rbox(0.004, 0.05, 0.004, 0, SY - 0.025, -0.45, DK, 0, 0, 0, 0.001);
+      b.add(new THREE.TorusGeometry(0.009, 0.0028, 6, 14), 0, SY, -0.05, 0, 0, 0, DK);
+      b.rbox(0.02, 0.05, 0.02, 0, SY - 0.035, -0.05, DK, 0, 0, 0, 0.004);
+      muzzleZ = -0.95;
     }
-    if (scope) { b.cyl(0.025, 0.32, 0, 0.075, -0.25, DK, Math.PI / 2, 0, 0); b.cyl(0.032, 0.05, 0, 0.075, -0.42, DK, Math.PI / 2, 0, 0); }
-    else if (acog) { b.rbox(0.04, 0.05, 0.13, 0, 0.07, -0.18, DK); }
-    else if (reddot) { b.rbox(0.035, 0.045, 0.06, 0, 0.065, -0.15, DK); b.rbox(0.025, 0.025, 0.005, 0, 0.07, -0.12, [0.6, 0.1, 0.1]); }
-    if (suppress) b.cyl(0.022, 0.18, 0, 0.01, -0.85, DK, Math.PI / 2, 0, 0);
-    return b.build();
+    if (scope) {
+      const sy = SY, z0 = model === 'sniper' ? -0.22 : -0.2;
+      tcyl(b, 0.024, 0.024, 0.26, 0, sy, z0, DK, 16);
+      tcyl(b, 0.031, 0.026, 0.07, 0, sy, z0 - 0.16, DK, 16); tcyl(b, 0.028, 0.024, 0.06, 0, sy, z0 + 0.15, DK, 16);
+      tcyl(b, 0.012, 0.012, 0.03, 0, sy + 0.028, z0, MT, 8);
+      b.rbox(0.02, 0.03, 0.02, 0, sy - 0.03, z0 - 0.07, DK, 0, 0, 0, 0.004); b.rbox(0.02, 0.03, 0.02, 0, sy - 0.03, z0 + 0.07, DK, 0, 0, 0, 0.004);
+    } else if (acog) {
+      b.rbox(0.045, 0.05, 0.14, 0, SY, -0.15, DK, 0, 0, 0, 0.012);
+      tcyl(b, 0.022, 0.022, 0.05, 0, SY, -0.24, DK, 14); tcyl(b, 0.017, 0.017, 0.03, 0, SY, -0.065, DK, 14);
+      b.rbox(0.03, 0.03, 0.06, 0, SY - 0.04, -0.15, DK, 0, 0, 0, 0.005);
+    } else if (reddot) {
+      b.add(new THREE.TorusGeometry(0.023, 0.005, 8, 24), 0, SY, -0.15, 0, 0, 0, DK);
+      b.rbox(0.03, 0.03, 0.05, 0, SY - 0.034, -0.15, DK, 0, 0, 0, 0.006);
+      b.rbox(0.008, 0.012, 0.012, 0.026, SY, -0.15, DK, 0, 0, 0, 0.002);
+    }
+    if (suppress) tcyl(b, 0.022, 0.022, 0.2, 0, 0.0, muzzleZ + 0.02, DK, 12);
+    const g = b.build();
+    g.userData = { muzzleZ: suppress ? muzzleZ - 0.18 : muzzleZ, SY };
+    return g;
   }
   function armsGeo(col) {
     const b = new IF.GEO.Builder();
-    b.rbox(0.09, 0.09, 0.42, 0.07, -0.13, 0.12, col, 0.2, 0.15, 0);   // right forearm
-    b.rbox(0.07, 0.08, 0.09, 0.02, -0.09, -0.1, SK);                 // right hand
-    b.rbox(0.09, 0.09, 0.46, -0.13, -0.1, -0.12, col, 0.15, -0.5, 0); // left forearm
-    b.rbox(0.07, 0.07, 0.09, -0.02, -0.06, -0.38, SK);                // left hand on the handguard
+    const GL = [0.17, 0.16, 0.15];
+    b.add(new THREE.CylinderGeometry(0.042, 0.05, 0.36, 12), 0.08, -0.13, 0.13, HALF + 0.2, 0.15, 0, col);     // right sleeve
+    b.rbox(0.06, 0.075, 0.1, 0.02, -0.075, -0.04, GL, 0, 0, 0, 0.022);                                       // right glove on the grip
+    b.add(new THREE.CylinderGeometry(0.042, 0.05, 0.42, 12), -0.12, -0.11, -0.12, HALF + 0.15, -0.5, 0, col);  // left sleeve
+    b.rbox(0.065, 0.06, 0.1, -0.015, -0.05, -0.36, GL, 0, 0, 0.3, 0.022);                                    // left glove under the handguard
     return b.build();
   }
 
@@ -74,10 +142,16 @@
     const col = P.uniformTint ? [P.uniformTint.r, P.uniformTint.g, P.uniformTint.b] : t;
     VM.arms = new THREE.Mesh(armsGeo(col), VM.armsMat);
     VM.gunGroup = new THREE.Group(); VM.gunGroup.add(VM.gun); VM.gunGroup.add(VM.arms);
-    VM.flash.position.set(0, 0.01, w.d.model === 'mg' ? -1.2 : w.d.model === 'sniper' ? -1.3 : w.d.model === 'pistol' ? -0.22 : w.d.model === 'at' ? -0.95 : w.d.model === 'smg' ? -0.68 : -0.95);
+    VM.flash.position.set(0, 0.0, geo.userData.muzzleZ);
     VM.gunGroup.add(VM.flash);
+    // glowing red-dot reticle
+    if (n('Red Dot Sight')) {
+      VM.dot = VM.dot || new THREE.Mesh(new THREE.SphereGeometry(0.0016, 8, 6), new THREE.MeshBasicMaterial({ color: 0xff2a1a }));
+      VM.dot.position.set(0, geo.userData.SY, -0.152);
+      VM.gunGroup.add(VM.dot);
+    }
     VM.root.add(VM.gunGroup);
-    VM.sightY = w.d.scope ? 0.075 : n('4x ACOG') ? 0.095 : n('Red Dot Sight') ? 0.075 : 0.06;
+    VM.sightY = geo.userData.SY;
   };
 
   VM.render = function (renderer, dt) {
@@ -98,9 +172,9 @@
     const bobK = (P.ads > 0.5 ? 0.15 : 1) * Math.min(1, sp / 3);
     const ads = P.ads;
     const hipX = 0.19, hipY = -0.2, hipZ = -0.52;
-    const adsX = 0, adsY = -VM.sightY, adsZ = -0.4;
-    let x = U.lerp(hipX, adsX, ads) + Math.sin(VM.bob) * 0.012 * bobK + VM.sway.x;
-    let y = U.lerp(hipY, adsY, ads) - Math.abs(Math.cos(VM.bob)) * 0.01 * bobK + VM.sway.y;
+    const adsX = 0, adsY = -VM.sightY, adsZ = -0.36;
+    let x = U.lerp(hipX, adsX, ads) + Math.sin(VM.bob) * 0.012 * bobK + VM.sway.x * (1 - ads * 0.85);
+    let y = U.lerp(hipY, adsY, ads) - Math.abs(Math.cos(VM.bob)) * 0.01 * bobK + VM.sway.y * (1 - ads * 0.85);
     let z = U.lerp(hipZ, adsZ, ads);
     let rx = 0, ry = 0, rz = 0;
     P.kick = Math.max(0, (P.kick || 0) - dt * 9);

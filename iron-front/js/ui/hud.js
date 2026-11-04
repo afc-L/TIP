@@ -176,7 +176,9 @@
     $('vignette').style.opacity = U.clamp((1 - P.hp / 100) * 0.9 + P.suppress * 0.35 + (P.state === 'downed' ? 0.6 : 0), 0, 1);
     $('nvg').classList.toggle('on', !!P.nvg && P.alive);
     const w2 = P.weapon();
-    $('scope').classList.toggle('hidden', !(P.alive && !P.veh && w2 && w2.scope && P.ads > 0.8));
+    const scoped = P.alive && !P.veh && w2 && w2.scope && P.ads > 0.8;
+    $('scope').classList.toggle('hidden', !scoped);
+    if (scoped) $('scope').className = w2.d.cat === 'sniper' ? 'sniper' : 'acog';
     $('binoc').classList.toggle('hidden', !(P.alive && P.binoc));
     // feeds
     for (const r of H.radio) r.t -= 0.1;
@@ -434,7 +436,7 @@
         c.strokeStyle = 'rgba(255,255,255,0.9)'; c.lineWidth = 1.5 * d; c.shadowColor = '#000'; c.shadowBlur = 2;
         const L = 7 * d;
         c.beginPath();
-        if (P.ads > 0.6 && P.firstPerson) { c.arc(cx, cy, 1.5 * d, 0, 7); }
+        if (P.ads > 0.6 && P.viewFP) { /* aiming down the sights: the weapon's own sights do the job */ }
         else { c.moveTo(cx - gap - L, cy); c.lineTo(cx - gap, cy); c.moveTo(cx + gap, cy); c.lineTo(cx + gap + L, cy); c.moveTo(cx, cy - gap - L); c.lineTo(cx, cy - gap); c.moveTo(cx, cy + gap); c.lineTo(cx, cy + gap + L); }
         c.stroke(); c.shadowBlur = 0;
       }

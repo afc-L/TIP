@@ -15,7 +15,20 @@
 <div id="hud" class="hidden">
   <div id="nvg"></div>
   <div id="vignette"></div>
-  <div id="scope" class="hidden"><div class="reticle"></div></div>
+  <div id="scope" class="hidden">
+    <svg class="ret ret-sniper" viewBox="-100 -100 200 200" aria-hidden="true">
+      <circle r="99" fill="none" stroke="#000" stroke-width="2"/>
+      <path d="M-99 0H-30M30 0H99M0 -99V-30M0 30V99" stroke="#000" stroke-width="3.2"/>
+      <path d="M-30 0H30M0 -30V30" stroke="#000" stroke-width="0.6"/>
+      <g fill="#000"><circle cx="-10" r="1.1"/><circle cx="-20" r="1.1"/><circle cx="10" r="1.1"/><circle cx="20" r="1.1"/><circle cy="-10" r="1.1"/><circle cy="-20" r="1.1"/><circle cy="10" r="1.1"/><circle cy="20" r="1.1"/></g>
+    </svg>
+    <svg class="ret ret-acog" viewBox="-100 -100 200 200" aria-hidden="true">
+      <circle r="99" fill="none" stroke="#111" stroke-width="3"/>
+      <path d="M0 -1L-6 9M0 -1L6 9" stroke="#ff7a1a" stroke-width="2" stroke-linecap="round" fill="none"/>
+      <path d="M0 12V60M-8 22H8M-6 32H6M-4 42H4M-3 52H3" stroke="#111" stroke-width="1"/>
+      <path d="M-99 0H-55M55 0H99" stroke="#111" stroke-width="1.2"/>
+    </svg>
+  </div>
   <div id="binoc" class="hidden"><div class="lens"></div><div class="lens"></div><div class="binoc-info" id="binocInfo">BINOCULARS</div></div>
 
   <div id="topbar">
