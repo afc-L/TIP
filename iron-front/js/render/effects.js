@@ -175,7 +175,7 @@
   FX.splash = function (x, y, z, r) {
     if (!FX.on || !camNear(x, z, 600)) return;
     for (let k = 0; k < 16 * FX.q; k++) FX.smoke.emit(x + U.rr(-1, 1) * r * 0.2, y, z + U.rr(-1, 1) * r * 0.2, U.rr(-2, 2), U.rr(6, 16), U.rr(-2, 2), U.rr(1.2, 2.2), r * 0.15, r * 0.5, 0.8, 0.85, 0.9, 0.9, 0.7, 0.75, 0.8, 0, 0.5, 10);
-    IF.emit('shake', U.clamp(r * 2 / (1 + camD(x, y, z) / 12), 0, 1.2));
+    { const dd = camD(x, y, z) / 8; IF.emit('shake', U.clamp(r * 0.06 / (1 + dd * dd), 0, 0.5)); }
   };
   FX.smokeScreen = function (x, y, z, r) {
     if (!FX.on) return;
@@ -190,7 +190,7 @@
     if (!FX.on) return;
     const d = camD(x, y, z);
     // camera shake & flash light regardless of distance
-    IF.emit('shake', U.clamp(r * 1.6 / (1 + d / 10), 0, 1.6));
+    { const dd = d / (6 + r); IF.emit('shake', U.clamp(r * 0.08 / (1 + dd * dd), 0, 0.9)); }
     if (d < 400) IF.R.flash(x, y, z, Math.min(30, r * 3), 0.22 + r * 0.01);
     if (d > 1100) return;
     const q = FX.q * (d > 500 ? 0.4 : 1);

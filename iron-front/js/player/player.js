@@ -130,7 +130,7 @@
     if (kind === 'explosion' && dmg > 900) d = 999;
     P.hp -= d; S.hp[P.idx] = P.hp;
     P.lastDamageT = B.time;
-    P.shake = Math.min(1.2, P.shake + 0.25 + d / 80);
+    P.shake = Math.min(0.8, P.shake + 0.08 + d / 250);
     if (att >= 0 && att < S.n) P.dmgDirs.push({ x: S.x[att], z: S.z[att], t: 1.4 });
     else if (kind === 'explosion') P.dmgDirs.push({ x: S.x[P.idx] + U.rr(-5, 5), z: S.z[P.idx] + U.rr(-5, 5), t: 1.4 });
     IF.SFX.hit && P.hp > 0 && IF.Audio.on && IF.SFX.thump(S.x[P.idx], S.y[P.idx] + 1, S.z[P.idx]);
@@ -213,14 +213,14 @@
     if (team !== B.playerTeam && U.dist2(px, pz, o.x, o.z) < (o.r + 10) ** 2) P.addXP(XP.neutral, 'Objective neutralized');
   });
   IF.on('nearMiss', (sx, sz, k) => { P.suppress = Math.min(1, P.suppress + k * 2); if (Math.random() < 0.6) IF.SFX.crack(sx, sz, k); });
-  IF.on('shake', (k) => { P.shake = Math.min(1.5, P.shake + k); });
+  IF.on('shake', (k) => { P.shake = Math.min(1, P.shake + k); });
 
   IF.on('playerVehicleDestroyed', (v) => {
     const B = P.B; if (!B || P.veh !== v) return;
     P.exitVehicle(true);
     const S = B.S;
     S.st[P.idx] = ST.ALIVE;
-    if (Math.random() < 0.45) { P.hp = 25; S.hp[P.idx] = 25; P.shake = 1.5; P.message('Vehicle destroyed — you bailed out!'); }
+    if (Math.random() < 0.45) { P.hp = 25; S.hp[P.idx] = 25; P.shake = 1; P.message('Vehicle destroyed — you bailed out!'); }
     else P.die(v.lastAtt, 'explosion', false);
   });
   P.message = function (t) { P.messages.push({ t, life: 4 }); if (P.messages.length > 4) P.messages.shift(); };
@@ -229,7 +229,7 @@
   P.update = function (B, dt) {
     const S = B.S;
     P.hitMarker = Math.max(0, P.hitMarker - dt);
-    P.shake = Math.max(0, P.shake - dt * 1.4);
+    P.shake = Math.max(0, P.shake - dt * 1.8);
     P.suppress = Math.max(0, P.suppress - dt * 0.6);
     for (const d of P.dmgDirs) d.t -= dt;
     P.dmgDirs = P.dmgDirs.filter((d) => d.t > 0);
@@ -522,7 +522,7 @@
     P.pitch += rk * 0.55; P.yaw += rk * U.rr(-0.25, 0.25);
     P.heat = Math.min(2, P.heat + 0.18);
     P.kick = 1;
-    P.shake = Math.min(1, P.shake + (d.cat === 'sniper' || d.rocket ? 0.25 : 0.04));
+    P.shake = Math.min(1, P.shake + (d.cat === 'sniper' || d.rocket ? 0.12 : 0.015));
   };
   P.resolveHit = function (B, w, hit, ox, oy, oz) {
     const S = B.S, d = w.d;
@@ -685,7 +685,7 @@
         const mx = v.x + U.dirX(v.turretYaw) * 6, my = v.y + 3.5, mz = v.z + U.dirZ(v.turretYaw) * 6;
         const [vx, vy, vz] = C.ballistic(mx, my, mz, ax, ay, az, Tt, 9.8);
         C.spawnProj(B, 'arty', mx, my, mz, vx, vy, vz, B.playerTeam, P.idx, v.id);
-        v.fireCd = T.gunCd; v.recoil = 1; IF.SFX.cannon(mx, my, mz, true); IF.FX.muzzle(mx, my, mz, B.playerTeam, 4); P.shake += 0.5;
+        v.fireCd = T.gunCd; v.recoil = 1; IF.SFX.cannon(mx, my, mz, true); IF.FX.muzzle(mx, my, mz, B.playerTeam, 4); P.shake = Math.min(1, P.shake + 0.25);
       }
       return;
     }
@@ -699,12 +699,12 @@
       const sp = IF.PT.shell.speed;
       C.spawnProj(B, 'shell', mx, my, mz, dx * sp, dy * sp + 0.5 * IF.PT.shell.grav * L / sp, dz * sp, B.playerTeam, P.idx, v.id);
       v.fireCd = T.gunCd * 0.8; v.recoil = 1; v.flash = 0.08;
-      IF.SFX.cannon(mx, my, mz); IF.FX.muzzle(mx, my, mz, B.playerTeam, 3); IF.FX.dust(v.x, v.y + 0.5, v.z, 6); P.shake += 0.6;
+      IF.SFX.cannon(mx, my, mz); IF.FX.muzzle(mx, my, mz, B.playerTeam, 3); IF.FX.dust(v.x, v.y + 0.5, v.z, 6); P.shake = Math.min(1, P.shake + 0.25);
     } else if ((T.gun === 'autocannon' || T.gun === 'heligun') && !useMG) {
       if (v.fireCd > 0) return;
       const sp = IF.PT.ac.speed;
       C.spawnProj(B, 'ac', mx, my, mz, dx * sp + U.gauss() * 6, dy * sp + U.gauss() * 6, dz * sp + U.gauss() * 6, B.playerTeam, P.idx, v.id);
-      v.fireCd = T.gunCd * 0.9; IF.SFX.shot(mx, my, mz, 'autocannon', B.playerTeam); IF.FX.muzzle(mx, my, mz, B.playerTeam, 1.2); P.shake += 0.08;
+      v.fireCd = T.gunCd * 0.9; IF.SFX.shot(mx, my, mz, 'autocannon', B.playerTeam); IF.FX.muzzle(mx, my, mz, B.playerTeam, 1.2); P.shake = Math.min(1, P.shake + 0.03);
     } else if (T.gun === 'heligun' && useMG) {
       if (v.fireCd > 0 || v.rockets <= 0 || !I.lmbPressed) return;
       const sp = IF.PT.hrocket.speed;
@@ -838,10 +838,20 @@
 
   // ------------------------------------------------------------------ cameras
   const _v = new THREE.Vector3(), _t = new THREE.Vector3();
+  // smooth (noise-like) camera shake, scaled by Settings → Graphics → Screen shake
+  P.SHAKE_LEVELS = { none: 0, low: 0.3, medium: 0.6, high: 1 };
   P.applyShake = function (cam, dt) {
-    const s = P.shake * P.shake;
-    if (s > 0.0005) { cam.rotation.x += U.gauss() * 0.02 * s; cam.rotation.y += U.gauss() * 0.02 * s; cam.position.x += U.gauss() * 0.06 * s; cam.position.y += U.gauss() * 0.06 * s; }
+    const lvl = P.SHAKE_LEVELS[IF.Profile.settings.shake || 'medium'];
+    const s = P.shake * P.shake * (lvl === undefined ? 0.6 : lvl);
+    if (s < 0.0005) return;
+    const t = (P.B ? P.B.time : 0) * 24;
+    const n = (a, b) => Math.sin(t * a + b) * 0.6 + Math.sin(t * a * 1.7 + b * 2.3) * 0.4;
+    cam.rotation.x += n(1.0, 0.3) * 0.012 * s;
+    cam.rotation.y += n(0.9, 1.7) * 0.012 * s;
+    cam.rotation.z += n(0.7, 2.9) * 0.008 * s;
+    cam.position.y += n(1.1, 4.1) * 0.05 * s;
   };
+
   P.setFov = function (target, dt) {
     const cam = IF.R.camera;
     cam.fov = U.lerp(cam.fov, target, Math.min(1, dt * 12));

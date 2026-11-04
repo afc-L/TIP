@@ -10,54 +10,53 @@
   function partGeos() {
     const P = {};
     let b;
+    const W1 = [1, 1, 1];
     // thigh (pivot at hip, extends down)
-    b = new IF.GEO.Builder(); b.box(0.17, 0.46, 0.2, 0, -0.23, 0, [1, 1, 1]); P.thigh = b.build();
+    b = new IF.GEO.Builder(); b.cap(0.092, 0.28, 0, -0.23, 0, W1, 0, 0, 0, 1, 1.08); P.thigh = b.build();
     // shin + boot (pivot at knee)
-    b = new IF.GEO.Builder(); b.box(0.15, 0.44, 0.17, 0, -0.22, 0, [1, 1, 1]); b.box(0.16, 0.1, 0.3, 0, -0.45, -0.05, BOOT); P.shin = b.build();
+    b = new IF.GEO.Builder(); b.cap(0.078, 0.3, 0, -0.21, 0, W1); b.rbox(0.15, 0.11, 0.29, 0, -0.44, -0.05, BOOT, 0, 0, 0, 0.04); P.shin = b.build();
     // torso + vest + backpack (pivot at hips)
     b = new IF.GEO.Builder();
-    b.box(0.42, 0.56, 0.24, 0, 0.29, 0, [1, 1, 1]);
-    b.box(0.44, 0.3, 0.28, 0, 0.36, -0.01, [0.8, 0.8, 0.75]);          // vest (tinted darker)
-    b.box(0.3, 0.38, 0.17, 0, 0.36, 0.2, GEAR);                       // pack
-    b.box(0.1, 0.12, 0.08, 0.12, 0.25, -0.15, [0.7, 0.7, 0.65]); b.box(0.1, 0.12, 0.08, -0.12, 0.25, -0.15, [0.7, 0.7, 0.65]);
-    b.box(0.16, 0.08, 0.14, 0, 0.6, 0, SKIN); // neck
+    b.cap(0.2, 0.2, 0, 0.3, 0, W1, 0, 0, 0, 1.06, 0.66, 3);
+    b.rbox(0.43, 0.3, 0.29, 0, 0.36, -0.01, [0.8, 0.8, 0.75], 0, 0, 0, 0.07);            // vest
+    b.rbox(0.3, 0.38, 0.17, 0, 0.36, 0.2, GEAR, 0, 0, 0, 0.06);                          // pack
+    b.rbox(0.1, 0.12, 0.08, 0.12, 0.25, -0.15, [0.7, 0.7, 0.65], 0, 0, 0, 0.025); b.rbox(0.1, 0.12, 0.08, -0.12, 0.25, -0.15, [0.7, 0.7, 0.65], 0, 0, 0, 0.025);
+    b.cap(0.06, 0.04, 0, 0.6, 0, SKIN); // neck
     P.torso = b.build();
-    // head (pivot at hips -> offset)
-    b = new IF.GEO.Builder(); b.box(0.2, 0.24, 0.22, 0, 0.76, -0.01, SKIN); b.box(0.16, 0.04, 0.02, 0, 0.78, -0.125, [0.2, 0.18, 0.16]); P.head = b.build();
+    // head
+    b = new IF.GEO.Builder(); b.sph(0.115, 0, 0.75, -0.01, SKIN, 0.95, 1.12, 1.02, 10, 8); b.rbox(0.15, 0.035, 0.03, 0, 0.775, -0.115, [0.2, 0.18, 0.16], 0, 0, 0, 0.01); P.head = b.build();
     // helmet
-    b = new IF.GEO.Builder(); b.add(new THREE.SphereGeometry(0.16, 8, 5, 0, Math.PI * 2, 0, Math.PI / 2), 0, 0.82, 0, 0, 0, 0, [1, 1, 1], 1, 0.9, 1.08); b.box(0.34, 0.025, 0.36, 0, 0.82, 0, [1, 1, 1]); P.helmet = b.build();
+    b = new IF.GEO.Builder(); b.add(new THREE.SphereGeometry(0.16, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), 0, 0.81, 0, 0, 0, 0, W1, 1, 0.9, 1.08); b.cap(0.17, 0.0, 0, 0.815, 0, W1, 0, 0, 0, 1, 1.08); P.helmet = b.build();
+    // shrink the helmet brim capsule vertically
+    { const pa = P.helmet.attributes.position; for (let i = 0; i < pa.count; i++) { const y = pa.getY(i); if (y < 0.83 && y > 0.6) pa.setY(i, 0.81 + (y - 0.815) * 0.08); } pa.needsUpdate = true; P.helmet.computeVertexNormals(); }
     // arms + weapon variants (pivot at shoulder height, chest centre)
+    const HALF = Math.PI / 2;
     const arms = (gun) => {
       const a = new IF.GEO.Builder();
-      // right arm: upper arm down/forward, forearm to grip
-      a.box(0.12, 0.3, 0.12, 0.25, -0.12, -0.06, [1, 1, 1], 0.5, 0, 0);
-      a.box(0.1, 0.1, 0.32, 0.18, -0.24, -0.26, [1, 1, 1], 0, 0.3, 0);
-      a.box(0.09, 0.09, 0.09, 0.1, -0.24, -0.42, SKIN);
-      // left arm reaching to the handguard
-      a.box(0.12, 0.28, 0.12, -0.25, -0.1, -0.1, [1, 1, 1], 0.7, 0, 0);
-      a.box(0.1, 0.1, 0.36, -0.12, -0.2, -0.38, [1, 1, 1], 0, -0.45, 0);
-      a.box(0.09, 0.09, 0.09, -0.03, -0.18, -0.6, SKIN);
-      if (gun === 'rifle') { a.box(0.06, 0.1, 0.82, 0.06, -0.16, -0.48, DARK); a.box(0.05, 0.16, 0.08, 0.06, -0.26, -0.42, DARK); a.box(0.06, 0.05, 0.18, 0.06, -0.08, -0.3, DARK); }
-      else if (gun === 'mg') { a.box(0.09, 0.13, 1.0, 0.06, -0.16, -0.52, DARK); a.box(0.14, 0.13, 0.16, 0.06, -0.29, -0.4, [0.3, 0.32, 0.25]); }
-      else if (gun === 'sniper') { a.box(0.06, 0.09, 1.15, 0.06, -0.16, -0.6, [0.25, 0.2, 0.14]); a.cyl(0.035, 0.32, 0.06, -0.06, -0.42, DARK, Math.PI / 2, 0, 0); }
-      else if (gun === 'at') { a.box(0.06, 0.1, 0.7, 0.06, -0.16, -0.42, DARK); a.cyl(0.08, 1.1, 0.16, 0.12, -0.1, [0.3, 0.33, 0.25], Math.PI / 2, 0, 0); }
+      a.cap(0.06, 0.2, 0.25, -0.12, -0.06, W1, 0.5, 0, 0);
+      a.cap(0.052, 0.24, 0.18, -0.24, -0.26, W1, HALF, 0.3, 0);
+      a.sph(0.05, 0.1, -0.24, -0.42, SKIN);
+      a.cap(0.06, 0.18, -0.25, -0.1, -0.1, W1, 0.7, 0, 0);
+      a.cap(0.052, 0.28, -0.12, -0.2, -0.38, W1, HALF, -0.45, 0);
+      a.sph(0.05, -0.03, -0.18, -0.6, SKIN);
+      if (gun === 'rifle') { a.rbox(0.06, 0.1, 0.6, 0.06, -0.16, -0.38, DARK); a.cyl(0.016, 0.34, 0.06, -0.15, -0.84, DARK, HALF, 0, 0); a.rbox(0.05, 0.16, 0.08, 0.06, -0.26, -0.42, DARK, 0.2, 0, 0); a.rbox(0.06, 0.08, 0.2, 0.06, -0.15, -0.02, DARK); }
+      else if (gun === 'mg') { a.rbox(0.09, 0.13, 0.75, 0.06, -0.16, -0.42, DARK); a.cyl(0.022, 0.4, 0.06, -0.15, -0.98, DARK, HALF, 0, 0); a.cyl(0.08, 0.16, 0.06, -0.29, -0.4, [0.3, 0.32, 0.25], 0, 0, HALF); }
+      else if (gun === 'sniper') { a.rbox(0.06, 0.09, 0.85, 0.06, -0.16, -0.48, [0.25, 0.2, 0.14]); a.cyl(0.015, 0.4, 0.06, -0.15, -1.1, DARK, HALF, 0, 0); a.cyl(0.035, 0.32, 0.06, -0.06, -0.42, DARK, HALF, 0, 0); }
+      else if (gun === 'at') { a.rbox(0.06, 0.1, 0.55, 0.06, -0.16, -0.36, DARK); a.cyl(0.08, 1.1, 0.16, 0.12, -0.1, [0.3, 0.33, 0.25], HALF, 0, 0); a.add(new THREE.ConeGeometry(0.09, 0.22, 10), 0.16, 0.12, -0.75, -HALF, 0, 0, [0.32, 0.3, 0.22]); }
       return a.build();
     };
     P.arms = { rifle: arms('rifle'), mg: arms('mg'), sniper: arms('sniper'), at: arms('at') };
-    // far LOD: one merged standing figure (pivot at feet)
-    b = new IF.GEO.Builder();
-    b.box(0.18, 0.92, 0.2, 0.11, 0.46, 0, [1, 1, 1]); b.box(0.18, 0.92, 0.2, -0.11, 0.46, 0, [1, 1, 1]);
-    b.box(0.44, 0.58, 0.28, 0, 1.22, 0, [1, 1, 1]); b.box(0.3, 0.36, 0.16, 0, 1.25, 0.2, GEAR);
-    b.box(0.2, 0.24, 0.22, 0, 1.66, 0, SKIN); b.box(0.32, 0.12, 0.32, 0, 1.8, 0, [0.85, 0.85, 0.85]);
-    b.box(0.1, 0.42, 0.12, 0.27, 1.2, -0.1, [1, 1, 1], 0.6, 0, 0); b.box(0.1, 0.42, 0.12, -0.27, 1.2, -0.12, [1, 1, 1], 0.9, 0, 0);
-    b.box(0.07, 0.1, 0.85, 0.05, 1.2, -0.42, DARK);
-    P.far = b.build();
-    // headless variant for decapitated corpses
-    b = new IF.GEO.Builder();
-    b.box(0.18, 0.92, 0.2, 0.11, 0.46, 0, [1, 1, 1]); b.box(0.18, 0.92, 0.2, -0.11, 0.46, 0, [1, 1, 1]);
-    b.box(0.44, 0.58, 0.28, 0, 1.22, 0, [1, 1, 1]); b.box(0.3, 0.36, 0.16, 0, 1.25, 0.2, GEAR);
-    b.box(0.17, 0.07, 0.17, 0, 1.54, 0, [0.45, 0.05, 0.04]);
-    b.box(0.1, 0.42, 0.12, 0.27, 1.2, -0.1, [1, 1, 1], 0.6, 0, 0); b.box(0.1, 0.42, 0.12, -0.27, 1.2, -0.12, [1, 1, 1], 0.9, 0, 0);
+    // far LOD: one merged standing figure (pivot at feet) — rounded but light
+    const farBody = (bb, head) => {
+      bb.cap(0.095, 0.72, 0.11, 0.47, 0, W1, 0, 0, 0, 1, 1, 1); bb.cap(0.095, 0.72, -0.11, 0.47, 0, W1, 0, 0, 0, 1, 1, 1);
+      bb.cap(0.21, 0.2, 0, 1.22, 0, W1, 0, 0, 0, 1.05, 0.68, 2); bb.rbox(0.3, 0.36, 0.16, 0, 1.25, 0.2, GEAR, 0, 0, 0, 0.05);
+      if (head) { bb.sph(0.115, 0, 1.65, 0, SKIN, 1, 1.12, 1, 7, 5); bb.add(new THREE.SphereGeometry(0.165, 8, 4, 0, Math.PI * 2, 0, Math.PI / 2), 0, 1.71, 0, 0, 0, 0, [0.85, 0.85, 0.85], 1, 0.85, 1.08); }
+      else bb.cap(0.06, 0.02, 0, 1.55, 0, [0.45, 0.05, 0.04], 0, 0, 0, 1, 1, 1);
+      bb.cap(0.055, 0.3, 0.27, 1.2, -0.1, W1, 0.6, 0, 0, 1, 1, 1); bb.cap(0.055, 0.3, -0.27, 1.2, -0.12, W1, 0.9, 0, 0, 1, 1, 1);
+      bb.rbox(0.07, 0.1, 0.85, 0.05, 1.2, -0.42, DARK, 0, 0, 0, 0.02);
+    };
+    b = new IF.GEO.Builder(); farBody(b, true); P.far = b.build();
+    b = new IF.GEO.Builder(); farBody(b, false);
     P.headless = b.build();
     return P;
   }

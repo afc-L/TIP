@@ -21,7 +21,7 @@ python3 -m http.server 8000     # then open http://localhost:8000
 ```
 
 Click the battlefield to capture the mouse. **Esc** pauses, **H** shows the controls.
-On integrated graphics, use **Graphics → Low**. The game also lowers detail by itself
+On integrated graphics, use **Graphics → Low**. Screen shake (None / Low / Medium / High) and gore are also in Graphics. Settings and Controls opened from the pause menu return you to the same battle. The game also lowers detail by itself
 if the frame rate drops.
 
 ## Controls

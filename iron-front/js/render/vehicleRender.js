@@ -9,79 +9,79 @@
   function models() {
     const M = {};
     const mk = () => new IF.GEO.Builder();
-    const wheels = (b, n, len, wid, r, y) => { for (let k = 0; k < n; k++) for (const s of [-1, 1]) b.cyl(r, 0.35, s * (wid / 2 - 0.1), y, -len / 2 + 0.8 + k * ((len - 1.6) / (n - 1)), W, 0, 0, Math.PI / 2, 10); };
+    const wheels = (b, n, len, wid, r, y) => { for (let k = 0; k < n; k++) for (const s of [-1, 1]) b.cyl(r, 0.35, s * (wid / 2 - 0.1), y, -len / 2 + 0.8 + k * ((len - 1.6) / (n - 1)), W, 0, 0, Math.PI / 2, 18); };
     // ---- MBT ----
     let b = mk(), T = IF.VEH.mbt;
-    b.box(T.wid * 0.62, 0.9, T.len * 0.92, 0, 0.95, 0, T1);
-    b.box(T.wid * 0.66, 0.35, T.len * 0.25, 0, 1.25, -T.len * 0.36, T2, -0.35, 0, 0);
-    for (const s of [-1, 1]) { b.box(0.75, 0.95, T.len, s * (T.wid / 2 - 0.38), 0.55, 0, D); b.box(0.08, 0.55, T.len * 0.9, s * (T.wid / 2 + 0.02), 0.85, 0, T2); }
-    b.box(T.wid * 0.6, 0.3, 1.2, 0, 1.2, T.len * 0.42, [0.5, 0.5, 0.45]);
+    b.rbox(T.wid * 0.62, 0.9, T.len * 0.92, 0, 0.95, 0, T1);
+    b.rbox(T.wid * 0.66, 0.35, T.len * 0.25, 0, 1.25, -T.len * 0.36, T2, -0.35, 0, 0);
+    for (const s of [-1, 1]) { b.rbox(0.75, 0.95, T.len, s * (T.wid / 2 - 0.38), 0.55, 0, D); b.rbox(0.08, 0.55, T.len * 0.9, s * (T.wid / 2 + 0.02), 0.85, 0, T2); }
+    b.rbox(T.wid * 0.6, 0.3, 1.2, 0, 1.2, T.len * 0.42, [0.5, 0.5, 0.45]);
     M.mbt = { hull: b.build() };
-    b = mk(); b.box(T.wid * 0.6, 0.75, 3.6, 0, 0.38, 0.2, T1); b.box(T.wid * 0.5, 0.4, 1, 0, 0.3, 2.3, T2); b.cyl(0.32, 0.5, 0.5, 0.9, 0.6, T2); b.box(0.15, 0.3, 0.3, -0.7, 0.95, 0.6, D);
+    b = mk(); b.rbox(T.wid * 0.6, 0.75, 3.6, 0, 0.38, 0.2, T1); b.rbox(T.wid * 0.5, 0.4, 1, 0, 0.3, 2.3, T2); b.cyl(0.32, 0.5, 0.5, 0.9, 0.6, T2); b.rbox(0.15, 0.3, 0.3, -0.7, 0.95, 0.6, D);
     M.mbt.turret = b.build(); M.mbt.turretY = 1.4; M.mbt.turretZ = 0.4;
     b = mk(); b.cyl(0.1, 5.2, 0, 0, -2.6, T2, Math.PI / 2, 0, 0); b.cyl(0.15, 0.6, 0, 0, -3.3, T2, Math.PI / 2, 0, 0); b.cyl(0.13, 0.3, 0, 0, -5.1, D, Math.PI / 2, 0, 0);
     M.mbt.barrel = b.build(); M.mbt.barrelY = 0.35; M.mbt.barrelZ = -1.5;
     // ---- IFV ----
     T = IF.VEH.ifv; b = mk();
-    b.box(T.wid * 0.85, 1.25, T.len * 0.9, 0, 1.2, 0.2, T1); b.box(T.wid * 0.85, 0.6, 1.8, 0, 1.0, -T.len * 0.42, T2, 0.6, 0, 0);
-    for (const s of [-1, 1]) b.box(0.6, 0.8, T.len, s * (T.wid / 2 - 0.3), 0.45, 0, D);
-    b.box(1.0, 1.0, 0.1, 0, 1.2, T.len * 0.46 + 0.2, D);
+    b.rbox(T.wid * 0.85, 1.25, T.len * 0.9, 0, 1.2, 0.2, T1); b.rbox(T.wid * 0.85, 0.6, 1.8, 0, 1.0, -T.len * 0.42, T2, 0.6, 0, 0);
+    for (const s of [-1, 1]) b.rbox(0.6, 0.8, T.len, s * (T.wid / 2 - 0.3), 0.45, 0, D);
+    b.rbox(1.0, 1.0, 0.1, 0, 1.2, T.len * 0.46 + 0.2, D);
     M.ifv = { hull: b.build() };
-    b = mk(); b.box(1.5, 0.55, 2.0, 0, 0.28, 0.2, T1); b.box(0.2, 0.3, 0.3, 0.6, 0.6, 0.2, D); M.ifv.turret = b.build(); M.ifv.turretY = 1.85; M.ifv.turretZ = -0.6;
+    b = mk(); b.rbox(1.5, 0.55, 2.0, 0, 0.28, 0.2, T1); b.rbox(0.2, 0.3, 0.3, 0.6, 0.6, 0.2, D); M.ifv.turret = b.build(); M.ifv.turretY = 1.85; M.ifv.turretZ = -0.6;
     b = mk(); b.cyl(0.06, 2.4, 0, 0, -1.2, D, Math.PI / 2, 0, 0); M.ifv.barrel = b.build(); M.ifv.barrelY = 0.3; M.ifv.barrelZ = -0.8;
     // ---- APC (wheeled) ----
     T = IF.VEH.apc; b = mk();
-    b.box(T.wid * 0.92, 1.4, T.len * 0.88, 0, 1.45, 0, T1); b.box(T.wid * 0.9, 0.8, 1.5, 0, 1.25, -T.len * 0.43, T2, 0.7, 0, 0);
-    b.box(T.wid * 0.5, 0.15, 0.6, 0, 1.9, -T.len * 0.2, GL);
+    b.rbox(T.wid * 0.92, 1.4, T.len * 0.88, 0, 1.45, 0, T1); b.rbox(T.wid * 0.9, 0.8, 1.5, 0, 1.25, -T.len * 0.43, T2, 0.7, 0, 0);
+    b.rbox(T.wid * 0.5, 0.15, 0.6, 0, 1.9, -T.len * 0.2, GL);
     wheels(b, 4, T.len * 0.9, T.wid, 0.55, 0.55);
     M.apc = { hull: b.build() };
-    b = mk(); b.cyl(0.45, 0.35, 0, 0.18, 0, T2); b.box(0.4, 0.4, 0.1, 0, 0.45, -0.25, T1); M.apc.turret = b.build(); M.apc.turretY = 2.15; M.apc.turretZ = -0.4;
-    b = mk(); b.cyl(0.04, 1.4, 0, 0, -0.7, D, Math.PI / 2, 0, 0); b.box(0.14, 0.18, 0.5, 0, 0, -0.05, D); M.apc.barrel = b.build(); M.apc.barrelY = 0.45; M.apc.barrelZ = 0;
+    b = mk(); b.cyl(0.45, 0.35, 0, 0.18, 0, T2); b.rbox(0.4, 0.4, 0.1, 0, 0.45, -0.25, T1); M.apc.turret = b.build(); M.apc.turretY = 2.15; M.apc.turretZ = -0.4;
+    b = mk(); b.cyl(0.04, 1.4, 0, 0, -0.7, D, Math.PI / 2, 0, 0); b.rbox(0.14, 0.18, 0.5, 0, 0, -0.05, D); M.apc.barrel = b.build(); M.apc.barrelY = 0.45; M.apc.barrelZ = 0;
     // ---- Truck ----
     T = IF.VEH.truck; b = mk();
-    b.box(T.wid, 0.4, T.len, 0, 0.85, 0, D);
-    b.box(T.wid, 1.6, 2.0, 0, 1.75, -T.len / 2 + 1.1, T1); b.box(T.wid * 0.95, 0.6, 0.06, 0, 2.1, -T.len / 2 + 0.08, GL);
-    b.box(T.wid, 0.6, T.len - 2.4, 0, 1.35, 1.1, T2); b.box(T.wid * 0.98, 1.6, T.len - 2.5, 0, 2.4, 1.1, [0.72, 0.7, 0.58]);
+    b.rbox(T.wid, 0.4, T.len, 0, 0.85, 0, D);
+    b.rbox(T.wid, 1.6, 2.0, 0, 1.75, -T.len / 2 + 1.1, T1); b.rbox(T.wid * 0.95, 0.6, 0.06, 0, 2.1, -T.len / 2 + 0.08, GL);
+    b.rbox(T.wid, 0.6, T.len - 2.4, 0, 1.35, 1.1, T2); b.rbox(T.wid * 0.98, 1.6, T.len - 2.5, 0, 2.4, 1.1, [0.72, 0.7, 0.58]);
     wheels(b, 3, T.len * 0.85, T.wid, 0.5, 0.5);
     M.truck = { hull: b.build() };
     // ---- Recon ----
     T = IF.VEH.recon; b = mk();
-    b.box(T.wid, 0.8, T.len, 0, 0.95, 0, T1); b.box(T.wid * 0.9, 0.55, T.len * 0.45, 0, 1.6, 0.2, T2); b.box(T.wid * 0.85, 0.4, 0.06, 0, 1.6, -0.84, GL, -0.4, 0, 0);
+    b.rbox(T.wid, 0.8, T.len, 0, 0.95, 0, T1); b.rbox(T.wid * 0.9, 0.55, T.len * 0.45, 0, 1.6, 0.2, T2); b.rbox(T.wid * 0.85, 0.4, 0.06, 0, 1.6, -0.84, GL, -0.4, 0, 0);
     wheels(b, 2, T.len * 0.85, T.wid, 0.45, 0.45);
     M.recon = { hull: b.build() };
-    b = mk(); b.cyl(0.35, 0.15, 0, 0, 0, D); b.box(0.12, 0.2, 0.3, 0, 0.25, 0, D); M.recon.turret = b.build(); M.recon.turretY = 1.9; M.recon.turretZ = 0.4;
+    b = mk(); b.cyl(0.35, 0.15, 0, 0, 0, D); b.rbox(0.12, 0.2, 0.3, 0, 0.25, 0, D); M.recon.turret = b.build(); M.recon.turretY = 1.9; M.recon.turretZ = 0.4;
     b = mk(); b.cyl(0.04, 1.3, 0, 0, -0.65, D, Math.PI / 2, 0, 0); M.recon.barrel = b.build(); M.recon.barrelY = 0.3; M.recon.barrelZ = 0;
     // ---- SPG ----
     T = IF.VEH.arty; b = mk();
-    b.box(T.wid * 0.8, 1.0, T.len * 0.9, 0, 1.0, 0, T1);
-    for (const s of [-1, 1]) b.box(0.7, 0.9, T.len, s * (T.wid / 2 - 0.35), 0.5, 0, D);
+    b.rbox(T.wid * 0.8, 1.0, T.len * 0.9, 0, 1.0, 0, T1);
+    for (const s of [-1, 1]) b.rbox(0.7, 0.9, T.len, s * (T.wid / 2 - 0.35), 0.5, 0, D);
     M.arty = { hull: b.build() };
-    b = mk(); b.box(T.wid * 0.78, 1.4, 4.4, 0, 0.7, 0.6, T1); b.box(0.5, 0.3, 0.5, 0.8, 1.55, 1.2, T2); M.arty.turret = b.build(); M.arty.turretY = 1.5; M.arty.turretZ = 1.6;
+    b = mk(); b.rbox(T.wid * 0.78, 1.4, 4.4, 0, 0.7, 0.6, T1); b.rbox(0.5, 0.3, 0.5, 0.8, 1.55, 1.2, T2); M.arty.turret = b.build(); M.arty.turretY = 1.5; M.arty.turretZ = 1.6;
     b = mk(); b.cyl(0.14, 6.5, 0, 0, -3.25, T2, Math.PI / 2, 0, 0); b.cyl(0.2, 0.5, 0, 0, -6.4, D, Math.PI / 2, 0, 0); M.arty.barrel = b.build(); M.arty.barrelY = 0.9; M.arty.barrelZ = -1.5;
     // ---- Attack helicopter ----
     T = IF.VEH.aheli; b = mk();
-    b.box(1.3, 1.6, 6.5, 0, 1.6, -0.5, T1); b.box(0.9, 0.7, 2.6, 0, 2.6, -1.6, GL); b.box(0.5, 0.6, 6.5, 0, 2.0, 5.2, T1);
-    b.box(0.12, 1.6, 1.3, 0, 2.8, 8.2, T1); b.box(3.6, 0.15, 1.0, 0, 1.6, 0.3, T2);
-    for (const s of [-1, 1]) { b.cyl(0.22, 1.4, s * 1.7, 1.35, 0.3, D, Math.PI / 2, 0, 0); b.box(0.12, 0.12, 2.2, s * 0.45, 0.35, -0.2, D); }
-    b.cyl(0.1, 1.2, 0, 1.0, -3.6, D, Math.PI / 2, 0, 0); b.box(0.6, 0.5, 1.2, 0, 2.6, 0.6, T2);
+    b.rbox(1.3, 1.6, 6.5, 0, 1.6, -0.5, T1); b.rbox(0.9, 0.7, 2.6, 0, 2.6, -1.6, GL); b.rbox(0.5, 0.6, 6.5, 0, 2.0, 5.2, T1);
+    b.rbox(0.12, 1.6, 1.3, 0, 2.8, 8.2, T1); b.rbox(3.6, 0.15, 1.0, 0, 1.6, 0.3, T2);
+    for (const s of [-1, 1]) { b.cyl(0.22, 1.4, s * 1.7, 1.35, 0.3, D, Math.PI / 2, 0, 0); b.rbox(0.12, 0.12, 2.2, s * 0.45, 0.35, -0.2, D); }
+    b.cyl(0.1, 1.2, 0, 1.0, -3.6, D, Math.PI / 2, 0, 0); b.rbox(0.6, 0.5, 1.2, 0, 2.6, 0.6, T2);
     M.aheli = { hull: b.build(), rotorY: 3.15, rotorZ: 0.3, rotorR: 7, tailZ: 8.2, tailY: 2.8 };
     // ---- Transport helicopter ----
     T = IF.VEH.theli; b = mk();
-    b.box(2.2, 2.0, 7.5, 0, 1.6, -0.2, T1); b.box(2.0, 1.0, 1.6, 0, 1.8, -4.4, GL, 0.35, 0, 0); b.box(0.7, 0.8, 7, 0, 2.2, 6.2, T1);
-    b.box(0.12, 1.8, 1.4, 0, 3.1, 9.4, T1); b.box(2.6, 0.12, 0.8, 0, 2.3, 9.2, T2);
-    for (const s of [-1, 1]) { b.box(0.08, 0.08, 4.2, s * 1.3, 0.2, -0.5, D); b.box(0.06, 1.0, 1.6, s * 1.12, 1.9, 0.4, D); }
-    b.box(1.2, 0.6, 2.6, 0, 2.85, 0.2, T2);
+    b.rbox(2.2, 2.0, 7.5, 0, 1.6, -0.2, T1); b.rbox(2.0, 1.0, 1.6, 0, 1.8, -4.4, GL, 0.35, 0, 0); b.rbox(0.7, 0.8, 7, 0, 2.2, 6.2, T1);
+    b.rbox(0.12, 1.8, 1.4, 0, 3.1, 9.4, T1); b.rbox(2.6, 0.12, 0.8, 0, 2.3, 9.2, T2);
+    for (const s of [-1, 1]) { b.rbox(0.08, 0.08, 4.2, s * 1.3, 0.2, -0.5, D); b.rbox(0.06, 1.0, 1.6, s * 1.12, 1.9, 0.4, D); }
+    b.rbox(1.2, 0.6, 2.6, 0, 2.85, 0.2, T2);
     M.theli = { hull: b.build(), rotorY: 3.35, rotorZ: 0.2, rotorR: 8, tailZ: 9.4, tailY: 3.1 };
     // rotors
-    b = mk(); b.box(0.35, 0.06, 1, 0, 0, 0, D, 0, 0, 0, 1, 1, 1); M.blade = b.build();
+    b = mk(); b.rbox(0.35, 0.06, 1, 0, 0, 0, D, 0, 0, 0, 1, 1, 1); M.blade = b.build();
     // jet
     b = mk();
-    b.cyl(0.75, 14, 0, 0, 0, T1, Math.PI / 2, 0, 0); b.box(0.9, 0.8, 2.6, 0, 0.55, -3.6, GL);
+    b.cyl(0.75, 14, 0, 0, 0, T1, Math.PI / 2, 0, 0); b.rbox(0.9, 0.8, 2.6, 0, 0.55, -3.6, GL);
     b.add(new THREE.ConeGeometry(0.75, 3, 8), 0, 0, -8.4, -Math.PI / 2, 0, 0, T2);
-    b.box(9, 0.15, 4.5, 0, 0, 1.2, T1); b.box(4, 0.12, 1.8, 0, 0, 6.2, T1);
-    b.box(0.15, 2.6, 2.4, 0.9, 1.4, 5.6, T1, 0, 0, 0.3); b.box(0.15, 2.6, 2.4, -0.9, 1.4, 5.6, T1, 0, 0, -0.3);
+    b.rbox(9, 0.15, 4.5, 0, 0, 1.2, T1); b.rbox(4, 0.12, 1.8, 0, 0, 6.2, T1);
+    b.rbox(0.15, 2.6, 2.4, 0.9, 1.4, 5.6, T1, 0, 0, 0.3); b.rbox(0.15, 2.6, 2.4, -0.9, 1.4, 5.6, T1, 0, 0, -0.3);
     M.jet = b.build();
-    b = mk(); b.box(0.6, 0.5, 3.6, 0, 0, 0, T2); b.box(7, 0.08, 0.7, 0, 0.1, 0.2, T2); b.box(2.2, 0.08, 0.5, 0, 0.3, 1.7, T2); b.cyl(0.15, 0.6, 0, 0, 1.9, D, Math.PI / 2, 0, 0);
+    b = mk(); b.rbox(0.6, 0.5, 3.6, 0, 0, 0, T2); b.rbox(7, 0.08, 0.7, 0, 0.1, 0.2, T2); b.rbox(2.2, 0.08, 0.5, 0, 0.3, 1.7, T2); b.cyl(0.15, 0.6, 0, 0, 1.9, D, Math.PI / 2, 0, 0);
     M.uav = b.build();
     return M;
   }

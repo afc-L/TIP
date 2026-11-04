@@ -80,6 +80,7 @@
     I.lock();
   };
   M.quit = function (silent) {
+    if (IF.Menu.inGame) IF.Menu.inGame = false;
     $('pause').classList.add('hidden');
     $('hud').classList.add('hidden');
     $('tacmap').classList.add('hidden'); $('clickToPlay').classList.add('hidden'); M.mapOpen = false;

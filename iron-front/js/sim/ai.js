@@ -91,7 +91,13 @@
           if (dx * dx + dz * dz > wp.range * wp.range * 1.3) { S.tgt[i] = -1; continue; }
           // must be roughly facing
           const want = Math.atan2(-dx, -dz);
-          if (Math.abs(U.angDiff(S.yaw[i], want)) < 0.5) {
+          // hold fire if a friendly is standing in the line of fire close to the muzzle
+          let blocked = false;
+          const L = Math.sqrt(dx * dx + dz * dz) || 1;
+          const px = S.x[i] + dx / L * 5, pz = S.z[i] + dz / L * 5, tm = S.team[i];
+          if (L > 8) B.gridF.query(S, px, pz, 2.2, (j) => { if (j !== i && S.team[j] === tm && S.st[j] === ST.ALIVE) { blocked = true; return true; } });
+          if (blocked) { S.fireCd[i] = 0.35; if (S.stance[i] === 2 && Math.random() < 0.3) S.sepX[i] += -dz / L * 2; }
+          else if (Math.abs(U.angDiff(S.yaw[i], want)) < 0.5) {
             C.aiShoot(B, i, t);
             S.mag[i]--; S.burst[i]--;
             if (S.mag[i] <= 0) { S.reload[i] = wp.reload * U.rr(0.9, 1.2); S.burst[i] = U.ri(wp.burst[0], wp.burst[1]); IF.emit('aiReload', i); }
@@ -277,7 +283,7 @@
 
   // ---------------- think ----------------
   const FORM = [];
-  for (let k = 0; k < 16; k++) { const rank = Math.ceil(k / 2), side = k % 2 ? 1 : -1; FORM.push([k === 0 ? 0 : side * 3.4 * rank, k === 0 ? 0 : 2.6 * rank]); }
+  for (let k = 0; k < 16; k++) { const rank = Math.ceil(k / 2), side = k % 2 ? 1 : -1; FORM.push([k === 0 ? 0 : side * 4.8 * rank, k === 0 ? 0 : 3.8 * rank]); }
 
   AI.think = function (B, i, near) {
     const S = B.S, W = B.W;
@@ -292,10 +298,10 @@
     }
     // separation from squadmates & others, avoid vehicles
     let sx = 0, sz = 0;
-    B.gridF.query(S, S.x[i], S.z[i], 1.3, (j, d2) => {
+    B.gridF.query(S, S.x[i], S.z[i], 2.2, (j, d2) => {
       if (j === i) return;
       const d = Math.sqrt(d2) || 0.01;
-      const k = (1.3 - d) / d * 1.2;
+      const k = (2.2 - d) / d * 0.9;
       sx += (S.x[i] - S.x[j]) * k; sz += (S.z[i] - S.z[j]) * k;
     });
     for (let k = 0; k < B.activeVeh.length; k++) {
@@ -346,7 +352,25 @@
         if (state === 'deploy') mode = 0;
       }
       if (inCombat && state !== 'retreat') stance = sup > 0.9 ? 1 : 0;
-      if (S.cover[i] >= 0) { W.coverOwner[S.cover[i]] = -1; S.cover[i] = -1; }
+      // under fire while on the move: don't keep strolling in formation — drop into nearby cover and fight
+      const t = S.tgt[i];
+      const shotAt = B.time - S.alertT[i] < 3 && S.threatX[i] !== 0;
+      if ((t >= 0 || shotAt) && state !== 'retreat' && state !== 'flank' && state !== 'deploy') {
+        const tx = t >= 0 ? S.x[t] : S.threatX[i], tz = t >= 0 ? S.z[t] : S.threatZ[i];
+        const td2 = U.dist2(tx, tz, S.x[i], S.z[i]);
+        if (td2 < 170 * 170) {
+          let ci = S.cover[i];
+          if (ci < 0 || U.dist2(W.coverX[ci], W.coverZ[ci], S.x[i], S.z[i]) > 14 * 14) {
+            if (ci >= 0) W.coverOwner[ci] = -1;
+            ci = W.findCover(S.x[i], S.z[i], 12, tx, tz, i);
+            S.cover[i] = ci; if (ci >= 0) W.coverOwner[ci] = i;
+          }
+          if (ci >= 0) { gx = W.coverX[ci]; gz = W.coverZ[ci]; mode = 2; }
+          else if (td2 < 90 * 90) { gx = S.x[i]; gz = S.z[i]; mode = 0; }
+          const atCover = ci >= 0 && U.dist2(gx, gz, S.x[i], S.z[i]) < 4;
+          stance = atCover ? (S.role[i] === R.MG || sup > 0.5 ? 2 : 1) : (ci >= 0 ? 0 : sup > 0.4 ? 2 : 1);
+        }
+      } else if (S.cover[i] >= 0) { W.coverOwner[S.cover[i]] = -1; S.cover[i] = -1; }
     } else if (state === 'combat' || state === 'defend' || state === 'hold') {
       // cover near anchor
       const ax = sq.anchorX, az = sq.anchorZ;
@@ -386,7 +410,7 @@
     // hazards: leave minefields, keep out of friendly barrages
     if (W.minefields.length && W.inMinefield(gx, gz) && !W.inMinefield(S.x[i], S.z[i])) { gx = S.x[i]; gz = S.z[i]; }
     if (W.dangerAt(gx, gz, S.team[i]) && !W.dangerAt(S.x[i], S.z[i], S.team[i])) { gx = S.x[i]; gz = S.z[i]; stance = 1; }
-    if (sup > 1.15 && state !== 'retreat') { stance = 2; if (S.cover[i] < 0) mode = 0; }
+    if (sup > 0.85 && state !== 'retreat') { stance = 2; if (S.cover[i] < 0) mode = 0; }
     if (S.wade[i] > 0.6) stance = 0;
     if (S.stuck[i] < 0) { gx = S.gx[i]; gz = S.gz[i]; }
     S.gx[i] = gx; S.gz[i] = gz; S.mode[i] = mode;

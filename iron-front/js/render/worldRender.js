@@ -105,7 +105,7 @@
     WR.group.add(WR.roads);
 
     // ---- structures ----
-    const kinds = { box: IF.GEO.unitBox, prism: IF.GEO.unitPrism, cyl: IF.GEO.unitCyl, rock: IF.GEO.unitRock };
+    const kinds = { box: IF.GEO.unitRBox, prism: IF.GEO.unitPrism, cyl: IF.GEO.unitCyl, rock: IF.GEO.unitRock };
     WR.inst = {};
     for (const kd in kinds) {
       const list = W.boxes.map((b, i) => (b.kind === kd ? i : -1)).filter((i) => i >= 0);
@@ -118,13 +118,13 @@
     WR.updateBoxes(true);
 
     // ---- trees ----
-    const trunkG = new THREE.CylinderGeometry(0.18, 0.28, 1, 5); trunkG.translate(0, 0.5, 0);
+    const trunkG = new THREE.CylinderGeometry(0.18, 0.28, 1, 8); trunkG.translate(0, 0.5, 0);
     const pineB = new IF.GEO.Builder();
-    pineB.add(new THREE.ConeGeometry(2.4, 5, 7), 0, 4.2, 0, 0, 0, 0, [0.16, 0.26, 0.14]);
-    pineB.add(new THREE.ConeGeometry(1.8, 4, 7), 0, 6.6, 0, 0, 0.4, 0, [0.18, 0.29, 0.15]);
+    pineB.add(new THREE.ConeGeometry(2.4, 5, 11), 0, 4.2, 0, 0, 0, 0, [0.16, 0.26, 0.14]);
+    pineB.add(new THREE.ConeGeometry(1.8, 4, 11), 0, 6.6, 0, 0, 0.4, 0, [0.18, 0.29, 0.15]);
     const broadB = new IF.GEO.Builder();
-    broadB.add(new THREE.IcosahedronGeometry(2.8, 0), 0, 5.8, 0, 0, 0, 0, [0.27, 0.36, 0.17], 1, 0.85, 1);
-    broadB.add(new THREE.IcosahedronGeometry(2.0, 0), 1.2, 4.6, 0.6, 0.5, 0, 0, [0.24, 0.33, 0.15]);
+    broadB.add(new THREE.IcosahedronGeometry(2.8, 1), 0, 5.8, 0, 0, 0, 0, [0.27, 0.36, 0.17], 1, 0.85, 1);
+    broadB.add(new THREE.IcosahedronGeometry(2.0, 1), 1.2, 4.6, 0.6, 0.5, 0, 0, [0.24, 0.33, 0.15]);
     const fm = new THREE.MeshLambertMaterial({ vertexColors: true });
     WR.trees = [];
     for (let kind = 0; kind < 2; kind++) {

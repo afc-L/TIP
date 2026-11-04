@@ -78,7 +78,7 @@
           const [px, pz] = W.freeSpot(p[0] + U.rr(-6, 6), p[1] + U.rr(-6, 6));
           AI.resetSoldier(B, m, px, pz);
         }
-        sq.state = 'deploy'; sq.stateT = U.rr(3, 25);
+        sq.state = 'deploy'; sq.stateT = U.rr(1, 8);
       });
     }
     // ---- commanders & drones ----

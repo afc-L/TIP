@@ -25,8 +25,9 @@
     document.querySelectorAll('#menuTabs button').forEach((b) => b.addEventListener('click', () => { IF.Input.capture = null; MN.tab = b.dataset.tab; IF.SFX.ui('open'); MN.render(); }));
     $('btnResume').onclick = () => IF.Main.resume();
     $('btnQuit').onclick = () => IF.Main.quit();
-    $('btnPauseControls').onclick = () => { IF.Main.quit(true); MN.tab = 'controls'; MN.render(); };
-    $('btnPauseSettings').onclick = () => { IF.Main.quit(true); MN.tab = 'graphics'; MN.render(); };
+    $('btnPauseControls').onclick = () => MN.openInGame('controls');
+    $('btnPauseSettings').onclick = () => MN.openInGame('graphics');
+    G.addEventListener('keydown', (e) => { if (MN.inGame && e.code === 'Escape' && !IF.Input.capture) { e.preventDefault(); MN.backToGame(); } });
     $('deployBtn').onclick = () => MN.doDeploy();
     $('deployMap').addEventListener('click', (e) => {
       const r = $('deployMap').getBoundingClientRect(), d = Math.min(2, G.devicePixelRatio || 1);
@@ -45,12 +46,36 @@
     document.querySelectorAll(`[data-seg="${name}"] button`).forEach((b) => b.addEventListener('click', () => { if (b.disabled) return; fn(b.dataset.v); IF.saveProfile(); IF.SFX.ui('open'); MN.render(); }));
   }
 
+  // open the menu over a paused battle; the battle is kept and resumed afterwards
+  MN.openInGame = function (tab) {
+    MN.inGame = true; MN.tab = tab || 'graphics';
+    $('pause').classList.add('hidden');
+    $('menu').classList.remove('hidden');
+    MN.render();
+  };
+  MN.backToGame = function () {
+    if (!MN.inGame) return;
+    MN.inGame = false; IF.Input.capture = null;
+    $('menu').classList.add('hidden');
+    IF.Main.resume();
+  };
   MN.render = function () {
     document.querySelectorAll('#menuTabs button').forEach((b) => b.classList.toggle('active', b.dataset.tab === MN.tab));
     const s = set(), body = $('menuBody');
     const r = rank(), R = IF.RANKS[r];
     $('menuFooter').innerHTML = `${R[1].toUpperCase()} · ${IF.Profile.xp} XP · ${IF.Profile.stats.battles} battles · ${IF.Profile.medals.length} medals &nbsp;&nbsp;|&nbsp;&nbsp; Built with Three.js — runs entirely in your browser`;
-    if (MN.tab === 'battle') {
+    let back = document.getElementById('backToBattle');
+    if (MN.inGame && !back) {
+      back = document.createElement('button'); back.id = 'backToBattle'; back.className = 'btn primary'; back.textContent = '◄ BACK TO BATTLE';
+      back.style.cssText = 'width:auto;margin:18px 0 0'; back.onclick = () => MN.backToGame();
+      document.querySelector('.menu-wrap header').appendChild(back);
+    } else if (!MN.inGame && back) back.remove();
+    if (MN.tab === 'battle' && MN.inGame) {
+      body.innerHTML = `<div class="card sel" style="max-width:520px"><h4>BATTLE IN PROGRESS</h4><p>Your battle is paused. Settings, controls and gore/shake changes apply as soon as you go back (graphics quality applies to the next battle).</p></div>
+        <button class="btn primary" id="igResume" style="max-width:520px;margin-top:12px">RESUME BATTLE</button><button class="btn danger" id="igQuit" style="max-width:520px">QUIT BATTLE</button>`;
+      $('igResume').onclick = () => MN.backToGame();
+      $('igQuit').onclick = () => { MN.inGame = false; IF.Main.quit(); };
+    } else if (MN.tab === 'battle') {
       const cls = IF.CLASSES.find((c) => c.id === s.cls) || IF.CLASSES[0];
       body.innerHTML = `<div class="grid2"><div>
         <div class="brief"><p><b>SITUATION:</b> Two armies of <b>1,000 soldiers</b> each — infantry squads, armour, artillery, helicopters and jets — collide across a contested front. Every soldier except you is commanded by AI. The battle runs whether you fight or not.</p>
@@ -95,15 +120,16 @@
     } else if (MN.tab === 'graphics') {
       body.innerHTML = `<div class="grid2"><div>
         <div class="row"><label>QUALITY</label>${seg('gfx', [['low', 'Low (school laptop)'], ['medium', 'Medium'], ['high', 'High']], s.graphics)}</div>
-        <p class="small">Low disables shadows and lowers render resolution and draw distance — best for integrated graphics. All 2,000 soldiers are simulated on every setting; only rendering detail changes. Quality changes apply to the next battle.</p>
+        <p class="small">Low disables shadows and lowers render resolution and draw distance — best for integrated graphics. All 2,000 soldiers are simulated on every setting; only rendering detail changes. Quality changes apply to the next battle; everything else on this page applies immediately.</p>
         <div class="row"><label>FIELD OF VIEW</label><input type="range" min="60" max="95" value="${s.fov}" id="fovR"><span id="fovV">${s.fov}°</span></div>
         <div class="row"><label>SENSITIVITY</label><input type="range" min="0.2" max="2.5" step="0.05" value="${s.sens}" id="sensR"><span id="sensV">${s.sens.toFixed(2)}</span></div>
         <div class="row"><label>VOLUME</label><input type="range" min="0" max="1" step="0.05" value="${s.volume}" id="volR"><span id="volV">${Math.round(s.volume * 100)}%</span></div>
+        <div class="row"><label>SCREEN SHAKE</label>${seg('shake', [['none', 'None'], ['low', 'Low'], ['medium', 'Medium'], ['high', 'High']], s.shake || 'medium')}</div>
         <div class="row"><label>GORE</label>${seg('gore', [['off', 'Off'], ['normal', 'Normal'], ['extreme', 'Extreme']], s.gore || 'extreme')}</div>
         <div class="row"><label>VOICE CHATTER</label>${seg('voice', [['1', 'On'], ['0', 'Off']], s.voice ? '1' : '0')}</div>
         <div class="row"><label>INVERT MOUSE Y</label>${seg('inv', [['0', 'Off'], ['1', 'On']], s.invertY ? '1' : '0')}</div>
       </div><div class="card"><h4>PERFORMANCE NOTES</h4><p>The simulation runs every soldier's AI with staggered updates and spatial grids. Nearby soldiers use detailed animated models, distant soldiers use one instanced low-poly mesh, and effects are pooled. Press F3 in battle to show frame time and render counts.</p></div></div>`;
-      bindSeg('gfx', (v) => (s.graphics = v)); bindSeg('gore', (v) => (s.gore = v)); bindSeg('voice', (v) => (s.voice = v === '1')); bindSeg('inv', (v) => (s.invertY = v === '1'));
+      bindSeg('gfx', (v) => (s.graphics = v)); bindSeg('gore', (v) => (s.gore = v)); bindSeg('shake', (v) => (s.shake = v)); bindSeg('voice', (v) => (s.voice = v === '1')); bindSeg('inv', (v) => (s.invertY = v === '1'));
       const rng = (id, key, fmt, cb) => { $(id).addEventListener('input', (e) => { s[key] = +e.target.value; $(id.replace('R', 'V')).textContent = fmt(s[key]); if (cb) cb(s[key]); IF.saveProfile(); }); };
       rng('fovR', 'fov', (v) => v + '°'); rng('sensR', 'sens', (v) => v.toFixed(2)); rng('volR', 'volume', (v) => Math.round(v * 100) + '%', (v) => IF.Audio.setVolume(v));
     } else if (MN.tab === 'controls') {

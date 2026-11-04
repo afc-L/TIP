@@ -5,8 +5,8 @@
   const R = (IF.R = { ready: false });
 
   const QUALITY = {
-    low: { scale: 0.65, shadows: false, far: 800, shadowSize: 0, particles: 0.5, near: 55, maxNear: 80, antialias: false },
-    medium: { scale: 0.9, shadows: true, far: 1150, shadowSize: 1024, particles: 0.8, near: 70, maxNear: 120, antialias: false },
+    low: { scale: 0.8, shadows: false, far: 800, shadowSize: 0, particles: 0.5, near: 55, maxNear: 80, antialias: false },
+    medium: { scale: 1.0, shadows: true, far: 1150, shadowSize: 1024, particles: 0.8, near: 70, maxNear: 120, antialias: true },
     high: { scale: 1.25, shadows: true, far: 1600, shadowSize: 2048, particles: 1, near: 85, maxNear: 160, antialias: true },
   };
   IF.QUALITY = QUALITY;
@@ -19,7 +19,7 @@
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.0;
     renderer.shadowMap.enabled = q.shadows;
-    renderer.shadowMap.type = THREE.PCFShadowMap;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.autoClear = false;
     R.scene = new THREE.Scene();
     R.camera = new THREE.PerspectiveCamera(IF.Profile.settings.fov || 75, 1, 0.1, q.far + 400);
