@@ -133,7 +133,11 @@
         <h3 style="color:var(--accent2);letter-spacing:3px">MISSION ACHIEVEMENTS</h3>
         <p class="small">${IF.ACHIEVEMENTS.map((a) => `${P.achievements.includes(a.id) ? '✔' : '·'} ${a.name} — ${a.desc}`).join('<br>')}</p>
       </div></div>`;
-      $('resetBtn').onclick = () => { if (confirm('Reset all progress?')) { IF.resetProfile(); MN.render(); } };
+      $('resetBtn').onclick = () => {
+        if (MN.resetArmed) { MN.resetArmed = false; IF.resetProfile(); MN.render(); return; }
+        MN.resetArmed = true; $('resetBtn').textContent = 'CLICK AGAIN TO ERASE ALL PROGRESS';
+        setTimeout(() => { MN.resetArmed = false; const b = $('resetBtn'); if (b) b.textContent = 'RESET PROFILE'; }, 4000);
+      };
     }
   };
 
