@@ -866,6 +866,38 @@
       }
     }
 
+    // ammo & repair station at every objective (and HQ)
+    const AMMO = [0.26, 0.32, 0.19], AMMO2 = [0.3, 0.36, 0.22], STEN = [0.82, 0.74, 0.3], DRUM = [0.55, 0.16, 0.12];
+    for (const o of objs) {
+      let spot = null;
+      for (let t = 0; t < 160 && !spot; t++) {
+        const a = rng() * Math.PI * 2, r = (o.type === 'hq' ? rng.range(30, 70) : o.type === 'bridge' ? rng.range(48, 75) : rng.range(8, o.r * 0.85)) + t * 0.1;
+        const px = o.x + Math.cos(a) * r, pz = o.z + Math.sin(a) * r;
+        if (Math.abs(px) > 930 || Math.abs(pz) > 930 || W.slopeAt(px, pz) > 0.18 || W.onBridge(px, pz)) continue;
+        let ok = true;
+        for (let dx = -7; dx <= 7 && ok; dx += 2.5) for (let dz = -7; dz <= 7 && ok; dz += 2.5) if (W.occAt(px + dx, pz + dz) > 0 || W.waterDepth(px + dx, pz + dz) > 0 || (W.hasRiver && Math.abs(pz + dz - W.riverZ(px + dx)) < 24)) ok = false;
+        if (ok) spot = [px, pz];
+      }
+      if (!spot) spot = W.freeSpot(o.x + 15, o.z + 15, rng);
+      const [sx, sz] = spot;
+      const rot = Math.atan2(o.x - sx, o.z - sz); // crates on the far side from the objective centre
+      paint(sx, sz, 7, GT.CONCRETE);
+      const [cx, cz] = loc(sx, sz, rot, 0, 5.2);
+      // big ammo crates: two stacked, one beside, an open one, fuel drums and a sign
+      for (const [lx, lz, st] of [[-1.7, 0, 0], [0, 0, 0], [1.7, 0, 0], [-0.85, 0, 1], [0.85, 0, 1]]) {
+        const [bx, bz] = loc(cx, cz, rot, lx, lz);
+        const by = gy(cx, cz);
+        box(bx, by + 0.6 + st * 1.2, bz, 1.6, 1.2, 1.15, rot, st ? AMMO2 : AMMO);
+        box(bx, by + 0.6 + st * 1.2, bz, 1.62, 0.18, 1.17, rot, STEN, 'box', false); // stencil band
+      }
+      W.stampRect(cx, cz, 5.2, 1.3, rot, 2.4);
+      { const [bx, bz] = loc(cx, cz, rot, 3.4, 0.6); box(bx, gy(bx, bz) + 0.45, bz, 1.3, 0.9, 1.0, rot + 0.3, AMMO); W.stampRect(bx, bz, 1.3, 1.0, rot + 0.3, 0.9); }
+      for (const [lx, lz] of [[-3.3, 0.4], [-3.3, -0.6]]) { const [bx, bz] = loc(cx, cz, rot, lx, lz); box(bx, gy(bx, bz) + 0.5, bz, 0.32, 1.0, 0.32, 0, DRUM, 'cyl'); W.stampRect(bx, bz, 0.7, 0.7, 0, 1); }
+      { const [px2, pz2] = loc(sx, sz, rot, -5.5, -4.5); const yy = gy(px2, pz2); box(px2, yy + 1.4, pz2, 0.12, 2.8, 0.12, 0, COL.wood, 'box', false); box(px2, yy + 2.75, pz2, 1.4, 0.8, 0.08, rot, STEN, 'box', false); }
+      addCoverAlong(cx, cz, 5.2, rot, 1.4, 1);
+      o.station = { x: sx, z: sz, cx, cz, r: 12 };
+    }
+
     // spawn points per objective
     for (const o of objs) {
       for (let k = 0; k < 40; k++) {

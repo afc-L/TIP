@@ -276,6 +276,7 @@
       else { c.fillRect(-3, -5, 6, 10); c.strokeRect(-3, -5, 6, 10); }
       c.restore();
     }
+    for (const o of B.W.objectives) { const st = o.station; if (!st || o.owner !== B.playerTeam) continue; c.fillStyle = '#8fd16a'; c.fillRect(tx(st.x) - 2.5, tz(st.z) - 0.8, 5, 1.6); c.fillRect(tx(st.x) - 0.8, tz(st.z) - 2.5, 1.6, 5); }
     if (B.helpMarker) { c.strokeStyle = '#f0b040'; c.lineWidth = 2; c.beginPath(); c.arc(tx(B.helpMarker.x), tz(B.helpMarker.z), 7 + Math.sin(H.t * 6) * 2, 0, 7); c.stroke(); }
     c.restore();
     // objective letters (unrotated text)
@@ -414,6 +415,15 @@
       c.fillRect(p[0] - 15 * d, p[1] + 3 * d, 30 * d * Math.max(0, v.hp / v.T.hp), 2 * d);
     }
     if (B.helpMarker) { const p = H.project(B.helpMarker.x, B.W.groundAt(B.helpMarker.x, B.helpMarker.z) + 6, B.helpMarker.z); if (p) { c.fillStyle = '#f0b040'; c.font = `bold ${11 * d}px Consolas`; c.fillText('⚠ ASSIST ' + Math.round(Math.sqrt(U.dist2(B.helpMarker.x, B.helpMarker.z, cam.x, cam.z))) + 'm', p[0], p[1]); } }
+    for (const o of B.W.objectives) {
+      const st = o.station; if (!st) continue;
+      const d2s = U.dist2(st.x, st.z, cam.x, cam.z);
+      if (d2s > 220 * 220 || o.owner !== B.playerTeam) continue;
+      const p = H.project(st.x, B.W.groundAt(st.x, st.z) + 4, st.z);
+      if (!p) continue;
+      c.fillStyle = '#8fd16a'; c.font = `bold ${10 * d}px Consolas`;
+      c.fillText('✚ AMMO / REPAIR ' + Math.round(Math.sqrt(d2s)) + 'm', p[0], p[1]);
+    }
     for (const s of B.supply) { const p = H.project(s.x, s.y + 2, s.z); if (p && U.dist2(s.x, s.z, cam.x, cam.z) < 300 * 300) { c.fillStyle = '#8fd16a'; c.fillText('▣ SUPPLY', p[0], p[1]); } }
     if (B.artyMarker && B.time < B.artyMarker.until) { const p = H.project(B.artyMarker.x, B.W.groundAt(B.artyMarker.x, B.artyMarker.z) + 3, B.artyMarker.z); if (p) { c.strokeStyle = '#ff5a4a'; c.lineWidth = 2 * d; c.beginPath(); c.arc(p[0], p[1], 14 * d, 0, 7); c.stroke(); c.fillStyle = '#ff5a4a'; c.fillText('FIRE MISSION', p[0], p[1] - 18 * d); } }
     // crosshair

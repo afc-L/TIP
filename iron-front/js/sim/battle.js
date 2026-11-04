@@ -142,6 +142,7 @@
     Battle.phases(B, dt);
     Battle.events(B, dt);
     Battle.mines(B, dt);
+    Battle.stations(B, dt);
     Battle.checkEnd(B);
   };
 
@@ -391,6 +392,44 @@
     }
     IF.Radio.command(B, B.playerTeam, team === B.playerTeam ? 'ourConvoy' : 'enemyConvoy', W.objectives[focus]);
     IF.emit('event', 'convoy', team, W.objectives[focus]);
+  };
+
+  // ammo & repair stations: whoever holds the objective rearms soldiers and repairs vehicles there
+  Battle.STATION_R = 13;
+  Battle.stations = function (B, dt) {
+    B.stationT = (B.stationT || 0) - dt;
+    if (B.stationT > 0) return;
+    const step = 1 - B.stationT; B.stationT = 1;
+    const S = B.S, R = Battle.STATION_R;
+    for (const o of B.W.objectives) {
+      const st = o.station; if (!st || o.owner < 0) continue;
+      for (const v of B.activeVeh) {
+        if (v.team !== o.owner || v.state !== 'active') continue;
+        if (v.T.air ? v.alt > 6 : false) continue;
+        if (U.dist2(v.x, v.z, st.x, st.z) > R * R) continue;
+        const before = v.hp;
+        v.hp = Math.min(v.T.hp, v.hp + v.T.hp * 0.07 * step);
+        if (v.hp > v.T.hp * 0.3) v.burning = false;
+        v.rockets = 8;
+        v.atStation = B.time;
+        if (v.playerIn && before < v.T.hp) IF.emit('stationRepair', v);
+      }
+      B.gridT[o.owner].query(S, st.x, st.z, 7, (i) => {
+        if (S.role[i] === IF.ROLE.AT) S.rockets[i] = 4;
+        S.grenades[i] = 2;
+        if (S.hp[i] < 100 && i !== B.playerIdx) S.hp[i] = Math.min(100, S.hp[i] + 8 * step);
+      });
+    }
+  };
+  // nearest ammo/repair station held by a team
+  Battle.nearestStation = function (B, team, x, z) {
+    let best = null, bd = 1e12;
+    for (const o of B.W.objectives) {
+      if (o.owner !== team || !o.station || o.contested) continue;
+      const d = U.dist2(o.station.x, o.station.z, x, z);
+      if (d < bd) { bd = d; best = o.station; }
+    }
+    return best;
   };
 
   // minefields trigger on soldiers and vehicles

@@ -355,7 +355,14 @@
       if (v.hp > T.hp * 0.85 && T.gun && v.type !== 'apc' && v.type !== 'arty') v.task = 'support';
       if (v.type === 'apc' && v.task === 'idle' && B.time > 300 && Math.random() < 0.01) v.task = 'support';
     }
-    if (v.task === 'support' && v.hp < T.hp * 0.3) { v.task = 'return'; v.dest = null; v.routeKey = ''; if (v.team === B.playerTeam) IF.Radio.vehicle(B, v, 'damaged'); }
+    if (v.task === 'support' && v.hp < T.hp * 0.3) {
+      // damaged: drive to the nearest friendly ammo & repair station (helicopters fly home)
+      const st = !T.air && IF.Battle.nearestStation(B, v.team, v.x, v.z);
+      if (st) { v.task = 'repair'; v.dest = { x: st.x, z: st.z }; } else { v.task = 'return'; v.dest = null; }
+      v.routeKey = '';
+      if (v.team === B.playerTeam) IF.Radio.vehicle(B, v, 'damaged');
+    }
+    if (v.task === 'repair' && (v.hp > T.hp * 0.9 || !v.dest)) { v.task = 'support'; v.dest = null; v.routeKey = ''; }
     if (v.task === 'support') {
       // commander-assigned objective
       const o = v.order !== null && v.order !== undefined ? W.objectives[v.order] : null;
@@ -412,6 +419,7 @@
     if (v.task === 'transport' && v.dest && !v.arrived) goal = v.dest;
     else if (v.task === 'support' && v.dest) goal = v.dest;
     else if (v.task === 'return') goal = { x: v.home[0], z: v.home[1] };
+    else if (v.task === 'repair' && v.dest) goal = v.dest;
     else if (v.task === 'arty' && v.dest) goal = v.dest;
     let th = 0, st = 0;
     if (goal) {

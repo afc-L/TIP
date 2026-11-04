@@ -66,6 +66,7 @@ All controls, including Shoot and Aim, can be changed in **Main menu → Control
 - **Battle flow**: conquest-style objectives, reinforcement tickets, ticket bleed,
   reinforcement waves and convoys, six battle phases, locked headquarters, a last stand
   when an army's reserves run out.
+- **Ammo & repair stations** at every objective and HQ (big green crate stacks on a concrete pad): whichever army holds the objective gets ammunition, grenades, rockets and some health there, and vehicles parked on the pad are repaired and rearmed. Damaged AI vehicles drive to the nearest friendly station. Stations show on the minimap and tactical map.
 - **Random events**: counter-attacks, convoys, helicopter insertions, armour pushes,
   abandoned vehicles, pinned squads asking for help, supply drops, illumination flares and
   weather changes.

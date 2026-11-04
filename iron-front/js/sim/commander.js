@@ -146,7 +146,7 @@
     const threatened = def.filter((d) => d.q.e > 6).map((d) => d.q.o.id);
     let k = 0;
     for (const v of vehs) {
-      if (v.type === 'arty' || v.task === 'transport' || v.task === 'return') continue;
+      if (v.type === 'arty' || v.task === 'transport' || v.task === 'return' || v.task === 'repair') continue;
       if (v.type === 'truck' || v.type === 'theli' || (v.type === 'apc' && v.task === 'idle')) continue;
       const pool = threatened.length && (k % 3 === 0) ? threatened : supportTargets;
       const id = pool[(v.id + k) % pool.length];

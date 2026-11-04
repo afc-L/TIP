@@ -104,6 +104,13 @@
     }
     if (B.helpMarker) { c.strokeStyle = '#f0b040'; c.lineWidth = 2 * dpr; c.beginPath(); c.arc(tx(B.helpMarker.x), tz(B.helpMarker.z), 9 * dpr, 0, 7); c.stroke(); c.fillStyle = '#f0b040'; c.fillText('ASSIST', tx(B.helpMarker.x), tz(B.helpMarker.z) - 12 * dpr); }
     for (const z of B.W.dangerZones) if (z.team === fT) { c.strokeStyle = 'rgba(255,80,60,0.8)'; c.setLineDash([3, 3]); c.beginPath(); c.arc(tx(z.x), tz(z.z), z.r * sc, 0, 7); c.stroke(); c.setLineDash([]); }
+    // ammo & repair stations
+    for (const o of B.W.objectives) {
+      const st = o.station; if (!st) continue;
+      c.fillStyle = o.owner === fT ? '#8fd16a' : o.owner < 0 ? '#bbbbaa' : '#aa6a5a';
+      const x = tx(st.x), z = tz(st.z), k = 4 * dpr;
+      c.fillRect(x - k, z - k * 0.3, k * 2, k * 0.6); c.fillRect(x - k * 0.3, z - k, k * 0.6, k * 2);
+    }
     // spawn options (deploy screen)
     if (opts.spawns) {
       TM.spawnHits = [];

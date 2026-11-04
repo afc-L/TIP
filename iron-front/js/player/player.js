@@ -369,6 +369,7 @@
       return;
     }
     for (const s of B.supply) if (U.dist2(s.x, s.z, x, z) < 3 * 3) { P.interactPrompt = { kind: 'supply', s, text: I.label('interact') + ' — Resupply from crate' }; return; }
+    if (P.nearStation(B, x, z, 8)) { P.interactPrompt = { kind: 'station', text: 'Ammo & repair station — resupplying' + (P.atHQ(B) ? ' · ' + I.label('spawner') + ' — Vehicle spawner' : '') }; return; }
     if (P.atHQ(B)) P.interactPrompt = { kind: 'hq', text: I.label('spawner') + ' — Vehicle spawner' };
   };
   P.interact = function (B) {
@@ -390,12 +391,30 @@
     const S = B.S, x = S.x[P.idx], z = S.z[P.idx];
     const hq = B.W.objectives[B.playerTeam];
     let near = U.dist2(x, z, hq.x, hq.z) < 110 * 110;
+    // ammo & repair stations at objectives your army holds: full resupply and some health
+    const stn = P.nearStation(B, x, z, 8);
+    if (stn) {
+      const w0 = P.weapon();
+      const low = P.weapons.some((q) => q.reserve < q.magMax * (q.d.mags - 1)) || P.grenades < P.cls.grenades || (P.cls.gadget === 'medkit' && P.medkits < 4) || P.mines < (P.cls.mines || 0);
+      if (low) { P.refill(); }
+      if (P.hp < 100) { P.hp = Math.min(100, P.hp + 20); S.hp[P.idx] = P.hp; }
+      void w0;
+      return;
+    }
     for (const v of B.activeVeh) if (v.team === B.playerTeam && (v.type === 'truck' || v.type === 'apc') && U.dist2(v.x, v.z, x, z) < 10 * 10) near = true;
     // AI engineers / gunners in your squad share ammo occasionally
     const w = P.weapon();
     if (near && w && w.reserve < w.magMax * (w.d.mags - 1)) { for (const q of P.weapons) q.reserve = Math.min(q.magMax * (q.d.mags - 1), q.reserve + q.magMax); if (P.grenades < P.cls.grenades) P.grenades++; }
   };
 
+  P.nearStation = function (B, x, z, r) {
+    for (const o of B.W.objectives) {
+      const st = o.station;
+      if (st && o.owner === B.playerTeam && U.dist2(st.x, st.z, x, z) < r * r) return st;
+    }
+    return null;
+  };
+  IF.on('stationRepair', (v) => { if (P.veh === v && P.B && P.B.time - (P.repairMsgT || -10) > 4) { P.repairMsgT = P.B.time; P.message('Repairing and rearming at the station — ' + Math.round(v.hp / v.T.hp * 100) + '%'); } });
   P.spot = function (B) {
     if (P.spotCd > 0) return;
     const S = B.S, cam = IF.R.camera;
