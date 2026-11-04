@@ -112,12 +112,12 @@
       for (const ac of IF.KEY_ACTIONS) (groups[ac[3]] = groups[ac[3]] || []).push(ac);
       const defaults = {}; for (const ac of IF.KEY_ACTIONS) defaults[ac[0]] = ac[2];
       body.innerHTML = `<div class="grid2"><div>
-        <p class="small">Click a key to change it, then press the new key. Esc cancels. If the key is already used, the two actions swap keys. Mouse: left click fires, right click aims, wheel switches weapons. Esc always pauses.</p>
+        <p class="small">Click a button, then press the new key <b>or click the mouse button</b> you want. Esc cancels. If it is already used, the two actions swap. On a Mac trackpad, Ctrl + click counts as right click — or bind Aim to any key (for example L-Shift or Q). Esc always pauses.</p>
         ${Object.entries(groups).map(([g, list]) => `<h4 class="bind-group">${g.toUpperCase()}</h4><div class="binds">${list.map((ac) => `<span>${ac[1]}</span><button class="bind ${I.code(ac[0]) !== defaults[ac[0]] ? 'changed' : ''}" data-bind="${ac[0]}" id="bind-${ac[0]}">${L(ac[0])}</button>`).join('')}</div>`).join('')}
         <button class="btn" id="resetBinds" style="width:auto;margin-top:14px">RESET TO DEFAULT KEYS</button>
       </div>
         <div class="card"><h4>SQUAD COMMANDS (${L('commands')})</h4><p>Then 1 Follow me · 2 Hold position · 3 Advance · 4 Defend objective · 5 Regroup · 6 Enter vehicles · 7 Retreat.<br><br>Orders go to your own squad and any friendly squad near you — the radius grows with rank. Order your squad into a vehicle you are driving and they ride with you; exit to drop them off.</p>
-        <h4 style="margin-top:14px">VEHICLES</h4><p>Ground: ${L('forward')}/${L('back')} throttle, ${L('left')}/${L('right')} steer, ${L('jump')} brake, mouse aims the turret, left click fires, ${L('weapon1')}/${L('weapon2')} switch main gun / coaxial MG.<br>Helicopters: ${L('forward')}/${L('back')} pitch, ${L('left')}/${L('right')} yaw, ${L('leanL')}/${L('leanR')} strafe, ${L('jump')}/${L('descend')} altitude, left click guns, ${L('weapon2')} rockets.</p></div></div>`;
+        <h4 style="margin-top:14px">VEHICLES</h4><p>Ground: ${L('forward')}/${L('back')} throttle, ${L('left')}/${L('right')} steer, ${L('jump')} brake, mouse aims the turret, ${L('fire')} fires, ${L('weapon1')}/${L('weapon2')} switch main gun / coaxial MG.<br>Helicopters: ${L('forward')}/${L('back')} pitch, ${L('left')}/${L('right')} yaw, ${L('leanL')}/${L('leanR')} strafe, ${L('jump')}/${L('descend')} altitude, ${L('fire')} guns, ${L('weapon2')} rockets.</p></div></div>`;
       document.querySelectorAll('[data-bind]').forEach((btn) => btn.addEventListener('click', () => {
         if (I.capture) return;
         const id = btn.dataset.bind;

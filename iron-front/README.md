@@ -29,17 +29,19 @@ if the frame rate drops.
 | Input | Action |
 | --- | --- |
 | WASD · Mouse | Move · aim |
-| LMB / RMB | Fire / aim down sights |
+| LMB / RMB | Fire / aim down sights (both rebindable; on a Mac, Ctrl + click is right click) |
 | Shift · C · Z · Q/E · Space | Sprint · crouch · prone · lean · jump |
 | R · 1–3 · G · X | Reload · weapons · frag grenade · smoke grenade or AT mine |
 | 4 | Class gadget: medkit, ammo box, repair tool (hold), binoculars + artillery |
 | F | Enter/exit vehicle, revive a downed ally (hold), resupply from a crate |
 | T | Spot an enemy for your whole army |
+| K | Vehicle spawner (at your HQ): pick any vehicle and start in the driver's seat |
+| Y | As a passenger in an AI-driven vehicle: take the wheel |
 | B then 1–7 | Squad commands: follow, hold, advance, defend, regroup, enter vehicles, retreat |
 | M · Tab | Tactical map · battle status |
 | V · N · F3 | 1st/3rd person · night vision · performance stats |
 
-All keyboard controls can be changed in **Main menu → Controls**: click a key, then press the new one. If that key is already in use, the two actions swap. Bindings are saved with your profile.
+All controls, including Shoot and Aim, can be changed in **Main menu → Controls**: click an action, then press the new key or click the mouse button you want. If that key is already in use, the two actions swap. Bindings are saved with your profile.
 | Vehicles | WASD drive, mouse turret, LMB fire, 1/2 weapons, Space brake |
 | Helicopters | W/S pitch, A/D yaw, Q/E strafe, Space/Ctrl altitude, LMB guns, 2 rockets |
 

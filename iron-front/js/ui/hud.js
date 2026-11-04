@@ -148,7 +148,7 @@
       $('vname').textContent = v.T.name.toUpperCase() + (P.seat === 'passenger' ? ' — PASSENGER' : '');
       $('vhpbar').style.width = Math.max(0, v.hp / v.T.hp * 100) + '%';
       $('vhpbar').style.background = v.hp < v.T.hp * 0.3 ? '#e45a3c' : v.hp < v.T.hp * 0.6 ? '#f0b040' : '#8fd16a';
-      const wpn = !v.T.gun ? 'Unarmed' : P.vehWeapon === 1 ? (v.T.gun === 'heligun' ? 'Rockets ×' + v.rockets : 'Coaxial MG') : ({ cannon: '120mm Cannon', autocannon: '30mm Autocannon', hmg: '.50 cal HMG', heligun: '30mm Chain Gun', howitzer: '155mm Howitzer (LMB: fire at crosshair)' }[v.T.gun]);
+      const wpn = !v.T.gun ? 'Unarmed' : P.vehWeapon === 1 ? (v.T.gun === 'heligun' ? 'Rockets ×' + v.rockets : 'Coaxial MG') : ({ cannon: '120mm Cannon', autocannon: '30mm Autocannon', hmg: '.50 cal HMG', heligun: '30mm Chain Gun', howitzer: '155mm Howitzer (' + K('fire') + ': fire at crosshair)' }[v.T.gun]);
       $('vinfo').innerHTML = `${Math.round(Math.abs(v.spd) * 3.6)} km/h${v.T.air ? ' · ALT ' + Math.round(v.alt) + 'm' : ''} · ${wpn}${v.fireCd > 0.3 ? ' · RELOADING' : ''} · Passengers ${v.passengers.length}/${v.T.seats}<br>${K('interact')} exit · ${K('camera')} camera${v.T.mg || v.T.gun === 'heligun' ? ' · ' + K('weapon1') + '/' + K('weapon2') + ' weapons' : ''}${v.T.air ? ' · ' + K('jump') + ' up · ' + K('descend') + ' down · ' + K('leanL') + '/' + K('leanR') + ' strafe' : ' · ' + K('jump') + ' brake'}`;
     } else $('vehbox').classList.add('hidden');
     // squad panel
@@ -163,6 +163,12 @@
     const cm = $('cmdmenu');
     cm.classList.toggle('hidden', !P.cmdMenu);
     if (P.cmdMenu) cm.innerHTML = '<h3>SQUAD COMMANDS</h3>' + P.COMMANDS.map((c, k) => `<div><b>${k + 1}</b>${c[1]}</div>`).join('') + '<div class="small" style="color:#8f8c7a;margin-top:6px">Applies to your squad and friendly squads within ' + (70 + IF.rankIndex(IF.Profile.xp + P.bs.xp) * 6) + 'm · ' + K('commands') + ' to close</div>';
+    // vehicle spawner
+    const sp = $('spawnmenu');
+    sp.classList.toggle('hidden', !P.spawnMenu);
+    if (P.spawnMenu) sp.innerHTML = '<h3>HQ VEHICLE DEPOT</h3>' + P.SPAWNABLE.map((t, k) => { const T = IF.VEH[t], cd = P.spawnCooldown(B, t); return `<div class="${cd > 0 ? 'cd' : ''}"><b>${k + 1}</b>${T.name}<span>${cd > 0 ? Math.ceil(cd) + 's' : T.seats ? T.seats + ' seats' : 'ready'}</span></div>`; }).join('') + `<div class="small" style="color:#8f8c7a;margin-top:6px">You spawn in the driver's seat · max 4 of your vehicles · ${K('spawner')} to close</div>`;
+    // passenger: offer to take over
+    if (P.veh && P.seat === 'passenger' && !P.veh.playerIn && (P.veh.team === B.playerTeam || P.veh.team < 0)) { const pr2 = $('prompt'); pr2.style.display = 'block'; pr2.textContent = K('takeover') + ' — Take the wheel  ·  ' + K('interact') + ' — Get out'; }
     // downed
     $('downed').classList.toggle('hidden', P.state !== 'downed');
     if (P.state === 'downed') { $('downedBar').style.width = Math.max(0, P.downT / 30 * 100) + '%'; const S2 = B.S; const r = S2.rescuer[P.idx]; $('downedTxt').textContent = r >= 0 && S2.st[r] === ST.ALIVE ? 'A medic is coming to you!' : 'Wait for a medic — or press ' + K('jump') + ' to give up'; }
@@ -446,6 +452,6 @@
       c.beginPath(); c.arc(cx, cy, 90 * d, a - Math.PI / 2 - 0.3, a - Math.PI / 2 + 0.3); c.stroke();
     }
     // binocular range finder
-    if (P.binoc) { const ap = P.aimPoint(B); $('binocInfo').textContent = 'RANGE ' + Math.round(Math.sqrt(U.dist2(ap[0], ap[2], px, pz))) + 'm — LMB: call artillery' + (P.artyCd > 0 ? ' (ready in ' + Math.ceil(P.artyCd) + 's)' : '') + ' · T: spot'; }
+    if (P.binoc) { const ap = P.aimPoint(B); $('binocInfo').textContent = 'RANGE ' + Math.round(Math.sqrt(U.dist2(ap[0], ap[2], px, pz))) + 'm — ' + K('fire') + ': call artillery' + (P.artyCd > 0 ? ' (ready in ' + Math.ceil(P.artyCd) + 's)' : '') + ' · T: spot'; }
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -101,6 +101,12 @@ button { font-family: var(--head); }
 #xppops div { animation: xpin .3s; }
 @keyframes xpin { from { transform: scale(1.4); opacity: 0; } }
 #cmdmenu { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); background: var(--panel2); border: 1px solid var(--accent); padding: 14px 18px; min-width: 280px; pointer-events: none; }
+#spawnmenu { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); background: var(--panel2); border: 1px solid var(--accent); padding: 14px 18px; min-width: 340px; pointer-events: none; }
+#spawnmenu h3 { margin: 0 0 8px; font-size: 13px; letter-spacing: 3px; color: var(--accent2); }
+#spawnmenu div { padding: 4px 0; font-size: 14px; display: flex; gap: 6px; }
+#spawnmenu div b { width: 24px; color: var(--accent); }
+#spawnmenu div span { margin-left: auto; color: var(--muted); font-size: 12px; }
+#spawnmenu div.cd { opacity: 0.5; }
 #cmdmenu h3 { margin: 0 0 8px; font-size: 13px; letter-spacing: 3px; color: var(--accent2); }
 #cmdmenu div { padding: 4px 0; font-size: 14px; }
 #cmdmenu div b { display: inline-block; width: 24px; color: var(--accent); }

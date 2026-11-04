@@ -255,6 +255,8 @@
     P.timeAlive += dt;
     P.bs.life = P.timeAlive;
     if (P.cmdMenu) P.handleCommands(B);
+    if (I.hitA('spawner')) P.toggleSpawner(B);
+    if (P.spawnMenu) P.handleSpawner(B);
     if (P.veh) { P.vehicleUpdate(B, dt); return; }
     P.infantry(B, dt);
   };
@@ -367,6 +369,7 @@
       return;
     }
     for (const s of B.supply) if (U.dist2(s.x, s.z, x, z) < 3 * 3) { P.interactPrompt = { kind: 'supply', s, text: I.label('interact') + ' — Resupply from crate' }; return; }
+    if (P.atHQ(B)) P.interactPrompt = { kind: 'hq', text: I.label('spawner') + ' — Vehicle spawner' };
   };
   P.interact = function (B) {
     const ip = P.interactPrompt;
@@ -626,7 +629,7 @@
     if (!force && v.T.air && v.alt > 6) { P.message('Too high to bail out — land first'); return; }
     if (!force && Math.abs(v.spd) > 6 && !v.T.air) { P.message('Slow down to exit'); return; }
     if (P.seat === 'driver') {
-      v.playerIn = false; v.task = 'empty';
+      v.playerIn = false; v.task = v.crew.length ? (v.T.gun && v.type !== 'truck' ? 'support' : 'return') : 'empty'; v.routeKey = ''; v.dest = null;
       v.spd = Math.min(v.spd, 3);
       // passengers (your squad) dismount with you
       const sqs = new Set(v.passengers.map((i) => S.squad[i]));
@@ -646,6 +649,7 @@
     if (I.hitA('interact')) { P.exitVehicle(false); return; }
     S.x[P.idx] = v.x; S.y[P.idx] = v.y + 1; S.z[P.idx] = v.z;
     P.hp = 100; S.hp[P.idx] = 100;
+    if (P.seat === 'passenger' && I.hitA('takeover')) P.takeWheel(B, v);
     if (P.seat === 'driver') {
       const th = (I.downA('forward') ? 1 : 0) - (I.downA('back') ? 1 : 0);
       const st = (I.downA('left') ? 1 : 0) - (I.downA('right') ? 1 : 0);
@@ -717,6 +721,71 @@
       IF.FX.tracer(mx, my, mz, hit.x, hit.y, hit.z, B.playerTeam, true);
       IF.SFX.shot(mx, my, mz, 'hmg', B.playerTeam); IF.FX.muzzle(mx, my, mz, B.playerTeam, 0.9);
     }
+  };
+
+  // ------------------------------------------------------------------ take the wheel
+  P.takeWheel = function (B, v) {
+    const S = B.S;
+    if (v.playerIn) return;
+    if (v.team !== B.playerTeam && v.team >= 0) return;
+    const k = v.passengers.indexOf(P.idx); if (k >= 0) v.passengers.splice(k, 1);
+    // the AI driver hands over: moves to a free seat, or climbs out beside the vehicle
+    const drv = v.crew.shift();
+    if (drv !== undefined) {
+      if (v.passengers.length < v.T.seats && !v.T.air) v.passengers.push(drv);
+      else if (v.T.air && v.alt > 4) v.crew.push(drv); // airborne: they stay on as co-pilot / gunner
+      else {
+        const a = v.yaw - Math.PI / 2;
+        const [px, pz] = B.W.freeSpot(v.x - Math.sin(a) * (v.T.wid * 0.5 + 1.5), v.z - Math.cos(a) * (v.T.wid * 0.5 + 1.5));
+        S.st[drv] = ST.ALIVE; S.veh[drv] = -1; S.x[drv] = px; S.z[drv] = pz; S.y[drv] = B.W.groundAt(px, pz); S.gx[drv] = px; S.gz[drv] = pz;
+      }
+    }
+    v.playerIn = true; v.task = 'player'; v.team = B.playerTeam; P.seat = 'driver';
+    v.reservedBy = v.reservedBy; v.turretYaw = v.turretYaw || v.yaw;
+    P.yaw = v.yaw; P.vehWeapon = 0;
+    P.message('You have the wheel — ' + v.T.name + (v.passengers.length ? ' · ' + v.passengers.length + ' passengers aboard' : ''));
+  };
+
+  // ------------------------------------------------------------------ HQ vehicle spawner
+  P.SPAWNABLE = ['mbt', 'ifv', 'apc', 'truck', 'recon', 'arty', 'aheli', 'theli'];
+  P.SPAWN_CD = { mbt: 60, ifv: 45, apc: 35, truck: 15, recon: 15, arty: 60, aheli: 75, theli: 45 };
+  P.atHQ = function (B) {
+    if (!P.alive) return false;
+    const hq = B.W.objectives[B.playerTeam];
+    if (hq.owner !== B.playerTeam) return false;
+    const x = P.veh ? P.veh.x : B.S.x[P.idx], z = P.veh ? P.veh.z : B.S.z[P.idx];
+    return U.dist2(x, z, hq.x, hq.z) < (hq.r + 60) ** 2;
+  };
+  P.toggleSpawner = function (B) {
+    if (P.spawnMenu) { P.spawnMenu = false; IF.SFX.ui('back'); return; }
+    if (!P.atHQ(B)) { P.message('The vehicle spawner is only available at your HQ'); return; }
+    if (P.veh) { P.message('Exit your vehicle to use the spawner'); return; }
+    P.spawnMenu = true; P.cmdMenu = false; IF.SFX.ui('open');
+  };
+  P.handleSpawner = function (B) {
+    if (!P.atHQ(B) || P.veh) { P.spawnMenu = false; return; }
+    if (I.hit('Escape')) { P.spawnMenu = false; return; }
+    for (let k = 0; k < P.SPAWNABLE.length; k++) if (I.hit('Digit' + (k + 1))) { P.spawnVehicle(B, P.SPAWNABLE[k]); return; }
+  };
+  P.spawnCooldown = function (B, type) { return Math.max(0, ((P.spawnT && P.spawnT[type]) || -1e9) + P.SPAWN_CD[type] - B.time); };
+  P.spawnVehicle = function (B, type) {
+    P.spawnT = P.spawnT || {};
+    const cd = P.spawnCooldown(B, type);
+    if (cd > 0) { P.message(IF.VEH[type].name + ' ready in ' + Math.ceil(cd) + 's'); IF.SFX.ui('back'); return; }
+    const mine = B.vehicles.filter((v) => v.playerSpawned && (v.state === 'active' || v.state === 'abandoned'));
+    if (mine.length >= 4) {
+      // recycle the oldest unused one
+      const old = mine.find((v) => !v.playerIn && !v.crew.length && !v.passengers.length);
+      if (!old) { P.message('You already have 4 vehicles in the field'); return; }
+      old.state = 'gone';
+    }
+    const v = IF.Vehicles.spawnAtHQ(B, type, B.playerTeam);
+    if (!v) { P.message('No free space at the depot'); return; }
+    v.origTeam = -1; v.playerSpawned = true; v.task = 'empty';
+    P.spawnT[type] = B.time;
+    P.spawnMenu = false;
+    IF.SFX.ui('open');
+    P.enterVehicle(B, v);
   };
 
   // ------------------------------------------------------------------ squad commands
