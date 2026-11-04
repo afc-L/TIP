@@ -6,7 +6,7 @@
   // ---- presentation hooks (overridden by render/audio modules; no-ops when headless) ----
   const noop = function () {};
   IF.FX = IF.FX || {};
-  for (const k of ['tracer', 'flash', 'explosion', 'impact', 'blood', 'smokePuff', 'dust', 'debris', 'scorch', 'smokeScreen', 'fireAt', 'muzzle', 'splash', 'flare'])
+  for (const k of ['tracer', 'flash', 'explosion', 'impact', 'blood', 'smokePuff', 'dust', 'debris', 'scorch', 'smokeScreen', 'fireAt', 'muzzle', 'splash', 'flare', 'gore', 'pool'])
     if (!IF.FX[k]) IF.FX[k] = noop;
   IF.SFX = IF.SFX || {};
   for (const k of ['shot', 'explosion', 'whistle', 'crack', 'impact', 'shout', 'radio', 'vehicleFire', 'cannon', 'jet', 'hit', 'reload', 'empty', 'ui', 'thump'])

@@ -174,7 +174,7 @@ button { font-family: var(--head); }
 #menuTabs button.active { color: var(--accent2); border-bottom-color: var(--accent2); }
 #menuBody { margin-top: 20px; min-height: 380px; }
 #menuFooter { margin-top: 30px; color: var(--muted); font-size: 12px; font-family: var(--mono); }
-.grid2 { display: grid; grid-template-columns: 1.2fr 1fr; gap: 24px; }
+.grid2 { display: grid; grid-template-columns: 1.2fr 1fr; gap: 24px; align-items: start; }
 .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .card { background: var(--panel); border: 1px solid var(--line); padding: 14px 16px; cursor: pointer; transition: border-color .12s, background .12s; }
 .card:hover { border-color: var(--accent); }
@@ -205,3 +205,10 @@ input[type=range] { width: 220px; accent-color: #c8b47a; }
   .logo .iron { font-size: 40px; }
   #killfeed, #radiolog { width: 60vw; }
 }
+
+.bind-group { margin: 16px 0 6px; font-size: 12px; letter-spacing: 3px; color: var(--accent2); }
+.binds { display: grid; grid-template-columns: 1fr 130px; gap: 4px 14px; align-items: center; font-size: 14px; }
+.bind { font-family: var(--mono); background: rgba(255, 255, 255, 0.06); color: var(--accent2); border: 1px solid var(--line); padding: 5px 8px; cursor: pointer; font-size: 13px; }
+.bind:hover, .bind:focus-visible { border-color: var(--accent); outline: none; }
+.bind.changed { color: #fff4cf; border-color: var(--accent); }
+.bind.listening { color: #fff; background: rgba(120, 100, 40, 0.7); border-color: var(--accent2); animation: pulse 0.8s infinite; }

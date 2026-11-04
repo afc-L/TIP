@@ -52,6 +52,13 @@
     b.box(0.1, 0.42, 0.12, 0.27, 1.2, -0.1, [1, 1, 1], 0.6, 0, 0); b.box(0.1, 0.42, 0.12, -0.27, 1.2, -0.12, [1, 1, 1], 0.9, 0, 0);
     b.box(0.07, 0.1, 0.85, 0.05, 1.2, -0.42, DARK);
     P.far = b.build();
+    // headless variant for decapitated corpses
+    b = new IF.GEO.Builder();
+    b.box(0.18, 0.92, 0.2, 0.11, 0.46, 0, [1, 1, 1]); b.box(0.18, 0.92, 0.2, -0.11, 0.46, 0, [1, 1, 1]);
+    b.box(0.44, 0.58, 0.28, 0, 1.22, 0, [1, 1, 1]); b.box(0.3, 0.36, 0.16, 0, 1.25, 0.2, GEAR);
+    b.box(0.17, 0.07, 0.17, 0, 1.54, 0, [0.45, 0.05, 0.04]);
+    b.box(0.1, 0.42, 0.12, 0.27, 1.2, -0.1, [1, 1, 1], 0.6, 0, 0); b.box(0.1, 0.42, 0.12, -0.27, 1.2, -0.12, [1, 1, 1], 0.9, 0, 0);
+    P.headless = b.build();
     return P;
   }
 
@@ -69,8 +76,9 @@
     };
     SR.far = mk(P.far, IF.CFG.MAX_SOLDIERS, false);
     SR.corpse = mk(P.far, 480, false);
+    SR.corpseHL = mk(P.headless, 200, false);
     // pre-allocate colour buffers
-    const all = [SR.near.torso, SR.near.head, SR.near.helmet, SR.near.thighL, SR.near.thighR, SR.near.shinL, SR.near.shinR, SR.near.arms.rifle, SR.near.arms.mg, SR.near.arms.sniper, SR.near.arms.at, SR.far, SR.corpse];
+    const all = [SR.near.torso, SR.near.head, SR.near.helmet, SR.near.thighL, SR.near.thighR, SR.near.shinL, SR.near.shinR, SR.near.arms.rifle, SR.near.arms.mg, SR.near.arms.sniper, SR.near.arms.at, SR.far, SR.corpse, SR.corpseHL];
     const c = new THREE.Color(1, 1, 1);
     for (const m of all) { for (let i = 0; i < m.instanceMatrix.count; i++) m.setColorAt(i, c); m.instanceColor.setUsage(THREE.DynamicDrawUsage); }
     SR.all = all;
@@ -169,19 +177,21 @@
     for (const g of ['rifle', 'mg', 'sniper', 'at']) N.arms[g].count = cnt[g];
     SR.far.count = nf;
     // corpses
-    let nc = 0;
+    let nc = 0, nh = 0;
     for (let k = B.corpses.length - 1; k >= 0 && nc < 480; k--) {
       const c = B.corpses[k];
+      if (c.gib && c.goreDone) continue; // blown apart: only the pieces remain
       const dx = c.x - cx, dz = c.z - cz;
       if (dx * dx + dz * dz > 450 * 450) continue;
       setRT(M, c.x, c.y + 0.16, c.z, -Math.PI / 2 * c.roll, c.yaw, c.roll * 0.4);
       M.multiply(Mt.makeTranslation(0, -0.9, 0));
-      SR.corpse.setMatrixAt(nc, M);
       Cd.copy(SR.teamCol[c.team]).multiplyScalar(0.75);
+      if (c.headless && nh < 200) { SR.corpseHL.setMatrixAt(nh, M); SR.corpseHL.setColorAt(nh, Cd); nh++; continue; }
+      SR.corpse.setMatrixAt(nc, M);
       SR.corpse.setColorAt(nc, Cd);
       nc++;
     }
-    SR.corpse.count = nc;
+    SR.corpse.count = nc; SR.corpseHL.count = nh;
     for (const m of SR.all) { m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true; }
     SR.stats = { near: cnt.torso, far: nf, corpses: nc };
   };

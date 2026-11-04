@@ -9,7 +9,7 @@
     stats: { battles: 0, wins: 0, losses: 0, hardWins: 0, kills: 0, deaths: 0, headshots: 0, shots: 0, hits: 0, revives: 0, captures: 0,
       vehiclesDestroyed: 0, helisDown: 0, vehicleKills: 0, commands: 0, timesRevived: 0, timePlayed: 0, bestBattleXp: 0, longest: 0, distanceDriven: 0 },
     settings: { army: 0, cls: 'rifle', difficulty: 'regular', graphics: 'medium', layout: 'random', time: 'random', weather: 'random', size: 'standard',
-      voice: true, volume: 0.8, sens: 1.0, fov: 75, invertY: false },
+      voice: true, volume: 0.8, gore: 'extreme', keys: {}, sens: 1.0, fov: 75, invertY: false },
     loadout: {},  // class id -> { primary, optic, barrel, uniform }
   });
 

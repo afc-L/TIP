@@ -38,6 +38,8 @@ if the frame rate drops.
 | B then 1–7 | Squad commands: follow, hold, advance, defend, regroup, enter vehicles, retreat |
 | M · Tab | Tactical map · battle status |
 | V · N · F3 | 1st/3rd person · night vision · performance stats |
+
+All keyboard controls can be changed in **Main menu → Controls**: click a key, then press the new one. If that key is already in use, the two actions swap. Bindings are saved with your profile.
 | Vehicles | WASD drive, mouse turret, LMB fire, 1/2 weapons, Space brake |
 | Helicopters | W/S pitch, A/D yaw, Q/E strafe, Space/Ctrl altitude, LMB guns, 2 rockets |
 
@@ -65,6 +67,7 @@ if the frame rate drops.
 - **Random events**: counter-attacks, convoys, helicopter insertions, armour pushes,
   abandoned vehicles, pinned squads asking for help, supply drops, illumination flares and
   weather changes.
+- **Gore** (Main menu → Graphics → Gore: Off / Normal / Extreme): blood sprays away from the shot, splatter and growing blood pools on the ground, bodies blown apart by explosions and vehicles with limbs that tumble and settle, headshot decapitations, and blood on your screen when you are hit.
 - **Atmosphere**: day/night cycle, dynamic weather (rain, fog, storms with lightning),
   tracers, muzzle flashes, explosions, smoke, burning wrecks, collapsing buildings and
   falling trees. Spatial procedural audio: gunfire is delayed by distance and muffled by

@@ -161,12 +161,21 @@
     S.hp[t] -= dmg;
     S.lastAtt[t] = att;
     S.sup[t] = Math.min(1.5, S.sup[t] + 0.35);
-    if (U.dist2(S.x[t], S.z[t], B.camX, B.camZ) < 160 * 160) IF.FX.blood(S.x[t], C.chestY(S, t), S.z[t]);
+    // direction the blood sprays: away from the shooter or the blast
+    let fx = 0, fz = 0;
+    if (kind === 'explosion' && C._exp) { fx = S.x[t] - C._exp[0]; fz = S.z[t] - C._exp[1]; }
+    else if (att >= 0 && att < S.n) { fx = S.x[t] - S.x[att]; fz = S.z[t] - S.z[att]; }
+    const fl = Math.sqrt(fx * fx + fz * fz) || 1; fx /= fl; fz /= fl;
+    if (U.dist2(S.x[t], S.z[t], B.camX, B.camZ) < 200 * 200) IF.FX.blood(S.x[t], head ? S.y[t] + (S.stance[t] === 1 ? 1.15 : 1.62) : C.chestY(S, t), S.z[t], fx, fz, head ? 2.2 : kind === 'explosion' ? 1.8 : Math.min(2, dmg / 35));
     if (att === B.playerIdx && att >= 0) IF.emit('playerHit', t, head, S.hp[t] <= 0);
     if (S.hp[t] <= 0) {
       const lethal = head || kind === 'crush' || (kind === 'explosion' && dmg > 140) || S.hp[t] < -60;
+      // big blasts and vehicles tear bodies apart
+      C._gib = kind === 'crush' || (kind === 'explosion' && dmg >= 105);
+      C._dir = [fx, fz]; C._dmg = dmg;
       if (!lethal && Math.random() < 0.6) C.down(B, t, att, kind);
       else C.kill(B, t, att, kind, head);
+      C._gib = null; C._dir = null;
     } else if (S.hp[t] < 45 && Math.random() < 0.25) {
       if (U.dist2(S.x[t], S.z[t], B.camX, B.camZ) < 60 * 60) IF.SFX.shout(S.x[t], S.y[t] + 1.5, S.z[t], 'wounded', S.team[t]);
     }
@@ -176,6 +185,7 @@
     S.st[t] = ST.DOWNED; S.hp[t] = 0; S.downT[t] = U.rr(32, 55); S.tgt[t] = -1; S.rescuer[t] = -1; S.stance[t] = 2;
     if (S.cover[t] >= 0) { B.W.coverOwner[S.cover[t]] = -1; S.cover[t] = -1; }
     B.downed[S.team[t]].push(t);
+    if (U.dist2(S.x[t], S.z[t], B.camX, B.camZ) < 200 * 200) IF.FX.pool(S.x[t], S.z[t], U.rr(0.7, 1.1), 25);
     IF.emit('downed', t, att, kind);
     if (att === B.playerIdx && att >= 0) IF.emit('playerKill', t, kind, false, true);
     if (U.dist2(S.x[t], S.z[t], B.camX, B.camZ) < 70 * 70) IF.SFX.shout(S.x[t], S.y[t] + 0.5, S.z[t], 'medic', S.team[t]);
@@ -191,7 +201,11 @@
     B.deaths[S.team[t]]++;
     B.tickets[S.team[t]] = Math.max(0, B.tickets[S.team[t]] - 1);
     if (att >= 0 && att < S.n && S.st[att] !== ST.DEAD) S.kills[att]++;
-    B.corpses.push({ x: S.x[t], y: S.y[t], z: S.z[t], yaw: S.yaw[t] + U.rr(-0.6, 0.6), team: S.team[t], t: B.time, role: S.role[t], roll: Math.random() < 0.5 ? 1 : -1 });
+    const gib = C._gib !== null && C._gib !== undefined ? C._gib : kind === 'explosion';
+    const corpse = { x: S.x[t], y: S.y[t], z: S.z[t], yaw: S.yaw[t] + U.rr(-0.6, 0.6), team: S.team[t], t: B.time, role: S.role[t], roll: Math.random() < 0.5 ? 1 : -1,
+      gib, head: !!head, kind, dmg: C._dmg || 0, dir: C._dir || [U.rr(-1, 1), U.rr(-1, 1)], wasDowned };
+    B.corpses.push(corpse);
+    if (U.dist2(S.x[t], S.z[t], B.camX, B.camZ) < 260 * 260) IF.FX.gore(corpse);
     if (B.corpses.length > 450) B.corpses.shift();
     // squadmates are shaken
     const sq = B.squads[S.squad[t]];
@@ -204,6 +218,7 @@
   C.explode = function (B, x, y, z, r, dmg, team, owner, kind) {
     const S = B.S, W = B.W;
     const sr = r * 3.2;
+    C._exp = [x, z];
     B.gridF.query(S, x, z, sr, (i, d2) => {
       const d = Math.sqrt(d2);
       if (S.st[i] !== ST.ALIVE && S.st[i] !== ST.DOWNED) return;
@@ -218,6 +233,7 @@
       S.sup[i] = Math.min(1.6, S.sup[i] + (1 - d / sr) * 1.1);
       S.alertT[i] = B.time;
     });
+    C._exp = null;
     for (const v of B.activeVeh) {
       const d = Math.sqrt(U.dist2(v.x, v.z, x, z) + (v.y + 1 - y) * (v.y + 1 - y));
       const rr = r + Math.max(v.T.len, v.T.wid) * 0.35;

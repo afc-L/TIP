@@ -5,6 +5,7 @@
   const IF = G.IF, U = IF.U, ST = IF.ST;
   const H = (IF.HUD = {});
   const $ = (id) => document.getElementById(id);
+  const K = (id) => IF.Input.label(id);
 
   H.init = function () {
     H.ov = $('overlay'); H.ctx = H.ov.getContext('2d');
@@ -138,7 +139,7 @@
       $('ammo').classList.toggle('low', w.mag <= Math.ceil(w.magMax * 0.2));
       const g = P.cls.gadget;
       const gtxt = { medkit: 'MEDKIT ×' + P.medkits, ammo: 'AMMO BOX' + (P.gadgetCd > 0 ? ' ' + Math.ceil(P.gadgetCd) + 's' : ''), repair: 'REPAIR (hold)', arty: 'BINOCULARS' + (P.artyCd > 0 ? ' ' + Math.ceil(P.artyCd) + 's' : ''), launcher: 'LAUNCHER' }[g];
-      $('gadgets').innerHTML = P.weapons.map((q, k) => `<span class="${k === P.slot ? 'on' : ''}">[${k + 1}] ${q.d.name.split(' ')[0]}</span>`).join('') + `<br><span class="on">[G] FRAG ×${P.grenades}</span>` + (P.smokes ? `<span>[X] SMOKE ×${P.smokes}</span>` : '') + (P.mines ? `<span>[X] AT MINE ×${P.mines}</span>` : '') + (g !== 'launcher' ? `<span>[4] ${gtxt}</span>` : '');
+      $('gadgets').innerHTML = P.weapons.map((q, k) => `<span class="${k === P.slot ? 'on' : ''}">[${K('weapon' + (k + 1))}] ${q.d.name.split(' ')[0]}</span>`).join('') + `<br><span class="on">[${K('grenade')}] FRAG ×${P.grenades}</span>` + (P.smokes ? `<span>[${K('secondary')}] SMOKE ×${P.smokes}</span>` : '') + (P.mines ? `<span>[${K('secondary')}] AT MINE ×${P.mines}</span>` : '') + (g !== 'launcher' ? `<span>[${K('gadget')}] ${gtxt}</span>` : '');
     } else $('weaponbox').classList.add('hidden');
     // vehicle
     if (P.veh) {
@@ -148,7 +149,7 @@
       $('vhpbar').style.width = Math.max(0, v.hp / v.T.hp * 100) + '%';
       $('vhpbar').style.background = v.hp < v.T.hp * 0.3 ? '#e45a3c' : v.hp < v.T.hp * 0.6 ? '#f0b040' : '#8fd16a';
       const wpn = !v.T.gun ? 'Unarmed' : P.vehWeapon === 1 ? (v.T.gun === 'heligun' ? 'Rockets ×' + v.rockets : 'Coaxial MG') : ({ cannon: '120mm Cannon', autocannon: '30mm Autocannon', hmg: '.50 cal HMG', heligun: '30mm Chain Gun', howitzer: '155mm Howitzer (LMB: fire at crosshair)' }[v.T.gun]);
-      $('vinfo').innerHTML = `${Math.round(Math.abs(v.spd) * 3.6)} km/h${v.T.air ? ' · ALT ' + Math.round(v.alt) + 'm' : ''} · ${wpn}${v.fireCd > 0.3 ? ' · RELOADING' : ''} · Passengers ${v.passengers.length}/${v.T.seats}<br>F exit · V camera${v.T.mg || v.T.gun === 'heligun' ? ' · 1/2 weapons' : ''}${v.T.air ? ' · SPACE up · CTRL/C down · Q/E strafe' : ' · SPACE brake'}`;
+      $('vinfo').innerHTML = `${Math.round(Math.abs(v.spd) * 3.6)} km/h${v.T.air ? ' · ALT ' + Math.round(v.alt) + 'm' : ''} · ${wpn}${v.fireCd > 0.3 ? ' · RELOADING' : ''} · Passengers ${v.passengers.length}/${v.T.seats}<br>${K('interact')} exit · ${K('camera')} camera${v.T.mg || v.T.gun === 'heligun' ? ' · ' + K('weapon1') + '/' + K('weapon2') + ' weapons' : ''}${v.T.air ? ' · ' + K('jump') + ' up · ' + K('descend') + ' down · ' + K('leanL') + '/' + K('leanR') + ' strafe' : ' · ' + K('jump') + ' brake'}`;
     } else $('vehbox').classList.add('hidden');
     // squad panel
     H.squadPanel(B);
@@ -161,10 +162,10 @@
     // command menu
     const cm = $('cmdmenu');
     cm.classList.toggle('hidden', !P.cmdMenu);
-    if (P.cmdMenu) cm.innerHTML = '<h3>SQUAD COMMANDS</h3>' + P.COMMANDS.map((c, k) => `<div><b>${k + 1}</b>${c[1]}</div>`).join('') + '<div class="small" style="color:#8f8c7a;margin-top:6px">Applies to your squad and friendly squads within ' + (70 + IF.rankIndex(IF.Profile.xp + P.bs.xp) * 6) + 'm · B to close</div>';
+    if (P.cmdMenu) cm.innerHTML = '<h3>SQUAD COMMANDS</h3>' + P.COMMANDS.map((c, k) => `<div><b>${k + 1}</b>${c[1]}</div>`).join('') + '<div class="small" style="color:#8f8c7a;margin-top:6px">Applies to your squad and friendly squads within ' + (70 + IF.rankIndex(IF.Profile.xp + P.bs.xp) * 6) + 'm · ' + K('commands') + ' to close</div>';
     // downed
     $('downed').classList.toggle('hidden', P.state !== 'downed');
-    if (P.state === 'downed') { $('downedBar').style.width = Math.max(0, P.downT / 30 * 100) + '%'; const S2 = B.S; const r = S2.rescuer[P.idx]; $('downedTxt').textContent = r >= 0 && S2.st[r] === ST.ALIVE ? 'A medic is coming to you!' : 'Wait for a medic — or press SPACE to give up'; }
+    if (P.state === 'downed') { $('downedBar').style.width = Math.max(0, P.downT / 30 * 100) + '%'; const S2 = B.S; const r = S2.rescuer[P.idx]; $('downedTxt').textContent = r >= 0 && S2.st[r] === ST.ALIVE ? 'A medic is coming to you!' : 'Wait for a medic — or press ' + K('jump') + ' to give up'; }
     // effects overlays
     $('vignette').style.opacity = U.clamp((1 - P.hp / 100) * 0.9 + P.suppress * 0.35 + (P.state === 'downed' ? 0.6 : 0), 0, 1);
     $('nvg').classList.toggle('on', !!P.nvg && P.alive);
@@ -181,7 +182,7 @@
     H.drawMinimap(B);
     // scoreboard
     const sb = $('scoreboard');
-    const show = IF.Input.down('Tab');
+    const show = IF.Input.downA('status');
     sb.classList.toggle('hidden', !show);
     if (show) H.scoreboard(B);
     $('clickToPlay').classList.toggle('hidden', !(P.alive && !IF.Input.locked && !IF.Menu.deployOn && !(IF.Main && (IF.Main.mapOpen || IF.Main.paused)) && !B.over));
@@ -336,6 +337,7 @@
   H.drawOverlay = function (B, dt) {
     const c = H.ctx, Wd = H.ov.width, Ht = H.ov.height, d = H.dpr, P = IF.Player, S = B.S;
     c.clearRect(0, 0, Wd, Ht);
+    IF.Gore.drawScreen(c, Wd, Ht, dt);
     if (!P.alive && P.state !== 'downed') return;
     const cam = IF.R.camera.position;
     c.font = `${11 * d}px Consolas, monospace`; c.textAlign = 'center';

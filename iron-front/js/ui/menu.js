@@ -22,7 +22,7 @@
 
   MN.init = function () {
     MN.tab = 'battle';
-    document.querySelectorAll('#menuTabs button').forEach((b) => b.addEventListener('click', () => { MN.tab = b.dataset.tab; IF.SFX.ui('open'); MN.render(); }));
+    document.querySelectorAll('#menuTabs button').forEach((b) => b.addEventListener('click', () => { IF.Input.capture = null; MN.tab = b.dataset.tab; IF.SFX.ui('open'); MN.render(); }));
     $('btnResume').onclick = () => IF.Main.resume();
     $('btnQuit').onclick = () => IF.Main.quit();
     $('btnPauseControls').onclick = () => { IF.Main.quit(true); MN.tab = 'controls'; MN.render(); };
@@ -99,19 +99,35 @@
         <div class="row"><label>FIELD OF VIEW</label><input type="range" min="60" max="95" value="${s.fov}" id="fovR"><span id="fovV">${s.fov}°</span></div>
         <div class="row"><label>SENSITIVITY</label><input type="range" min="0.2" max="2.5" step="0.05" value="${s.sens}" id="sensR"><span id="sensV">${s.sens.toFixed(2)}</span></div>
         <div class="row"><label>VOLUME</label><input type="range" min="0" max="1" step="0.05" value="${s.volume}" id="volR"><span id="volV">${Math.round(s.volume * 100)}%</span></div>
+        <div class="row"><label>GORE</label>${seg('gore', [['off', 'Off'], ['normal', 'Normal'], ['extreme', 'Extreme']], s.gore || 'extreme')}</div>
         <div class="row"><label>VOICE CHATTER</label>${seg('voice', [['1', 'On'], ['0', 'Off']], s.voice ? '1' : '0')}</div>
         <div class="row"><label>INVERT MOUSE Y</label>${seg('inv', [['0', 'Off'], ['1', 'On']], s.invertY ? '1' : '0')}</div>
       </div><div class="card"><h4>PERFORMANCE NOTES</h4><p>The simulation runs every soldier's AI with staggered updates and spatial grids. Nearby soldiers use detailed animated models, distant soldiers use one instanced low-poly mesh, and effects are pooled. Press F3 in battle to show frame time and render counts.</p></div></div>`;
-      bindSeg('gfx', (v) => (s.graphics = v)); bindSeg('voice', (v) => (s.voice = v === '1')); bindSeg('inv', (v) => (s.invertY = v === '1'));
+      bindSeg('gfx', (v) => (s.graphics = v)); bindSeg('gore', (v) => (s.gore = v)); bindSeg('voice', (v) => (s.voice = v === '1')); bindSeg('inv', (v) => (s.invertY = v === '1'));
       const rng = (id, key, fmt, cb) => { $(id).addEventListener('input', (e) => { s[key] = +e.target.value; $(id.replace('R', 'V')).textContent = fmt(s[key]); if (cb) cb(s[key]); IF.saveProfile(); }); };
       rng('fovR', 'fov', (v) => v + '°'); rng('sensR', 'sens', (v) => v.toFixed(2)); rng('volR', 'volume', (v) => Math.round(v * 100) + '%', (v) => IF.Audio.setVolume(v));
     } else if (MN.tab === 'controls') {
-      const K = [['W A S D', 'Move'], ['Mouse', 'Aim / look'], ['Left click', 'Fire'], ['Right click', 'Aim down sights / zoom'], ['Shift', 'Sprint'], ['C', 'Crouch'], ['Z', 'Prone'], ['Q / E', 'Lean left / right (helicopter: strafe)'], ['Space', 'Jump · vehicle brake · helicopter climb · give up when downed'], ['R', 'Reload'],
-        ['1 2 3', 'Weapons'], ['4', 'Class gadget (medkit, ammo box, repair, binoculars)'], ['G', 'Throw frag grenade'], ['X / 5', 'Smoke grenade / AT mine'], ['F', 'Enter / exit vehicle · revive (hold) · resupply'], ['T', 'Spot enemy'], ['B', 'Squad command menu (then 1–7)'],
-        ['M', 'Tactical map'], ['Tab (hold)', 'Battle status'], ['V', 'First / third person'], ['N', 'Night vision'], ['H', 'Help overlay'], ['F3', 'Performance stats'], ['Esc', 'Pause']];
-      body.innerHTML = `<div class="grid2"><div class="keys">${K.map((k) => `<kbd>${k[0]}</kbd><span>${k[1]}</span>`).join('')}</div>
-        <div class="card"><h4>SQUAD COMMANDS (B)</h4><p>1 Follow me · 2 Hold position · 3 Advance · 4 Defend objective · 5 Regroup · 6 Enter vehicles · 7 Retreat.<br><br>Orders go to your own squad and any friendly squad near you — the radius grows with rank. Order your squad into a vehicle you are driving and they ride with you; exit to drop them off.</p>
-        <h4 style="margin-top:14px">VEHICLES</h4><p>Ground: W/S throttle, A/D steer, mouse aims the turret, LMB fires, 1/2 switches main gun / coaxial MG.<br>Helicopters: W/S pitch, A/D yaw, Q/E strafe, Space/Ctrl (or C) altitude, LMB guns, 2 rockets.</p></div></div>`;
+      const I = IF.Input, L = I.label;
+      const groups = {};
+      for (const ac of IF.KEY_ACTIONS) (groups[ac[3]] = groups[ac[3]] || []).push(ac);
+      const defaults = {}; for (const ac of IF.KEY_ACTIONS) defaults[ac[0]] = ac[2];
+      body.innerHTML = `<div class="grid2"><div>
+        <p class="small">Click a key to change it, then press the new key. Esc cancels. If the key is already used, the two actions swap keys. Mouse: left click fires, right click aims, wheel switches weapons. Esc always pauses.</p>
+        ${Object.entries(groups).map(([g, list]) => `<h4 class="bind-group">${g.toUpperCase()}</h4><div class="binds">${list.map((ac) => `<span>${ac[1]}</span><button class="bind ${I.code(ac[0]) !== defaults[ac[0]] ? 'changed' : ''}" data-bind="${ac[0]}" id="bind-${ac[0]}">${L(ac[0])}</button>`).join('')}</div>`).join('')}
+        <button class="btn" id="resetBinds" style="width:auto;margin-top:14px">RESET TO DEFAULT KEYS</button>
+      </div>
+        <div class="card"><h4>SQUAD COMMANDS (${L('commands')})</h4><p>Then 1 Follow me · 2 Hold position · 3 Advance · 4 Defend objective · 5 Regroup · 6 Enter vehicles · 7 Retreat.<br><br>Orders go to your own squad and any friendly squad near you — the radius grows with rank. Order your squad into a vehicle you are driving and they ride with you; exit to drop them off.</p>
+        <h4 style="margin-top:14px">VEHICLES</h4><p>Ground: ${L('forward')}/${L('back')} throttle, ${L('left')}/${L('right')} steer, ${L('jump')} brake, mouse aims the turret, left click fires, ${L('weapon1')}/${L('weapon2')} switch main gun / coaxial MG.<br>Helicopters: ${L('forward')}/${L('back')} pitch, ${L('left')}/${L('right')} yaw, ${L('leanL')}/${L('leanR')} strafe, ${L('jump')}/${L('descend')} altitude, left click guns, ${L('weapon2')} rockets.</p></div></div>`;
+      document.querySelectorAll('[data-bind]').forEach((btn) => btn.addEventListener('click', () => {
+        if (I.capture) return;
+        const id = btn.dataset.bind;
+        btn.textContent = 'Press a key…'; btn.classList.add('listening');
+        I.capture = (code) => {
+          if (code !== 'Escape') { I.rebind(id, code); IF.SFX.ui('open'); }
+          MN.render();
+        };
+      }));
+      $('resetBinds').onclick = () => { I.capture = null; I.resetBinds(); MN.render(); };
     } else if (MN.tab === 'stats') {
       const P = IF.Profile, st = P.stats;
       const nx = IF.RANKS[Math.min(IF.RANKS.length - 1, r + 1)];

@@ -21,7 +21,11 @@
     const help = document.createElement('div');
     help.id = 'helpOverlay'; help.className = 'hidden';
     help.style.cssText = 'position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);background:rgba(14,18,13,.92);border:1px solid rgba(200,190,140,.3);padding:18px 26px;font:13px Consolas,monospace;line-height:1.7;pointer-events:none;color:#dcd8c4;z-index:5';
-    help.innerHTML = '<b style="color:#e2cf8e;letter-spacing:3px">FIELD MANUAL</b><br>WASD move · Shift sprint · C crouch · Z prone · Q/E lean · Space jump<br>LMB fire · RMB aim · R reload · 1-3 weapons · 4 gadget · G grenade · X smoke/mine<br>F vehicle / revive / resupply · T spot · B squad commands · M map · Tab status<br>V camera · N night vision · F3 stats · Esc pause<br><span style="color:#8f8c7a">Vehicles: WASD drive, mouse turret, LMB fire, 1/2 weapon · Helis: Space/Ctrl altitude, Q/E strafe</span>';
+    M.buildHelp = function () {
+      const L = I.label;
+      help.innerHTML = `<b style="color:#e2cf8e;letter-spacing:3px">FIELD MANUAL</b><br>${L('forward')}${L('left')}${L('back')}${L('right')} move · ${L('sprint')} sprint · ${L('crouch')} crouch · ${L('prone')} prone · ${L('leanL')}/${L('leanR')} lean · ${L('jump')} jump<br>LMB fire · RMB aim · ${L('reload')} reload · ${L('weapon1')}-${L('weapon3')} weapons · ${L('gadget')} gadget · ${L('grenade')} grenade · ${L('secondary')} smoke/mine<br>${L('interact')} vehicle / revive / resupply · ${L('spot')} spot · ${L('commands')} squad commands · ${L('map')} map · ${L('status')} status<br>${L('camera')} camera · ${L('nvg')} night vision · ${L('perf')} stats · Esc pause<br><span style="color:#8f8c7a">Change keys in Main menu → Controls</span>`;
+    };
+    M.buildHelp();
     document.body.appendChild(help);
     M.help = help;
   };
@@ -44,6 +48,7 @@
           IF.SoldierRender.build(B);
           IF.VehicleRender.build(B);
           IF.FX.init();
+          IF.Gore.init();
           IF.HUD.buildMapImage(B.W);
           IF.Player.reset(B, { cls: s.cls });
           // let the armies get moving for a few seconds before the player arrives
@@ -84,7 +89,7 @@
     M.running = false; M.paused = false;
     IF.Audio.stopAll && IF.Audio.stopAll();
     if (IF.Audio.ctx) IF.Audio.resume();
-    IF.WorldRender.dispose(); IF.SoldierRender.dispose(); IF.VehicleRender.dispose(); IF.FX.dispose();
+    IF.WorldRender.dispose(); IF.SoldierRender.dispose(); IF.VehicleRender.dispose(); IF.FX.dispose(); IF.Gore.dispose();
     IF.B = null;
     I.enabled = false; I.unlock();
     IF.Menu.show(true);
@@ -145,9 +150,9 @@
     if (M.paused) { I.endFrame(); return; }
     const t0 = U.now();
     // global keys
-    if (I.hit('KeyM') && P.state !== 'deploy') { M.mapOpen = !M.mapOpen; $('tacmap').classList.toggle('hidden', !M.mapOpen); if (M.mapOpen) I.unlock(); else I.lock(); }
-    if (I.hit('F3')) M.showPerf = !M.showPerf;
-    if (I.hit('KeyH')) M.help.classList.toggle('hidden');
+    if (I.hitA('map') && P.state !== 'deploy') { M.mapOpen = !M.mapOpen; $('tacmap').classList.toggle('hidden', !M.mapOpen); if (M.mapOpen) I.unlock(); else I.lock(); }
+    if (I.hitA('perf')) M.showPerf = !M.showPerf;
+    if (I.hitA('help')) { M.help.classList.toggle('hidden'); M.buildHelp(); }
     if (M.mapOpen && I.hit('Escape')) { M.mapOpen = false; $('tacmap').classList.add('hidden'); I.lock(); }
     // simulation step (sub-stepped for stability)
     const steps = dt > 0.05 ? 2 : 1;
@@ -170,6 +175,7 @@
     IF.SoldierRender.update(B, dt, (P.viewFP && P.alive) || P.veh ? P.idx : -1);
     IF.VehicleRender.update(B, dt);
     IF.FX.update(dt);
+    IF.Gore.update(dt);
     IF.Audio.update(B, dt, cam);
     IF.HUD.update(B, dt);
     if (M.mapOpen) { M.mapT = (M.mapT || 0) - dt; if (M.mapT <= 0) { M.mapT = 0.25; IF.TacMap.draw($('tacCanvas'), B, {}); $('tacInfo').innerHTML = IF.TacMap.info(B); } }

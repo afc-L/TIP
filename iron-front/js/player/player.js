@@ -147,7 +147,7 @@
     S.st[P.idx] = ST.DOWNED; S.hp[P.idx] = 0; S.rescuer[P.idx] = -1; S.downT[P.idx] = 999;
     B.downed[B.playerTeam].push(P.idx);
     P.downT = 30; P.hp = 0;
-    P.message('You are down! Wait for a medic or press SPACE to give up');
+    P.message('You are down! Wait for a medic or press ' + I.label('jump') + ' to give up');
     IF.SFX.shout(S.x[P.idx], S.y[P.idx], S.z[P.idx], 'medic', B.playerTeam);
   };
   P.die = function (att, kind, head) {
@@ -238,15 +238,15 @@
     if (P.xpPops) { for (const x of P.xpPops) x.t -= dt; P.xpPops = P.xpPops.filter((x) => x.t > 0); }
     P.gadgetCd = Math.max(0, P.gadgetCd - dt); P.artyCd = Math.max(0, P.artyCd - dt); P.spotCd = Math.max(0, P.spotCd - dt);
 
-    if (I.hit('KeyV')) P.firstPerson = !P.firstPerson;
-    if (I.hit('KeyN')) { P.nvg = !P.nvg; P.message(P.nvg ? 'Night vision ON' : 'Night vision OFF'); }
-    if (I.hit('KeyB')) { P.cmdMenu = !P.cmdMenu; IF.SFX.ui(P.cmdMenu ? 'open' : 'back'); }
+    if (I.hitA('camera')) P.firstPerson = !P.firstPerson;
+    if (I.hitA('nvg')) { P.nvg = !P.nvg; P.message(P.nvg ? 'Night vision ON' : 'Night vision OFF'); }
+    if (I.hitA('commands')) { P.cmdMenu = !P.cmdMenu; IF.SFX.ui(P.cmdMenu ? 'open' : 'back'); }
 
     if (P.state === 'downed') {
       P.downT -= dt;
       S.yaw[P.idx] += 0; P.stance = 2;
       P.look(dt, 0.4);
-      if (I.hit('Space') || P.downT <= 0) { P.die(S.lastAtt[P.idx], 'bleed'); }
+      if (I.hitA('jump') || P.downT <= 0) { P.die(S.lastAtt[P.idx], 'bleed'); }
       P.cameraFollowSoldier(B, dt);
       return;
     }
@@ -273,14 +273,14 @@
     // regen
     if (B.time - P.lastDamageT > 9 && P.hp < B.diff.regenTo) { P.hp = Math.min(B.diff.regenTo, P.hp + dt * 6); S.hp[i] = P.hp; }
     // stance
-    if (I.hit('KeyC')) { P.stance = P.stance === 1 ? 0 : 1; P.stanceT = 0.25; }
-    if (I.hit('KeyZ')) { P.stance = P.stance === 2 ? 0 : 2; P.stanceT = 0.6; }
+    if (I.hitA('crouch')) { P.stance = P.stance === 1 ? 0 : 1; P.stanceT = 0.25; }
+    if (I.hitA('prone')) { P.stance = P.stance === 2 ? 0 : 2; P.stanceT = 0.6; }
     P.stanceT = Math.max(0, P.stanceT - dt);
-    const fwdIn = (I.down('KeyW') ? 1 : 0) - (I.down('KeyS') ? 1 : 0), sideIn = (I.down('KeyD') ? 1 : 0) - (I.down('KeyA') ? 1 : 0);
-    P.sprint = I.down('ShiftLeft') && fwdIn > 0 && P.ads < 0.3 && P.reloadT <= 0.01 && !I.lmb;
+    const fwdIn = (I.downA('forward') ? 1 : 0) - (I.downA('back') ? 1 : 0), sideIn = (I.downA('right') ? 1 : 0) - (I.downA('left') ? 1 : 0);
+    P.sprint = I.downA('sprint') && fwdIn > 0 && P.ads < 0.3 && P.reloadT <= 0.01 && !I.lmb;
     if (P.sprint && P.stance !== 0) P.stance = 0;
     // lean
-    const leanIn = (I.down('KeyE') ? 1 : 0) - (I.down('KeyQ') ? 1 : 0);
+    const leanIn = (I.downA('leanR') ? 1 : 0) - (I.downA('leanL') ? 1 : 0);
     P.lean = U.lerp(P.lean, P.sprint ? 0 : leanIn, Math.min(1, dt * 10));
     S.lean[i] = P.lean;
     // movement
@@ -310,7 +310,7 @@
     // vertical
     const g = W.groundAt(nx, nz);
     const top = g + Math.min(o, 12) * 0.1 * (o > 3 ? 1 : 0);
-    if (I.hit('Space') && P.onGround && P.stance === 0) { P.vy = 4.6; P.onGround = false; }
+    if (I.hitA('jump') && P.onGround && P.stance === 0) { P.vy = 4.6; P.onGround = false; }
     P.vy -= 18 * dt;
     let y = S.y[i] + P.vy * dt;
     const floor = Math.max(g, o > 3 && o <= 12 ? top : g);
@@ -326,12 +326,12 @@
     // interactions
     P.interactPrompt = null;
     P.findInteract(B);
-    if (I.hit('KeyF')) P.interact(B);
+    if (I.hitA('interact')) P.interact(B);
     if (P.reviveTgt >= 0) {
-      if (!I.down('KeyF') || S.st[P.reviveTgt] !== ST.DOWNED || U.dist2(S.x[P.reviveTgt], S.z[P.reviveTgt], S.x[i], S.z[i]) > 9) { P.reviveTgt = -1; P.reviveT = 0; }
+      if (!I.downA('interact') || S.st[P.reviveTgt] !== ST.DOWNED || U.dist2(S.x[P.reviveTgt], S.z[P.reviveTgt], S.x[i], S.z[i]) > 9) { P.reviveTgt = -1; P.reviveT = 0; }
       else { P.reviveT += dt; const need = P.cls.id === 'medic' ? 1.8 : 4.5; P.reviveProg = P.reviveT / need; if (P.reviveT >= need) { IF.AI.revive(B, P.reviveTgt, P.idx); P.reviveTgt = -1; P.reviveT = 0; } }
     }
-    if (I.hit('KeyT')) P.spot(B);
+    if (I.hitA('spot')) P.spot(B);
     // supply crates & ammo near HQ / supply trucks
     P.resupplyCheck(B, dt);
     P.weaponsUpdate(B, dt);
@@ -349,7 +349,7 @@
     // downed friendlies
     for (const j of B.downed[B.playerTeam]) {
       if (j === i || S.st[j] !== ST.DOWNED) continue;
-      if (U.dist2(S.x[j], S.z[j], x, z) < 2.6 * 2.6) { P.interactPrompt = { kind: 'revive', j, text: 'Hold F to revive' }; return; }
+      if (U.dist2(S.x[j], S.z[j], x, z) < 2.6 * 2.6) { P.interactPrompt = { kind: 'revive', j, text: 'Hold ' + I.label('interact') + ' to revive' }; return; }
     }
     let best = null, bd = 1e9;
     for (const v of B.activeVeh) {
@@ -363,10 +363,10 @@
     }
     if (best) {
       const empty = best.crew.length === 0;
-      P.interactPrompt = { kind: 'vehicle', v: best, text: 'F — ' + (empty ? 'Drive ' : 'Board ') + best.T.name + (best.team < 0 ? ' (abandoned)' : '') };
+      P.interactPrompt = { kind: 'vehicle', v: best, text: I.label('interact') + ' — ' + (empty ? 'Drive ' : 'Board ') + best.T.name + (best.team < 0 ? ' (abandoned)' : '') };
       return;
     }
-    for (const s of B.supply) if (U.dist2(s.x, s.z, x, z) < 3 * 3) { P.interactPrompt = { kind: 'supply', s, text: 'F — Resupply from crate' }; return; }
+    for (const s of B.supply) if (U.dist2(s.x, s.z, x, z) < 3 * 3) { P.interactPrompt = { kind: 'supply', s, text: I.label('interact') + ' — Resupply from crate' }; return; }
   };
   P.interact = function (B) {
     const ip = P.interactPrompt;
@@ -426,7 +426,7 @@
   P.weaponsUpdate = function (B, dt) {
     const S = B.S, W = B.W;
     // slot switching
-    for (let k = 0; k < P.weapons.length; k++) if (I.hit('Digit' + (k + 1)) && k !== P.slot) { P.slot = k; P.switchT = 0.55; P.reloadT = 0; P.binoc = false; IF.SFX.reload(1); }
+    for (let k = 0; k < P.weapons.length; k++) if (I.hitA('weapon' + (k + 1)) && k !== P.slot) { P.slot = k; P.switchT = 0.55; P.reloadT = 0; P.binoc = false; IF.SFX.reload(1); }
     if (I.wheel) { P.slot = (P.slot + (I.wheel > 0 ? 1 : P.weapons.length - 1)) % P.weapons.length; P.switchT = 0.55; P.reloadT = 0; }
     const w = P.weapon();
     // ADS
@@ -440,12 +440,12 @@
     if (P.reloadT > 0) {
       P.reloadT -= dt;
       if (P.reloadT <= 0) { const need = w.magMax - w.mag, take = Math.min(need, w.reserve); w.mag += take; w.reserve -= take; IF.SFX.reload(2); }
-    } else if ((I.hit('KeyR') || (w.mag === 0 && I.lmbPressed)) && w.mag < w.magMax && w.reserve > 0) { P.reloadT = w.d.reload * w.reloadMul; IF.SFX.reload(1); }
+    } else if ((I.hitA('reload') || (w.mag === 0 && I.lmbPressed)) && w.mag < w.magMax && w.reserve > 0) { P.reloadT = w.d.reload * w.reloadMul; IF.SFX.reload(1); }
     // gadgets & throwables
-    if (I.hit('KeyG')) P.throwGrenade(B, false);
-    if (I.hit('Digit5') || I.hit('KeyX')) P.useSecondaryGadget(B);
-    const gadgetKey = P.cls.gadget === 'launcher' ? null : 'Digit4';
-    if (gadgetKey && I.down(gadgetKey)) P.gadget(B, dt, I.hit(gadgetKey)); else { if (P.binoc && !I.down('Digit4')) P.binoc = false; P.repairing = false; }
+    if (I.hitA('grenade')) P.throwGrenade(B, false);
+    if (I.hitA('secondary')) P.useSecondaryGadget(B);
+    const gadgetKey = P.cls.gadget === 'launcher' ? null : I.code('gadget');
+    if (gadgetKey && I.down(gadgetKey)) P.gadget(B, dt, I.hit(gadgetKey)); else { if (P.binoc && !I.downA('gadget')) P.binoc = false; P.repairing = false; }
     if (P.binoc) { if (I.lmbPressed) P.callArtillery(B); return; }
     // firing
     if (P.switchT > 0 || P.reloadT > 0) return;
@@ -618,7 +618,7 @@
     S.st[P.idx] = ST.MOUNTED; S.veh[P.idx] = v.id;
     P.yaw = v.yaw; P.pitch = -0.1; P.ads = 0;
     P.vehWeapon = 0;
-    P.message((P.seat === 'driver' ? 'Driving ' : 'Riding in ') + v.T.name + ' — F to exit' + (v.T.air ? ', SPACE/CTRL altitude' : ''));
+    P.message((P.seat === 'driver' ? 'Driving ' : 'Riding in ') + v.T.name + ' — ' + I.label('interact') + ' to exit' + (v.T.air ? ', ' + I.label('jump') + '/' + I.label('descend') + ' altitude' : ''));
   };
   P.exitVehicle = function (force) {
     const B = P.B, S = B.S, v = P.veh;
@@ -643,18 +643,18 @@
     const v = P.veh, S = B.S;
     if (v.state !== 'active' && v.state !== 'abandoned') { P.exitVehicle(true); return; }
     P.look(dt, 0.9);
-    if (I.hit('KeyF')) { P.exitVehicle(false); return; }
+    if (I.hitA('interact')) { P.exitVehicle(false); return; }
     S.x[P.idx] = v.x; S.y[P.idx] = v.y + 1; S.z[P.idx] = v.z;
     P.hp = 100; S.hp[P.idx] = 100;
     if (P.seat === 'driver') {
-      const th = (I.down('KeyW') ? 1 : 0) - (I.down('KeyS') ? 1 : 0);
-      const st = (I.down('KeyA') ? 1 : 0) - (I.down('KeyD') ? 1 : 0);
+      const th = (I.downA('forward') ? 1 : 0) - (I.downA('back') ? 1 : 0);
+      const st = (I.downA('left') ? 1 : 0) - (I.downA('right') ? 1 : 0);
       if (v.T.air) {
-        const up = (I.down('Space') ? 1 : 0) - (I.down('ControlLeft') || I.down('KeyC') ? 1 : 0);
-        const strafe = (I.down('KeyE') ? 1 : 0) - (I.down('KeyQ') ? 1 : 0);
+        const up = (I.downA('jump') ? 1 : 0) - (I.downA('descend') ? 1 : 0);
+        const strafe = (I.downA('leanR') ? 1 : 0) - (I.downA('leanL') ? 1 : 0);
         IF.Vehicles.fly(B, v, th, strafe, st, up + 0.02, dt);
       } else {
-        const brake = I.down('Space');
+        const brake = I.downA('jump');
         IF.Vehicles.drive(B, v, brake ? 0 : th, st, dt);
         if (brake) v.spd *= Math.pow(0.1, dt);
       }
@@ -669,8 +669,8 @@
   };
   P.vehWeapons = function (B, v, dt) {
     const T = v.T;
-    if (I.hit('Digit1')) P.vehWeapon = 0;
-    if (I.hit('Digit2') && (T.mg || T.gun === 'heligun')) P.vehWeapon = 1;
+    if (I.hitA('weapon1')) P.vehWeapon = 0;
+    if (I.hitA('weapon2') && (T.mg || T.gun === 'heligun')) P.vehWeapon = 1;
     if (!T.gun || T.gun === 'howitzer' && false) return;
     const aligned = Math.abs(U.angDiff(v.turretYaw, P.yaw)) < 0.06 || T.air;
     if (T.gun === 'howitzer') {
