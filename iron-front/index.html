@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OPERATION: IRON FRONT</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23161a14'/%3E%3Cpath d='M32 8 L56 20 V36 C56 48 44 56 32 60 C20 56 8 48 8 36 V20 Z' fill='none' stroke='%23c8b47a' stroke-width='5'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<canvas id="game"></canvas>
+<canvas id="overlay"></canvas>
+
+<!-- ================= HUD ================= -->
+<div id="hud" class="hidden">
+  <div id="nvg"></div>
+  <div id="vignette"></div>
+  <div id="scope" class="hidden"><div class="reticle"></div></div>
+  <div id="binoc" class="hidden"><div class="lens"></div><div class="lens"></div><div class="binoc-info" id="binocInfo">BINOCULARS — LMB: call artillery</div></div>
+
+  <div id="topbar">
+    <div class="tk tk-friend"><span id="tkFriendName">COALITION</span><b id="tkFriend">1000</b><i id="tkFriendBar"></i></div>
+    <div id="objRow"></div>
+    <div class="tk tk-enemy"><b id="tkEnemy">1000</b><span id="tkEnemyName">PACT</span><i id="tkEnemyBar"></i></div>
+  </div>
+  <div id="phase">INITIAL DEPLOYMENT</div>
+  <canvas id="compass" width="460" height="34"></canvas>
+
+  <div id="mapbox"><canvas id="minimap" width="210" height="210"></canvas><div id="gridref"></div></div>
+  <div id="squadbox"></div>
+
+  <div id="killfeed"></div>
+  <div id="radiolog"></div>
+
+  <div id="statusbox">
+    <div id="hpwrap"><div id="hpbar"></div><span id="hptext">100</span></div>
+    <div id="stance">STANDING</div>
+    <div id="forces"></div>
+  </div>
+  <div id="weaponbox">
+    <div id="wname">M4A1</div>
+    <div id="ammo"><b id="mag">30</b><span id="reserve">/ 150</span></div>
+    <div id="gadgets"></div>
+  </div>
+  <div id="vehbox" class="hidden">
+    <div id="vname"></div>
+    <div id="vhpwrap"><div id="vhpbar"></div></div>
+    <div id="vinfo"></div>
+  </div>
+  <div id="prompt"></div>
+  <div id="messages"></div>
+  <div id="xppops"></div>
+  <div id="cmdmenu" class="hidden"></div>
+  <div id="downed" class="hidden"><h2>YOU ARE DOWN</h2><p id="downedTxt">Wait for a medic — or press SPACE to give up</p><div class="bar"><i id="downedBar"></i></div></div>
+  <div id="eventbanner"></div>
+  <div id="perf"></div>
+</div>
+
+<div id="tacmap" class="hidden">
+  <canvas id="tacCanvas"></canvas>
+  <div id="tacLegend">
+    <h3>TACTICAL MAP</h3>
+    <div id="tacInfo"></div>
+    <div class="legend"><span class="lg f"></span>Friendly <span class="lg e"></span>Enemy (detected) <span class="lg v"></span>Vehicle <span class="lg fr"></span>Frontline</div>
+    <div class="hint">M — close</div>
+  </div>
+</div>
+
+<div id="scoreboard" class="hidden"></div>
+
+<div id="deploy" class="hidden">
+  <div class="deploy-left">
+    <h2 id="deployTitle">DEPLOY</h2>
+    <p id="deploySub">Choose where to enter the battle.</p>
+    <div id="deployList"></div>
+    <div class="deploy-class">
+      <label>Class</label><div id="deployClasses"></div>
+    </div>
+    <button id="deployBtn" class="btn primary">DEPLOY</button>
+    <div id="deployTimer"></div>
+  </div>
+  <canvas id="deployMap"></canvas>
+</div>
+
+<div id="pause" class="hidden">
+  <div class="panel">
+    <h2>PAUSED</h2>
+    <p class="muted">The battle is frozen while you are away.</p>
+    <button class="btn primary" id="btnResume">RESUME</button>
+    <button class="btn" id="btnPauseControls">CONTROLS</button>
+    <button class="btn" id="btnPauseSettings">SETTINGS</button>
+    <button class="btn danger" id="btnQuit">QUIT TO MENU</button>
+  </div>
+</div>
+
+<div id="endscreen" class="hidden"><div class="panel wide" id="endPanel"></div></div>
+<div id="loading" class="hidden"><div class="panel"><h2>OPERATION: IRON FRONT</h2><p id="loadTxt">Generating battlefield…</p><div class="bar"><i id="loadBar"></i></div><p class="tip" id="loadTip"></p></div></div>
+<div id="clickToPlay" class="hidden">CLICK TO RESUME</div>
+
+<!-- ================= MAIN MENU ================= -->
+<div id="menu">
+  <div class="menu-bg"></div>
+  <div class="menu-wrap">
+    <header>
+      <div class="logo"><span class="op">OPERATION:</span><span class="iron">IRON FRONT</span></div>
+      <div class="tagline">2,000 soldiers. One of them is you.</div>
+    </header>
+    <nav id="menuTabs">
+      <button data-tab="battle" class="active">START BATTLE</button>
+      <button data-tab="army">CHOOSE ARMY</button>
+      <button data-tab="class">SOLDIER CLASS</button>
+      <button data-tab="difficulty">DIFFICULTY</button>
+      <button data-tab="graphics">GRAPHICS</button>
+      <button data-tab="controls">CONTROLS</button>
+      <button data-tab="stats">STATISTICS</button>
+    </nav>
+    <section id="menuBody"></section>
+    <footer id="menuFooter"></footer>
+  </div>
+</div>
+
+<script src="vendor/three.min.js"></script>
+<script src="js/core/util.js"></script>
+<script src="js/core/config.js"></script>
+<script src="js/core/save.js"></script>
+<script src="js/world/world.js"></script>
+<script src="js/world/mapgen.js"></script>
+<script src="js/sim/core.js"></script>
+<script src="js/sim/combat.js"></script>
+<script src="js/sim/ai.js"></script>
+<script src="js/sim/vehicles.js"></script>
+<script src="js/sim/commander.js"></script>
+<script src="js/sim/battle.js"></script>
+<script src="js/render/scene.js"></script>
+<script src="js/render/geo.js"></script>
+<script src="js/render/worldRender.js"></script>
+<script src="js/render/soldierRender.js"></script>
+<script src="js/render/vehicleRender.js"></script>
+<script src="js/render/effects.js"></script>
+<script src="js/render/viewmodel.js"></script>
+<script src="js/audio/audio.js"></script>
+<script src="js/player/input.js"></script>
+<script src="js/player/player.js"></script>
+<script src="js/ui/hud.js"></script>
+<script src="js/ui/tacmap.js"></script>
+<script src="js/ui/menu.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
