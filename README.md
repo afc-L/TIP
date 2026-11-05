@@ -1,3 +1,5 @@
+> **Also in this repo:** [MECH ARENA ZERO](mech-arena-zero/README.md) — a 3D mech combat game (Three.js + Vite) in `mech-arena-zero/`.
+
 # Steel & Blood
 
 A browser-based, physics-driven medieval sword fighting game inspired by *Half Sword*.
