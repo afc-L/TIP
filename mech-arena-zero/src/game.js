@@ -75,7 +75,7 @@ export class Game {
 
     this.mechs = []; this.structures = []; this.targets = []; this.drones = []; this.pickups = []; this.waves = []; this.timers = []; this.domes = [];
     this.squads = [new Squad(this, 0, this.difficulty), new Squad(this, 1, this.difficulty)];
-    this.matchStats = { kills: 0, damage: 0, damageTaken: 0, crits: 0, shots: 0, hits: 0, weaponDamage: {}, abilities: 0, killsByType: {}, captures: 0, deaths: 0, dmgByType: {} };
+    this.matchStats = { kills: 0, damage: 0, damageTaken: 0, crits: 0, shots: 0, hits: 0, weaponDamage: {}, abilities: 0, killsByType: {}, captures: 0, deaths: 0, dmgByType: {}, meleeHits: 0, meleeKills: 0 };
     this.pickupT = 25;
     // threat scaling: enemies grow modestly with player's upgrades so progression doesn't trivialize the game
     this.threat = 1 + Math.min(0.2, upgradeTotal() * 0.0075) + Math.max(0, profile.level - 10) * 0.005;
@@ -191,6 +191,8 @@ export class Game {
     }
     return best;
   }
+  hitStop(t) { this.hitStopT = Math.max(this.hitStopT || 0, t); }
+  meleeHit() { this.matchStats.meleeHits++; }
   spawnDrone(owner, life) { this.drones.push(new Drone(this, owner, life)); }
   spawnDome(owner, dur) {
     const m = new THREE.Mesh(new THREE.SphereGeometry(12, 20, 12), new THREE.MeshBasicMaterial({ color: owner.model.P.glowColor, transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
@@ -309,6 +311,7 @@ export class Game {
       if (target.model) target.model.flash(clamp(toArmor / 80, 0.3, 1.2));
     }
     const total = toShield + toArmor;
+    if (source && opts.weapon) target.lastWeapon = opts.weapon;
     if (target.isMech) { target.shieldDelayT = target.stats.shieldDelay; target.recentDamage += total; target.lastHitBy = source; target.lastHitTime = this.time; }
     else target.lastHitBy = source;
     // stats & feedback
@@ -353,6 +356,7 @@ export class Game {
       this.matchStats.kills++;
       const tid = victim.enemyType || 'assault';
       this.matchStats.killsByType[tid] = (this.matchStats.killsByType[tid] || 0) + 1;
+      if (WEAPONS[victim.lastWeapon] && WEAPONS[victim.lastWeapon].kind === 'melee') this.matchStats.meleeKills++;
       this.sound('kill', null, 0.8);
       if (!victim.isBoss) {
         this.contract('kills', 1);
@@ -424,6 +428,7 @@ export class Game {
   update(dt) {
     if (this.paused) return;
     dt = Math.min(dt, 1 / 20);
+    if (this.hitStopT > 0) { this.hitStopT -= dt; dt *= 0.15; }
     this.frame++;
     this.time += dt;
     // timers
@@ -603,7 +608,7 @@ export class Game {
     s.matches++; if (r.win) s.wins++; else s.losses++;
     s.kills += this.matchStats.kills; s.deaths += this.matchStats.deaths;
     s.damage += Math.round(this.matchStats.damage); s.damageTaken += Math.round(this.matchStats.damageTaken);
-    s.crits += this.matchStats.crits; s.shotsFired += this.matchStats.shots; s.shotsHit += this.matchStats.hits;
+    s.crits += this.matchStats.crits; s.meleeKills = (s.meleeKills || 0) + this.matchStats.meleeKills; s.shotsFired += this.matchStats.shots; s.shotsHit += this.matchStats.hits;
     s.playTime += this.time;
     s.mechUse[this.player.frame.id] = (s.mechUse[this.player.frame.id] || 0) + 1;
     for (const [w, d] of Object.entries(this.matchStats.weaponDamage)) s.weaponDamage[w] = Math.round((s.weaponDamage[w] || 0) + d);
@@ -617,6 +622,7 @@ export class Game {
     if (r.win) this.contract('wins', 1);
     for (const [t, d] of Object.entries(this.matchStats.dmgByType)) this.contract('dmg_' + t, Math.round(d));
     if (this.matchStats.crits) this.contract('crits', this.matchStats.crits);
+    if (this.matchStats.meleeHits) this.contract('meleeHits', this.matchStats.meleeHits);
     profile.credits += credits; profile.rp += rp;
     const levelBefore = profile.level;
     const ups = addXp(xp);

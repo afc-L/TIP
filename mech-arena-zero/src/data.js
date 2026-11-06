@@ -157,7 +157,36 @@ export const WEAPONS = {
     desc: 'Experimental heat-based rail that pierces through multiple targets.',
   },
 };
-export const WEAPON_ORDER = ['pulse', 'missile', 'arc', 'scatter', 'gauss', 'plasma', 'rail', 'mortar', 'ion', 'tempest', 'photon'];
+// ---- Melee: swing on fire. `reach` is the hit range, `lunge` the distance the mech dashes in to close on a target.
+// windup/active/recover are swing phases (s); `arc` is the hit cone (radians).
+Object.assign(WEAPONS, {
+  blade: {
+    id: 'blade', name: 'Plasma Blade', cat: 'Melee · Energy Sword', dmgType: 'energy', kind: 'melee', style: 'slash',
+    dmg: 95, rate: 1.6, reach: 8.5, lunge: 20, arc: 2.2, windup: 0.1, active: 0.14, recover: 0.2, deflect: true,
+    range: 28, weight: 6, color: 0x5ce8ff, size: 0.3, sound: 'swing', level: 2, cost: 1800,
+    desc: 'Fast sweeping slashes with a lunge. The blade burns enemy bolts out of the air mid-swing.',
+  },
+  claws: {
+    id: 'claws', name: 'Thermal Claws', cat: 'Melee · Rapid Strikes', dmgType: 'impact', kind: 'melee', style: 'claw',
+    dmg: 42, rate: 3.6, reach: 7, lunge: 16, arc: 1.8, windup: 0.05, active: 0.09, recover: 0.08, burn: 14,
+    range: 22, weight: 5, color: 0xff8a3d, size: 0.3, sound: 'swing', level: 3, cost: 2200,
+    desc: 'A blur of superheated claw strikes that leave targets burning for 2s. Best on light frames.',
+  },
+  hammer: {
+    id: 'hammer', name: 'Seismic Hammer', cat: 'Melee · Heavy Impact', dmgType: 'impact', kind: 'melee', style: 'smash',
+    dmg: 230, rate: 0.62, reach: 9, lunge: 14, arc: 2.6, windup: 0.32, active: 0.1, recover: 0.4, aoe: 7, knock: 20, stagger: 1.2,
+    range: 22, weight: 10, color: 0xffd166, size: 0.3, sound: 'swing', level: 4, cost: 3500,
+    desc: 'Slow overhead smash that cracks the ground, hitting everything nearby and staggering targets.',
+  },
+  lance: {
+    id: 'lance', name: 'Arc Lance', cat: 'Melee · Charging Thrust', dmgType: 'precision', kind: 'melee', style: 'thrust',
+    dmg: 165, rate: 0.9, reach: 11, lunge: 32, arc: 0.7, windup: 0.16, active: 0.16, recover: 0.28, pierce: true,
+    range: 42, weight: 8, color: 0xc792ff, size: 0.3, sound: 'swing', level: 6, cost: 4200,
+    desc: 'Long-reach thrust with the longest lunge. A narrow strike that pierces every mech in its line.',
+  },
+});
+export const MELEE_ORDER = ['blade', 'claws', 'hammer', 'lance'];
+export const WEAPON_ORDER = ['pulse', 'missile', 'arc', 'scatter', 'gauss', 'plasma', 'rail', 'mortar', 'blade', 'claws', 'hammer', 'lance', 'ion', 'tempest', 'photon'];
 
 // ---------------------------------------------------------------------------
 // Special equipment (active modules, keys 1-4 select, Q activates)
@@ -253,6 +282,7 @@ export const ENEMY_TYPES = {
   flanker: { name: 'Flanker', frame: 'viper', weapons: ['scatter', 'gauss'], role: 'flanker', armor: 'standard', mobility: 'dash', equip: ['boost'], weak: 'Watch your back. Fragile when caught in the open.' },
   heavy: { name: 'Juggernaut', frame: 'juggernaut', weapons: ['gauss', 'mortar'], role: 'tank', armor: 'reinforced', mobility: 'heavy', equip: ['repair'], weak: 'Very slow. Flank it — mortars cannot hit you up close.' },
   elite: { name: 'Elite', frame: 'apex', weapons: ['rail', 'arc'], role: 'elite', armor: 'adaptive', mobility: 'dash', equip: ['aegis', 'repair'], weak: 'Adapts its tactics. Bait its abilities, then punish.' },
+  brawler: { name: 'Brawler', frame: 'striker', weapons: ['blade', 'scatter'], role: 'brawler', armor: 'reinforced', mobility: 'dash', equip: ['aegis'], weak: 'Lethal up close. Keep your distance and punish its lunge with burst damage.' },
   wraith: { name: 'Specter', frame: 'wraith', weapons: ['ion', 'plasma'], role: 'flanker', armor: 'energy', mobility: 'standard', equip: ['boost'], weak: 'Blinks behind you. Impact weapons hurt it most.' },
 };
 
@@ -360,6 +390,9 @@ export const CHALLENGES = [
   { id: 'whiteout', name: 'Whiteout', arena: 'frozen', level: 8, diff: 'hard',
     desc: 'A blizzard cuts visibility to almost nothing. Flankers hunt you in the fog.',
     enemies: ['flanker', 'flanker', 'scout', 'flanker', 'assault'], maxAlive: 3, mods: { fog: 0.25 }, reward: { credits: 3800, rp: 30, xp: 850 } },
+  { id: 'bladework', name: 'Bladework', arena: 'neon', level: 4, diff: 'normal',
+    desc: 'You are issued a Plasma Blade and Thermal Claws. Cut down 5 enemies, two Brawlers among them.',
+    enemies: ['scout', 'brawler', 'assault', 'brawler', 'flanker'], maxAlive: 2, mods: { forceWeapons: ['blade', 'claws'] }, reward: { credits: 2600, rp: 20, xp: 650 } },
   { id: 'gauntlet', name: 'The Gauntlet', arena: 'orbital', level: 15, diff: 'expert',
     desc: 'Three Elites with Support cover. The ultimate test.',
     enemies: ['elite', 'support', 'elite', 'support', 'elite'], maxAlive: 3, mods: {}, reward: { credits: 8000, rp: 80, xp: 1800 } },
@@ -391,6 +424,7 @@ export const ACHIEVEMENTS = {
   challenger: { name: 'Challenger', desc: 'Complete 5 challenge missions.', reward: 2500 },
   challenge_master: { name: 'Challenge Master', desc: 'Complete every challenge mission.', reward: 8000 },
   daily_op: { name: 'On Duty', desc: 'Complete a Daily Operation.', reward: 1000 },
+  duelist: { name: 'Duelist', desc: 'Destroy 25 enemy mechs with melee weapons.', reward: 2500 },
   demolisher: { name: 'Demolisher', desc: 'Deal 250,000 total damage.', reward: 4000 },
 };
 
@@ -424,6 +458,7 @@ export const CONTRACT_POOL = [
   { id: 'wins', text: 'Win {n} matches', n: [2, 3], reward: 1000, stat: 'wins' },
   { id: 'wave', text: 'Clear {n} survival waves', n: [6, 10], reward: 900, stat: 'waves' },
   { id: 'abilities', text: 'Use your mech ability {n} times', n: [6, 10], reward: 600, stat: 'abilities' },
+  { id: 'melee', text: 'Land {n} melee hits', n: [15, 25], reward: 750, stat: 'meleeHits' },
   { id: 'crits', text: 'Land {n} critical hits', n: [10, 20], reward: 700, stat: 'crits' },
   { id: 'captures', text: 'Capture {n} control points', n: [3, 5], reward: 900, stat: 'captures' },
 ];

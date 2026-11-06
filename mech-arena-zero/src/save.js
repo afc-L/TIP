@@ -62,7 +62,7 @@ export function defaultProfile() {
     stats: {
       matches: 0, wins: 0, losses: 0, kills: 0, deaths: 0, bossKills: 0, damage: 0, damageTaken: 0,
       bestWave: 0, crits: 0, playTime: 0, mechUse: {}, weaponDamage: {}, shotsFired: 0, shotsHit: 0,
-      modePlays: {},
+      modePlays: {}, meleeKills: 0,
     },
     daily: null,
     settings: defaultSettings(),
@@ -277,6 +277,7 @@ export function checkAchievements(extra = {}) {
   award('challenger', Object.keys(profile.challenges).length >= 5);
   award('challenge_master', CHALLENGES.every((c) => profile.challenges[c.id]));
   award('daily_op', !!extra.dailyDone);
+  award('duelist', (s.meleeKills || 0) >= 25);
   award('demolisher', s.damage >= 250000);
   return got;
 }

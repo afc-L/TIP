@@ -346,6 +346,13 @@ export class Mech {
     if (this.energyDelayT <= 0) this.energy = Math.min(st.maxEnergy, this.energy + st.energyRegen * g.energyRegenMul * (this.buffs.servo ? 2 : 1) * dt);
     this.recentDamage = Math.max(0, this.recentDamage - dt * 40);
 
+    // burning (Thermal Claws)
+    if (this.burn) {
+      this.burn.t -= dt;
+      g.applyDamage(this, this.burn.dps * dt, 'energy', this.burn.src, null, { silent: true, weapon: 'claws' });
+      if (Math.random() < 0.5) g.effects.trail(this.center(_v).add(_w.set(rand(-1, 1), rand(-1, 1.5), rand(-1, 1)).multiplyScalar(this.radius)), 0xff7a20, 1.2, 0.4);
+      if (this.burn && this.burn.t <= 0) this.burn = null;
+    }
     // hazard
     const hz = g.arena.hazardAt(this.pos.x, this.pos.z, this.pos.y);
     if (hz) {

@@ -18,6 +18,7 @@ export const ROLES = {
   tank: { range: [22, 45], tactics: { push: 3, strafe: 1 }, retreat: 0, aggression: 1, jumpy: 0.05 },
   support: { range: [35, 60], tactics: { support: 4, cover: 1 }, retreat: 0.4, aggression: 0.4, jumpy: 0.2, heals: true },
   flanker: { range: [10, 24], tactics: { flank: 4, orbit: 1.5 }, retreat: 0.3, aggression: 0.85, jumpy: 0.5 },
+  brawler: { range: [4, 11], tactics: { push: 3, flank: 2, orbit: 1 }, retreat: 0.2, aggression: 1, jumpy: 0.45 },
   elite: { range: [20, 45], tactics: { strafe: 1.5, flank: 1.5, cover: 1.5, push: 1, orbit: 1 }, retreat: 0.25, aggression: 0.9, jumpy: 0.5, adaptive: true },
 };
 
@@ -461,7 +462,7 @@ export class AIController {
     if (I.move.length() > 1) I.move.normalize();
     // sprint when travelling far without a fight, or retreating
     const far = m.pos.distanceTo(this.goal) > 30;
-    I.sprint = (far && !this.visible) || (this.tactic === 'retreat' && far) || (this.tactic === 'flank' && far && m.energy > 50);
+    I.sprint = (this.roleId === 'brawler' && m.pos.distanceTo(this.goal) > 14 && m.energy > 25) || (far && !this.visible) || (this.tactic === 'retreat' && far) || (this.tactic === 'flank' && far && m.energy > 50);
     // stuck detection
     this.stuckCheck -= dt;
     if (this.stuckCheck <= 0) {
@@ -532,6 +533,7 @@ export class AIController {
     for (let s = 0; s < m.weapons.length; s++) {
       const w = m.weapons[s], wd = w.def;
       if (dd > wd.range * 0.95) continue;
+      if (wd.kind === 'melee' && dd > wd.lunge + wd.reach - 2) continue;
       if (wd.pellets && dd > 38) continue;
       if (wd.kind === 'lob' && dd < 22) continue;
       if (wd.kind === 'missile' && dd < 12) continue;

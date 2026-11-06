@@ -75,6 +75,11 @@ have to trade some things off to fit others.
 - **Weapons (11):** Pulse Cannon, Swarm Pod (homing missiles), Arc Repeater, Scatter Blaster,
   Gauss Autocannon, Plasma Launcher, Rail Lance, Nova Mortar, and the experimental Ion Lance (beam),
   Tempest Array and Photon Rail (piercing). Weapons use either a heat system or magazines with reloads.
+- **Melee weapons (4):** Plasma Blade (fast slashes, burns enemy bolts out of the air), Thermal
+  Claws (rapid strikes that set targets burning), Seismic Hammer (overhead smash that hits and
+  staggers everything nearby) and Arc Lance (long-reach piercing thrust). They go in either weapon
+  slot. Swinging lunges you toward the enemy nearest your crosshair. Enemy **Brawlers** use blades
+  too, with a slower wind-up and a lunge cooldown so you can dash out of the way.
 - **Damage types:** Energy (+25% vs shields), Impact (+20% vs armor), Explosive (splash, −15% vs
   shields), Precision (×1.6 cockpit crits).
 - **Armor (5):** standard, reinforced, lightweight, energy-resistant, adaptive (experimental).

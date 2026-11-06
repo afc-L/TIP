@@ -36,6 +36,7 @@ export class WeaponInstance {
       else if (this.coolDelay <= 0) this.heat = Math.max(0, this.heat - (this.overheated ? 34 : 42) * dt);
       if (this.overheated && this.heat <= 20 && !(this.ventT > 0)) this.overheated = false;
     }
+    if (this.swing) this._updateSwing(dt, game);
     if (this.salvoLeft > 0) {
       this.salvoT -= dt;
       while (this.salvoLeft > 0 && this.salvoT <= 0) {
@@ -65,6 +66,7 @@ export class WeaponInstance {
       if (this.heat >= 100) { this.heat = 100; this.overheated = true; if (o.isPlayer) game.sound('overheat', o.pos, 0.8); }
     }
     this.shots++;
+    if (d.kind === 'melee') { this._startSwing(game, lockTarget); return true; }
     if (d.kind === 'missile') {
       this.salvoLeft = d.salvo; this.salvoT = 0; this.salvoAim.copy(aim); this.salvoTarget = lockTarget;
       this.update(0, game);
@@ -100,8 +102,155 @@ export class WeaponInstance {
     game.effects.muzzle(muzzle, d.color, d.kind === 'hitscan' ? 1.6 : d.pellets ? 1.4 : 1);
     game.sound(d.sound, muzzle, o.isPlayer ? 0.7 : 0.55);
   }
+  // ------------------------------------------------------------------ melee
+  _meleeTarget(game, lock) {
+    const o = this.owner, d = this.def;
+    const maxD = d.lunge + d.reach;
+    const eye = o.eye(_a);
+    const aimDir = _d.subVectors(o.intent.aim, eye).setY(0).normalize();
+    let best = null, bestScore = Infinity;
+    for (const t of game.targets) {
+      if (!t.alive || t.team === o.team || t.team === 2 || t.intangible || (t.cloaked && t !== lock)) continue;
+      const dx = t.pos.x - o.pos.x, dz = t.pos.z - o.pos.z;
+      const dist = Math.hypot(dx, dz) - t.radius;
+      if (dist > maxD || Math.abs(t.pos.y - o.pos.y) > 8) continue;
+      const ang = Math.acos(clamp((dx * aimDir.x + dz * aimDir.z) / (Math.hypot(dx, dz) || 1), -1, 1));
+      if (ang > (t === lock ? 0.9 : 0.5)) continue;
+      if (!game.arena.lineOfSight(eye, t.center(_b))) continue;
+      const score = ang * 40 + dist * 0.5 - (t === lock ? 30 : 0);
+      if (score < bestScore) { bestScore = score; best = t; }
+    }
+    return best;
+  }
+  _startSwing(game, lock) {
+    const o = this.owner, d = this.def;
+    const ai = !o.isPlayer;
+    const speed = o.fireRateMul() * (ai ? 0.6 : 1); // AI swings are telegraphed: a slower, readable wind-up
+    if (ai) this.cd /= 0.6;
+    this.combo = ((this.combo || 0) + 1) % 2;
+    // AI swings can whiff; better pilots miss less, and fast-moving targets are harder to catch
+    const missBase = { easy: 0.45, normal: 0.3, hard: 0.18, expert: 0.1 }[game.difficulty] ?? 0.3;
+    this.swing = { t: 0, speed, hit: new Set(), struck: false, target: null, miss: ai ? missBase : 0 };
+    const tgt = this._meleeTarget(game, lock);
+    if (tgt) {
+      this.swing.target = tgt;
+      const dx = tgt.pos.x - o.pos.x, dz = tgt.pos.z - o.pos.z;
+      const dist = Math.hypot(dx, dz);
+      o.yaw = Math.atan2(dx, dz);
+      const travel = dist - tgt.radius - d.reach * 0.5;
+      // lunge to close the gap (costs a little energy)
+      const canLunge = o.isPlayer || game.time >= (this.nextLunge || 0);
+      if (travel > 1.5 && o.energy >= 6 && o.dashT <= 0 && canLunge) {
+        if (!o.isPlayer) this.nextLunge = game.time + 3;
+        const v = 58;
+        o.dashT = Math.min(travel / v, 0.55);
+        o.dashVel.set(dx / dist * v, 0, dz / dist * v);
+        o.energy -= 6; o.energyDelayT = 0.4;
+        game.effects.smokePuff(o.pos, 2.5, 0.5, 0.5, 0.5);
+        game.sound('dash', o.pos, o.isPlayer ? 0.7 : 0.5);
+      }
+    }
+    o.model.meleeSwing(this.slot, d.style, d.windup / speed, d.active / speed, d.recover / speed, this.combo);
+    game.stats_shot(o, this.id);
+  }
+  _updateSwing(dt, game) {
+    const o = this.owner, d = this.def, s = this.swing;
+    s.t += dt * s.speed;
+    // keep facing the target through the swing
+    if (s.target && s.target.alive) o.yaw = Math.atan2(s.target.pos.x - o.pos.x, s.target.pos.z - o.pos.z);
+    const a0 = d.windup, a1 = d.windup + d.active;
+    if (s.t >= a0 && !s.struck) {
+      s.struck = true;
+      game.sound('swing', o.pos, o.isPlayer ? 0.9 : 0.6, d.style === 'smash' ? 0.6 : d.style === 'claw' ? 1.4 : 1);
+      if (d.aoe) this._smash(game);
+    }
+    if (s.t >= a0 && s.t <= a1 + dt) {
+      if (!d.aoe) this._meleeHits(game);
+      if (d.deflect) this._deflect(game);
+      // blade trail
+      const wm = o.model.weaponModels[this.slot];
+      if (wm) {
+        const tip = o.muzzlePos(this.slot, _m), base = wm.getWorldPosition(_b);
+        for (let i = 0; i <= 4; i++) game.effects.trail(_a.copy(base).lerp(tip, 0.3 + i * 0.175), d.color, 1.1 * o.scale, 0.22);
+      }
+    }
+    if (s.t > a1 + d.recover) this.swing = null;
+  }
+  _hit(game, t, dir, mult = 1) {
+    const o = this.owner, d = this.def;
+    const c = t.center(_a);
+    const pt = c.clone().addScaledVector(dir, -t.radius * 0.8);
+    game.applyDamage(t, d.dmg * o.damageMul() * mult, d.dmgType, o, pt, { weapon: d.id, melee: true });
+    game.effects.impact(pt, d.color, d.dmgType, 1.6);
+    game.effects.sparks(pt, 10, 0xffe0a0, 14, 0.35, 0.4);
+    game.sound(d.style === 'smash' ? 'slam' : 'slash', pt, o.isPlayer ? 1 : 0.7);
+    if (d.knock && t.applyKnock) t.applyKnock(_b.copy(dir).setY(0).normalize().multiplyScalar(d.knock).setY(6));
+    if (d.stagger && t.buffs && !t.isBoss) t.buffs.slow = Math.max(t.buffs.slow || 0, d.stagger);
+    if (d.burn && t.isMech) t.burn = { dps: d.burn * o.damageMul(), t: 2, src: o };
+    if (o.isPlayer) { game.hitStop(d.style === 'smash' ? 0.09 : 0.05); game.effects.addShake(d.style === 'smash' ? 0.5 : 0.2); game.meleeHit(); }
+  }
+  _meleeHits(game) {
+    const o = this.owner, d = this.def, s = this.swing;
+    const fx = Math.sin(o.yaw), fz = Math.cos(o.yaw);
+    const oy = o.pos.y + o.height * 0.55;
+    const reach = d.reach * Math.max(1, o.scale * 0.8);
+    for (const t of game.targets) {
+      if (!t.alive || t.team === o.team || t.intangible || s.hit.has(t)) continue;
+      const dx = t.pos.x - o.pos.x, dz = t.pos.z - o.pos.z;
+      const hd = Math.hypot(dx, dz);
+      if (hd - t.radius > reach) continue;
+      const cy = t.pos.y + t.height * 0.5;
+      if (Math.abs(cy - oy) > reach * 0.7 + t.height * 0.5) continue;
+      const ang = Math.acos(clamp((dx * fx + dz * fz) / (hd || 1), -1, 1));
+      if (ang > d.arc / 2 && hd > t.radius + o.radius) continue;
+      s.hit.add(t);
+      if (s.miss) {
+        const evasive = t.vel ? Math.hypot(t.vel.x, t.vel.z) / 25 + (t.dashT > 0 ? 0.4 : 0) + (t.onGround === false ? 0.15 : 0) : 0;
+        if (Math.random() < s.miss + evasive) { game.effects.sparks(t.center(_a), 4, d.color, 6, 0.3, 0.25); continue; }
+      }
+      this._hit(game, t, _d.set(dx, 0, dz).normalize().clone());
+    }
+  }
+  _smash(game) {
+    const o = this.owner, d = this.def;
+    const fx = Math.sin(o.yaw), fz = Math.cos(o.yaw);
+    const c = new THREE.Vector3(o.pos.x + fx * d.reach * 0.6, o.pos.y + 0.3, o.pos.z + fz * d.reach * 0.6);
+    game.effects.explosion(c, 4, d.color, o.isPlayer ? 0.2 : 0.4);
+    game.effects.ring(c, d.aoe * 2.2, d.color, 0.5);
+    for (let i = 0; i < 6; i++) game.effects.smokePuff(c, 3, 1.2, 0.45, 2);
+    for (const t of game.targets) {
+      if (!t.alive || t.team === o.team || t.intangible) continue;
+      const dx = t.pos.x - c.x, dz = t.pos.z - c.z;
+      const hd = Math.hypot(dx, dz) - t.radius;
+      if (hd > d.aoe || t.pos.y > c.y + 6) continue;
+      const mult = hd < d.aoe * 0.4 ? 1 : 0.65;
+      this._hit(game, t, _d.set(t.pos.x - o.pos.x, 0, t.pos.z - o.pos.z).normalize().clone(), mult);
+    }
+  }
+  _deflect(game) {
+    const o = this.owner, d = this.def;
+    const list = game.projectiles.list;
+    const fx = Math.sin(o.yaw), fz = Math.cos(o.yaw);
+    const oy = o.pos.y + o.height * 0.55;
+    for (let i = list.length - 1; i >= 0; i--) {
+      const p = list[i];
+      if (p.team === o.team || p.lobbed) continue;
+      const dx = p.pos.x - o.pos.x, dz = p.pos.z - o.pos.z, hd = Math.hypot(dx, dz);
+      if (hd > d.reach + 2 || Math.abs(p.pos.y - oy) > d.reach) continue;
+      if ((dx * fx + dz * fz) / (hd || 1) < Math.cos(d.arc / 2)) continue;
+      game.effects.sparks(p.pos, 8, d.color, 10, 0.3, 0.3);
+      game.projectiles._release(p); list.splice(i, 1);
+      game.sound('shieldhit', p.pos, 0.6, 1.4);
+    }
+  }
+
   status() {
     const d = this.def;
+    if (d.kind === 'melee') {
+      if (this.swing) return { label: 'SWING', frac: 1 };
+      const cyc = 1 / (d.rate * this.owner.fireRateMul());
+      return { label: this.cd > 0 ? 'RECOVER' : 'READY', frac: clamp(1 - this.cd / cyc, 0, 1) };
+    }
     if (this.reloadT > 0) return { label: 'RELOADING', frac: 1 - this.reloadT / (d.reload * this.owner.stats.reloadMul), warn: true };
     if (this.usesHeat) return { label: this.overheated ? 'OVERHEAT' : `${Math.round(this.heat)}%`, frac: this.heat / 100, heat: true, warn: this.overheated };
     if (this.usesAmmo) return { label: d.kind === 'missile' ? (this.salvoLeft > 0 ? 'FIRING' : 'READY') : `${this.ammo}/${d.mag}`, frac: this.ammo / d.mag, ammo: true };

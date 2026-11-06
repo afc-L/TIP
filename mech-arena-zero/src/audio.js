@@ -71,6 +71,8 @@ export function sfx(name, vol = 1, pitch = 1) {
     case 'ion': osc('sawtooth', 160 * p, 170 * p, 0.09, 0.07 * vol, t); osc('sine', 1200 * p, 1100 * p, 0.09, 0.04 * vol, t); break;
     case 'explosion': noise(0.9, 0.9 * vol, t, 'lowpass', 1800 * p, 60, 0.7); osc('sine', 90 * p, 30, 0.7, 0.6 * vol, t); break;
     case 'bigexplosion': noise(1.8, 1.0 * vol, t, 'lowpass', 1200, 40, 0.6); osc('sine', 60, 22, 1.6, 0.9 * vol, t); noise(0.5, 0.5 * vol, t + 0.1, 'bandpass', 3000, 300, 1); break;
+    case 'swing': noise(0.22, 0.5 * vol, t, 'bandpass', 500 * p, 2600 * p, 1.4); osc('sine', 180 * p, 90 * p, 0.18, 0.12 * vol, t); break;
+    case 'slash': noise(0.18, 0.55 * vol, t, 'highpass', 5000, 1500, 1); osc('sawtooth', 900 * p, 200, 0.16, 0.18 * vol, t); osc('sine', 120, 50, 0.2, 0.35 * vol, t); break;
     case 'hit': osc('square', 1800 * p, 1200 * p, 0.04, 0.08 * vol, t); break;
     case 'crit': osc('square', 2400, 1800, 0.06, 0.12 * vol, t); osc('sine', 3200, 3000, 0.1, 0.08 * vol, t + 0.03); break;
     case 'shieldhit': osc('sine', 1600 * p, 900 * p, 0.12, 0.12 * vol, t); osc('triangle', 2400 * p, 2000 * p, 0.08, 0.05 * vol, t); break;

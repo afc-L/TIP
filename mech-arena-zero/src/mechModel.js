@@ -122,6 +122,35 @@ export function buildWeapon(id, P) {
       add(g, cylG(0.12, 0.12, 1.4, 6), P.hull, 0, 0, 1.2, Z90);
       for (let i = 0; i < 3; i++) add(g, torG(0.28 - i * 0.05, 0.05, 4, 10), P.glow, 0, 0, 1.0 + i * 0.35);
       len = 1.9; break;
+    case 'blade':
+      add(g, boxG(0.45, 0.5, 0.9), P.dark, 0, 0, 0.1);
+      add(g, boxG(1.1, 0.25, 0.3), P.accent, 0, 0, 0.6);
+      add(g, boxG(0.16, 0.6, 4.4), P.glow, 0, 0, 2.9);
+      add(g, boxG(0.08, 0.2, 4.6), P.hull, 0, 0.34, 2.9);
+      add(g, coneG(0.32, 0.8, 4), P.glow, 0, 0, 5.4, Z90, Math.PI / 4);
+      len = 5.6; break;
+    case 'claws':
+      add(g, boxG(0.75, 0.6, 0.8), P.dark, 0, 0, 0.2);
+      for (let i = -1; i <= 1; i++) {
+        add(g, boxG(0.1, 0.22, 1.6), P.hull, i * 0.26, 0.05, 1.3, -0.15, i * 0.12);
+        add(g, coneG(0.1, 0.6, 4), P.glow, i * 0.32, 0.12, 2.35, Z90 - 0.3, 0, -i * 0.12);
+      }
+      add(g, boxG(0.8, 0.12, 0.5), P.glow, 0, 0.36, 0.2);
+      len = 2.5; break;
+    case 'hammer':
+      add(g, cylG(0.13, 0.15, 3.2, 6), P.dark, 0, 0, 1.4, Z90);
+      add(g, boxG(1.9, 1.3, 1.2), P.hull, 0, 0, 3.3);
+      add(g, boxG(2.0, 0.25, 1.25), P.accent, 0, 0.4, 3.3);
+      add(g, boxG(2.0, 0.25, 1.25), P.accent, 0, -0.4, 3.3);
+      add(g, boxG(0.25, 1.0, 1.3), P.glow, 0.95, 0, 3.3);
+      add(g, boxG(0.25, 1.0, 1.3), P.glow, -0.95, 0, 3.3);
+      len = 3.6; break;
+    case 'lance':
+      add(g, boxG(0.6, 0.6, 1.0), P.dark, 0, 0, 0.2);
+      add(g, cylG(0.12, 0.3, 4.6, 6), P.hull, 0, 0, 3.0, Z90);
+      add(g, coneG(0.3, 1.4, 6), P.glow, 0, 0, 5.9, Z90);
+      for (let i = 0; i < 3; i++) add(g, torG(0.4 - i * 0.07, 0.05, 4, 10), P.glow, 0, 0, 1.3 + i * 1.2);
+      len = 6.6; break;
     default:
       add(g, boxG(0.5, 0.5, 1.5), P.dark, 0, 0, 0.5);
   }
@@ -325,6 +354,7 @@ export class MechModel {
   flash(amount = 1) { this.flashT = Math.max(this.flashT, 0.12 * amount); this.hitJolt = Math.min(1, this.hitJolt + 0.5 * amount); }
   hitShield(overshield = false) { this.shieldFlash = 1; this.shieldMat.color.set(overshield ? 0xffd166 : 0x66ddff); }
   fire(slot) { this.recoil[slot] = 1; }
+  meleeSwing(slot, style, w, a, r, combo) { (this.melee || (this.melee = []))[slot] = { style, t: 0, w, a, r, combo }; }
   land(impact) { this.landDip = Math.min(1.2, this.landDip + impact); }
 
   setCloak(alpha) {
@@ -454,8 +484,39 @@ export class MechModel {
       this.recoil[i] = damp(this.recoil[i] || 0, 0, 12, dt);
       const swing = (s.sprint && grounded) ? Math.sin(this.phase + (a.side > 0 ? 0 : Math.PI)) * 0.25 * amp : 0;
       a.shoulder.rotation.x = -s.aimPitch - (this.recoil[i] || 0) * 0.25 + swing;
+      a.shoulder.rotation.y = 0; a.shoulder.rotation.z = 0;
       a.elbow.position.z = -(this.recoil[i] || 0) * 0.25;
     }
+    // melee swing poses override the aim pose
+    let twist = 0;
+    if (this.melee) for (let i = 0; i < this.melee.length; i++) {
+      const m = this.melee[i], a = this.arms[i];
+      if (!m || !a) continue;
+      m.t += dt;
+      const total = m.w + m.a + m.r;
+      if (m.t >= total) { this.melee[i] = null; continue; }
+      const ease = (x) => x * x * (3 - 2 * x);
+      // k: 0..1 windup, 1..2 strike, 2..3 recover
+      const k = m.t < m.w ? m.t / m.w : m.t < m.w + m.a ? 1 + (m.t - m.w) / m.a : 2 + (m.t - m.w - m.a) / m.r;
+      const side = a.side * (m.combo ? -1 : 1);
+      const aim = -s.aimPitch;
+      const seg = (from, mid, to) => k < 1 ? from + (mid - from) * ease(k) : k < 2 ? mid + (to - mid) * ease(k - 1) : to + (from - to) * ease(k - 2);
+      if (m.style === 'slash' || m.style === 'claw') {
+        const amp = m.style === 'claw' ? 0.75 : 1.15;
+        a.shoulder.rotation.y = seg(0, side * amp, -side * amp * 1.1);
+        a.shoulder.rotation.x = seg(aim, aim - 0.55, aim - 0.25);
+        a.shoulder.rotation.z = seg(0, side * 0.35, -side * 0.2);
+        twist += seg(0, side * 0.35, -side * 0.45);
+      } else if (m.style === 'smash') {
+        a.shoulder.rotation.x = seg(aim, -2.4, 0.55);
+        twist += seg(0, 0.15 * a.side, -0.1 * a.side);
+      } else if (m.style === 'thrust') {
+        a.shoulder.rotation.x = aim;
+        a.elbow.position.z = seg(0, -1.1, 2.4);
+        twist += seg(0, a.side * 0.3, -a.side * 0.25);
+      }
+    }
+    this.torso.rotation.y = s.torsoYaw + twist;
     // spinning bits
     for (const sp of this.spin) sp.obj.rotation[sp.axis] += sp.speed * dt;
     // thrusters

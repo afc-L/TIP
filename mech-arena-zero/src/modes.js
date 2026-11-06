@@ -16,11 +16,12 @@ class ModeBase {
 }
 
 // ---------------------------------------------------------------------------
-const TYPE_COST = { scout: 1, assault: 1.2, flanker: 1.2, sniper: 1.4, support: 1.5, tank: 2, wraith: 2, heavy: 2.5, elite: 3 };
+const TYPE_COST = { brawler: 1.4, scout: 1, assault: 1.2, flanker: 1.2, sniper: 1.4, support: 1.5, tank: 2, wraith: 2, heavy: 2.5, elite: 3 };
 function typesForWave(w) {
   const t = ['scout', 'assault'];
   if (w >= 3) t.push('flanker');
   if (w >= 4) t.push('sniper');
+  if (w >= 5) t.push('brawler');
   if (w >= 6) t.push('tank', 'support');
   if (w >= 8) t.push('heavy');
   if (w >= 11) t.push('wraith');
@@ -114,6 +115,7 @@ export class SurvivalMode extends ModeBase {
 const ELIM_POOL_BY_LEVEL = (lvl) => {
   const t = ['assault', 'scout', 'assault'];
   if (lvl >= 3) t.push('flanker', 'sniper');
+  if (lvl >= 4) t.push('brawler');
   if (lvl >= 5) t.push('support', 'tank');
   if (lvl >= 9) t.push('heavy', 'wraith');
   if (lvl >= 13) t.push('elite');

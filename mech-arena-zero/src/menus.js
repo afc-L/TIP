@@ -1,6 +1,6 @@
 // Menu screens (DOM). Every button maps to a real action.
 import {
-  FRAMES, FRAME_ORDER, WEAPONS, WEAPON_ORDER, EQUIPMENT, EQUIP_ORDER, ARMORS, ARMOR_ORDER, MOBILITY, MOBILITY_ORDER,
+  FRAMES, FRAME_ORDER, WEAPONS, WEAPON_ORDER, MELEE_ORDER, EQUIPMENT, EQUIP_ORDER, ARMORS, ARMOR_ORDER, MOBILITY, MOBILITY_ORDER,
   ABILITIES, DAMAGE_TYPES, UPGRADE_BRANCHES, UPGRADE_TIERS, ARENAS, ARENA_ORDER, MODES, MODE_ORDER, ELIM_SIZES,
   CONDITIONS, BOSSES, BOSS_ORDER, CHALLENGES, ACHIEVEMENTS, DIFFICULTIES, DIFF_ORDER, xpForLevel, MAX_LEVEL, ENEMY_TYPES,
 } from './data.js';
@@ -15,6 +15,7 @@ import { fmtNum, fmtTime } from './util.js';
 const root = () => document.getElementById('menu-root');
 
 function weaponDps(w) {
+  if (w.kind === 'melee') return w.dmg * w.rate;
   if (w.kind === 'missile') return (w.dmg * w.salvo) / (w.reload + w.salvo * w.salvoDelay);
   let dps = w.dmg * (w.pellets || 1) * w.rate;
   if (w.mag) { const cycle = w.mag / w.rate + w.reload; dps = (w.dmg * (w.pellets || 1) * w.mag) / cycle; }
@@ -185,7 +186,7 @@ export class Menus {
     const sel = (kind, cur, ids, defs, key) => `<select data-loadout="${key}" ${ownsF ? '' : 'disabled'}>${ids.filter((id) => owns(kind, id)).map((id) => `<option value="${id}" ${id === cur ? 'selected' : ''}>${defs[id].name} (${defs[id].weight >= 0 ? '+' : ''}${defs[id].weight})</option>`).join('')}</select>`;
     const eqSel = (i) => `<select data-loadout="equip${i}" ${ownsF ? '' : 'disabled'}><option value="">— Empty —</option>${EQUIP_ORDER.filter((id) => owns('equip', id)).map((id) => `<option value="${id}" ${l.equip[i] === id ? 'selected' : ''}>${EQUIPMENT[id].name} (+${EQUIPMENT[id].weight})</option>`).join('')}</select>`;
     const ab = ABILITIES[f.ability];
-    const wInfo = (id) => { const d = WEAPONS[id]; return `<div class="winfo"><span style="color:${DAMAGE_TYPES[d.dmgType].color}">${DAMAGE_TYPES[d.dmgType].name}</span> · ~${Math.round(weaponDps(d))} DPS · ${d.range}m</div>`; };
+    const wInfo = (id) => { const d = WEAPONS[id]; return `<div class="winfo"><span style="color:${DAMAGE_TYPES[d.dmgType].color}">${DAMAGE_TYPES[d.dmgType].name}</span> · ~${Math.round(weaponDps(d))} DPS · ${d.kind === 'melee' ? `MELEE ${d.reach}m reach, ${d.lunge}m lunge` : d.range + 'm'}</div>`; };
     let buyBox = '';
     if (!ownsF) {
       const c = canBuy('frame', fid);
@@ -239,15 +240,23 @@ export class Menus {
 
   // ======================================================================
   r_armory() {
-    const tabs = [['weapon', 'WEAPONS'], ['equip', 'SPECIAL EQUIPMENT'], ['armor', 'ARMOR'], ['mobility', 'MOBILITY']];
+    const tabs = [['weapon', 'RANGED WEAPONS'], ['melee', 'MELEE WEAPONS'], ['equip', 'SPECIAL EQUIPMENT'], ['armor', 'ARMOR'], ['mobility', 'MOBILITY']];
     const t = this.armoryTab;
-    const conf = { weapon: [WEAPON_ORDER, WEAPONS], equip: [EQUIP_ORDER, EQUIPMENT], armor: [ARMOR_ORDER, ARMORS], mobility: [MOBILITY_ORDER, MOBILITY] }[t];
+    const kind = t === 'melee' ? 'weapon' : t;
+    const conf = { weapon: [WEAPON_ORDER.filter((w) => WEAPONS[w].kind !== 'melee'), WEAPONS], melee: [MELEE_ORDER, WEAPONS], equip: [EQUIP_ORDER, EQUIPMENT], armor: [ARMOR_ORDER, ARMORS], mobility: [MOBILITY_ORDER, MOBILITY] }[t];
     const cards = conf[0].map((id) => {
       const d = conf[1][id];
-      const o = owns(t, id);
-      const c = canBuy(t, id);
+      const o = owns(kind, id);
+      const c = canBuy(kind, id);
       let stats = '';
-      if (t === 'weapon') {
+      if (d.kind === 'melee') {
+        stats = `<div class="istats">
+          <span>TYPE <b style="color:${DAMAGE_TYPES[d.dmgType].color}">${DAMAGE_TYPES[d.dmgType].name}</b></span>
+          <span>DAMAGE <b>${d.dmg}${d.aoe ? ' (area)' : ''}</b></span>
+          <span>SWINGS <b>${d.rate}/s</b></span><span>~DPS <b>${Math.round(weaponDps(d))}</b></span>
+          <span>REACH <b>${d.reach}m</b></span><span>LUNGE <b>${d.lunge}m</b></span>
+          <span>SPECIAL <b>${d.deflect ? 'Deflects bolts' : d.burn ? 'Burns' : d.aoe ? 'Stagger + knockback' : d.pierce ? 'Pierces' : '—'}</b></span><span>WEIGHT <b>${d.weight}</b></span></div>`;
+      } else if (t === 'weapon') {
         stats = `<div class="istats">
           <span>TYPE <b style="color:${DAMAGE_TYPES[d.dmgType].color}">${DAMAGE_TYPES[d.dmgType].name}</b></span>
           <span>DAMAGE <b>${d.dmg}${d.pellets ? '×' + d.pellets : ''}${d.salvo ? '×' + d.salvo : ''}${d.splash ? ' (splash)' : ''}</b></span>
@@ -261,7 +270,7 @@ export class Menus {
       return `<div class="item ${o ? 'owned' : ''} ${d.experimental ? 'exp' : ''}">
         <div class="ih"><b>${d.icon ? d.icon + ' ' : ''}${d.name}</b><small>${d.cat || (d.experimental ? 'Experimental' : '')}</small></div>
         <p>${d.desc}</p>${stats}
-        <div class="ifoot">${o ? '<span class="ownedtag">OWNED</span>' : `${costTag(d)} <button class="btn small ${c.ok ? '' : 'disabled'}" data-act="${c.ok ? 'buy' : 'deny'}" data-kind="${t}" data-v="${id}">${c.ok ? 'BUY' : c.why}</button>`}</div>
+        <div class="ifoot">${o ? '<span class="ownedtag">OWNED</span>' : `${costTag(d)} <button class="btn small ${c.ok ? '' : 'disabled'}" data-act="${c.ok ? 'buy' : 'deny'}" data-kind="${kind}" data-v="${id}">${c.ok ? 'BUY' : c.why}</button>`}</div>
       </div>`;
     }).join('');
     return `${this.header('EQUIPMENT', 'Armory — standard gear costs credits, experimental tech needs research points')}
