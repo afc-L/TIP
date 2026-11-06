@@ -19,7 +19,7 @@ export const Input = {
     window.addEventListener('keyup', (e) => { down.delete(e.code); });
     window.addEventListener('blur', () => { down.clear(); mouse.buttons = [false, false, false]; });
     window.addEventListener('mousemove', (e) => {
-      if (Input.locked()) { mouse.dx += e.movementX; mouse.dy += e.movementY; }
+      if (Input.locked() || (Input.freeLook && e.target === canvas)) { mouse.dx += e.movementX; mouse.dy += e.movementY; }
     });
     canvas.addEventListener('mousedown', (e) => {
       if (e.button < 3) { mouse.buttons[e.button] = true; mouse.clicked[e.button] = true; }
@@ -29,12 +29,17 @@ export const Input = {
     window.addEventListener('wheel', (e) => { mouse.wheel += Math.sign(e.deltaY); }, { passive: true });
   },
   locked() { return document.pointerLockElement === canvas; },
+  freeLook: false,
   lock() {
     if (!canvas || Input.locked()) return;
+    const fail = () => {
+      // Mouse capture refused (embedded frame, browser policy): aim with normal mouse movement instead.
+      if (!Input.freeLook) { Input.freeLook = true; document.dispatchEvent(new Event('maz-freelook')); }
+    };
     try {
       const p = canvas.requestPointerLock();
-      if (p && p.catch) p.catch(() => { /* user gesture required or rate-limited; click prompt handles it */ });
-    } catch (e) { /* ignore */ }
+      if (p && p.catch) p.catch(fail);
+    } catch (e) { fail(); }
   },
   unlock() { if (Input.locked()) document.exitPointerLock(); },
   key(code) { return down.has(code); },

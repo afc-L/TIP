@@ -29,6 +29,8 @@ class App {
     this.applyGraphics();
     window.addEventListener('resize', () => this.resize());
     document.addEventListener('pointerlockchange', () => this.onLockChange());
+    document.addEventListener('pointerlockerror', () => { Input.freeLook = true; document.getElementById('lockprompt').classList.add('hidden'); });
+    document.addEventListener('maz-freelook', () => document.getElementById('lockprompt').classList.add('hidden'));
     window.addEventListener('keydown', (e) => {
       if (e.code !== 'Escape' || !this.game || this.game.ended) return;
       if (!this.game.paused) this.pause();
@@ -190,7 +192,8 @@ class App {
   onLockChange() {
     const locked = Input.locked();
     document.getElementById('lockprompt').classList.toggle('hidden', locked || !this.game || this.game.paused || this.game.ended);
-    if (!locked && this.game && !this.game.paused && !this.game.ended) this.pause();
+    if (locked) Input.freeLook = false;
+    if (!locked && !Input.freeLook && this.game && !this.game.paused && !this.game.ended) this.pause();
   }
   showResults(r) {
     this.endGame();
