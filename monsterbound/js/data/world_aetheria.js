@@ -75,7 +75,7 @@ MB.WorldDSL = (function () {
   link('verdant', 'e', 'route2', 'w');
   F('moonveil', 'Moonveil Forest', { w: 44, h: 40, mapXY: [12, 20], wild: { habitats: ['forest'], lvl: [7, 11] }, trees: 1.9, grass: 1.0, subtitle: 'Moonlight filters through ancient boughs', gates: [{ kind: 'shears', item: 'grizzlord_stone' }, { kind: 'shears', item: 'dusk_shard' }],
     npcs: [tr('Bug Catcher', { n: 3, lvl: 10 }), tr('Ranger', { n: 2, lvl: 11 }), tr('Picnicker', { n: 2, lvl: 10 }), { id: 'lyra_forest', name: 'Dr. Lyra', kind: 'researcher', app: { skin: '#e8b890', hair: '#4a2a6a', hairStyle: 'long', top: '#f0f0f0', bottom: '#3a3a5a', coat: true }, at: 'path', script: 'moonveil_event', cond: '!moonveil_done' },
-      { id: 'mv_g1', kind: 'grunt', at: 'path', script: 'moonveil_event', cond: '!moonveil_done', name: 'Grunt' }, npc(['Deep in this forest there\'s a grove where a great spirit sleeps...', 'Thorny bushes block the way. You\'d need Garden Shears.'], { kind: 'ranger' }),
+      { id: 'mv_g1', kind: 'grunt', at: 'path', script: 'moonveil_event', cond: '!moonveil_done', name: 'Grunt', sight: 5 }, npc(['Deep in this forest there\'s a grove where a great spirit sleeps...', 'Thorny bushes block the way. You\'d need Garden Shears.'], { kind: 'ranger' }),
       { kind: 'old', at: 'path', script: 'grove_hint', cond: 'moonveil_done' }],
     items: [{ item: 'super_potion' }, { item: 'great_capsule', qty: 2 }, { item: 'mushroom_cap', hidden: true }, { item: 'night_capsule' }, { item: 'heart_scale', hidden: true }, { item: 'rare_candy', hidden: true }] });
   link('route2', 'e', 'moonveil', 'w');
@@ -86,7 +86,7 @@ MB.WorldDSL = (function () {
   R('route3', 'Route 3', { w: 44, h: 24, theme: 'meadow', mapXY: [16, 20], wild: { habitats: ['lake', 'meadow'], lvl: [10, 14], water: ['lake'] }, water: 3, subtitle: 'Lakeside trail', river: true,
     npcs: [tr('Fisher', { n: 2, lvl: 13 }), tr('Swimmer', { n: 2, lvl: 13, cond: 'badge_marina' }), tr('Picnicker', { n: 2, lvl: 12 }), tr('Camper', { n: 3, lvl: 12 }), { id: 'rival2', at: 'exit:e', kind: 'ace', script: 'rival_2', cond: 'moonveil_done&!rival2_done', name: 'Kael' }, npc(['The lake is so clear you can see creatures swimming below.'], { move: 'wander' })],
     items: [{ item: 'super_potion' }, { item: 'aqua_capsule' }, { item: 'fishing_rod', cond: '' }, { item: 'pearl', hidden: true }] });
-  link('moonveil', 'e', 'route3', 'w');
+  link('moonveil', 'e', 'route3', 'w', { a: { gate: 'flag:moonveil_done', gateText: 'A Syndicate barricade blocks the eastern trail. Someone in the forest is shouting for help...' } });
   // ------------------------------------------------------------------ CRYSTALWATER
   T('crystalwater', 'Crystalwater Town', {
     w: 36, h: 30, theme: 'meadow', music: 'town', mapXY: [20, 20], subtitle: 'Lakeside town of the great dam', fly: true, pond: true,
@@ -141,7 +141,7 @@ MB.WorldDSL = (function () {
     w: 34, h: 30, theme: 'ruins', env: 'ruins', music: 'ruins', mapXY: [30, 18], road: '=', subtitle: 'Ruins of the first Aether wielders', fly: true, lamps: false, trees: 10,
     buildings: [{ kind: 'center' }, { kind: 'temple', id: 'hollow_temple', label: '', name: 'Hollow Temple', npcs: [{ at: [6, 2], script: 'hollow_mural', kind: 'researcher', name: 'Mural' }] }, { kind: 'hut', id: 'hollow_camp', label: '', name: 'Research Camp', npcs: [{ at: [2, 1], script: 'fossil_revive', kind: 'researcher', name: 'Fossil Expert' }] }],
     npcs: [{ id: 'lyra_hollow', name: 'Dr. Lyra', at: 'door:hollow_temple', kind: 'researcher', app: { skin: '#e8b890', hair: '#4a2a6a', hairStyle: 'long', top: '#f0f0f0', bottom: '#3a3a5a', coat: true }, script: 'hollow_event', cond: '!hollow_done' },
-      { id: 'vex', name: 'Commander Vex', kind: 'commander', at: 'path', script: 'hollow_event', cond: '!hollow_done', app: { skin: '#f8d8b8', hair: '#40d080', hairStyle: 'spiky', top: '#402858', bottom: '#201828', emblem: true, hat: '#40d080' } },
+      { id: 'vex', name: 'Commander Vex', kind: 'commander', at: 'path', script: 'hollow_event', cond: '!hollow_done', sight: 4, app: { skin: '#f8d8b8', hair: '#40d080', hairStyle: 'spiky', top: '#402858', bottom: '#201828', emblem: true, hat: '#40d080' } },
       { kind: 'researcher', script: 'q:ptercient_fossil', at: 'path' }, { kind: 'old', script: 'q:excalith_sword', at: 'path' }, { at: 'exit:s', kind: 'ranger', script: 'gate_flag', flag: 'hollow_done', cond: '!hollow_done', talk: ['There\'s a commotion at the temple! Nobody leaves until it\'s settled.'] }],
     portals: [], items: [{ item: 'ancient_capsule' }, { item: 'relic_crown', hidden: true, cond: 'champion' }],
   });
@@ -321,6 +321,21 @@ MB.WorldDSL = (function () {
   });
   link('champions_path', 'e', 'champions_island', 'w');
 
+  // ------------------------------------------------------------------ NPC schedules: every town gets
+  // townsfolk who only appear at certain times of day, so places feel lived-in.
+  const NIGHT = [['Night Owl', 'Shadow and Spirit creatures come out after dark. Have you been to the routes at night?'], ['Stargazer', 'On nights with meteor showers, rare creatures appear near Starfall.'], ['Insomniac', 'Can\'t sleep... the creatures are so noisy at night!'], ['Night Guard', 'I patrol the town every night. Stay safe out there.']];
+  const DAY = [['Jogger', 'Morning jogs with my creature keep us both fit!'], ['Gardener', 'Flowers bloom brightest in spring. Nature creatures love it.'], ['Vendor', 'Fresh berries! ...Oh, I\'m all sold out today.'], ['Schoolkid', 'At school we learned that Flame beats Ice and Metal!']];
+  const MORN = [['Early Bird', 'In the morning, some creatures evolve differently than at night!']];
+  let k = 0;
+  for (const id of Object.keys(MB.WORLD_SPECS)) {
+    const sp = MB.WORLD_SPECS[id];
+    if (sp.type !== 'town') continue;
+    const n = NIGHT[k % NIGHT.length], d = DAY[k % DAY.length];
+    sp.npcs.push({ name: n[0], talk: [n[1]], cond: 'time=night', move: 'wander', kind: 'old' });
+    sp.npcs.push({ name: d[0], talk: [d[1]], cond: '!(time=night)', move: 'wander', kind: 'kid' });
+    if (k % 3 === 0) sp.npcs.push({ name: MORN[0][0], talk: [MORN[0][1]], cond: 'time=morning', move: 'wander' });
+    k++;
+  }
   // ------------------------------------------------------------------ triggers
   MB.WORLD_SPECS.route1.triggers.push({ exit: 'n', script: 'r1_hint', once: true });
 })();

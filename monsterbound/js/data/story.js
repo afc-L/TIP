@@ -202,6 +202,21 @@ SC.rival_3 = () => rivalScript(3, 'rival3_done');
 SC.rival_4 = () => rivalScript(4, 'rival4_done');
 SC.rival_5 = () => rivalScript(5, 'rival5_done');
 SC.rival_6 = () => rivalScript(6, 'rival6_done');
+SC.rival_v1 = async () => {
+  const R = MB.Sc.rivalName();
+  await MB.sayAll(['Surprise! You didn\'t think I\'d let you have Veloria all to yourself, did you?', 'Aurelia\'s been training me. And I\'ve caught creatures you\'ve never even seen. Let\'s go!'], R);
+  const win = await MB.Battles.rival(7, { canLose: true });
+  await MB.say(win ? 'Still unbeatable... but I\'m getting closer, right? Right?!' : 'YES! First win in a new region!', { speaker: R });
+  await MB.say('The rifts here are wild. Neo Eclipse is after the Rift Core — I\'ll keep an eye on them.', { speaker: R });
+  MB.Sc.set('rival_v1_done');
+};
+SC.rival_v2 = async () => {
+  const R = MB.Sc.rivalName();
+  await MB.sayAll(['Six seals. Same as me. The Veloria League is right behind me.', 'Before you go in... one more battle. For old times\' sake. No holding back!'], R);
+  const win = await MB.Battles.rival(7, { canLose: true, boost: 6 });
+  await MB.say(win ? 'Ha... you\'re the best rival anyone could ask for. Go win it all.' : 'I won! ...Okay, now YOU go win the League. I\'ll be cheering.', { speaker: R });
+  MB.Sc.set('rival_v2_done');
+};
 SC.rival_rematch = async () => {
   const S = S_(), R = MB.Sc.rivalName();
   if (S.flags.rival_rm_day === S.day) return MB.say('Rematch tomorrow, champ. I need to rest my team. ...And my ego.', { speaker: R });

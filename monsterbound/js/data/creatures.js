@@ -55,7 +55,7 @@ MB.LINES_AETHERIA = [
   ['Dracling,Drakeon,Wyvernox', 'Dragon|Dragon|Dragon/Wind', 'lizard|dragon|dragon', '30,50', 'phys', 'mountain,caldera', 'vr', 'mega:Dragon/Wind:sky_lord'],
   ['Wyrmlet,Mistserpent,Abyssdrake', 'Dragon/Aqua', 'serpent|serpent|wyrm', '30,52', 'spec', 'sea,lake', 'vr', 'water,mega:Dragon/Aqua:rain_call'],
   ['Ramkin,Crashram', 'Earth/Normal', 'quad', '30', 'phys', 'mountain,meadow', 'c', ''],
-  ['Kidcrag,Peakhorn', 'Earth|Earth/Ice', 'deer', '32', 'bal', 'mountain,snow', 'u', ''],
+  ['Kidcrag,Peakhorn', 'Earth|Earth/Ice', 'deer', 'loc:snow:30', 'bal', 'mountain,snow', 'u', ''],
   ['Galechick,Stormhawk', 'Wind|Wind/Electric', 'bird', '34', 'speed', 'sky,mountain', 'u', 'mega:Wind/Electric:momentum'],
   ['Hootlet,Owlumen', 'Normal/Psychic|Psychic/Wind', 'bird', 'n24', 'spec', 'forest,meadow', 'c', 'n'],
   ['Pinchel,Krabastion', 'Aqua/Metal', 'crab', '28', 'tank', 'beach,sea', 'c', 'mega:Aqua/Metal:tough_claws'],
@@ -69,10 +69,10 @@ MB.LINES_AETHERIA = [
   ['Scrapmonk,Brawlape', 'Normal|Normal/Earth', 'ape', '28', 'phys', 'forest,mountain', 'c', ''],
   ['Salamber,Scaldrake', 'Flame|Flame/Dragon', 'lizard', '40', 'mixed', 'volcano,caldera', 'r', 'mega:Flame/Dragon:sun_dancer'],
   ['Molekin,Drillmole', 'Earth|Earth/Metal', 'rodent', '28', 'phys', 'cave,desert', 'u', ''],
-  ['Wormby,Tunnelwyrm', 'Earth', 'serpent', '30', 'bulk', 'cave,meadow', 'c', ''],
+  ['Wormby,Tunnelwyrm', 'Earth', 'serpent', 'loc:cave:30', 'bulk', 'cave,meadow', 'c', ''],
   ['Webbit,Arachnyx', 'Venom/Shadow', 'spider', 'n25', 'phys', 'forest,cave', 'u', 'n'],
   ['Shroomlet,Mycelord', 'Nature/Venom', 'mushroom', '28', 'wall', 'forest,cave', 'c', ''],
-  ['Barklet,Elderoot', 'Nature|Nature/Spirit', 'tree', 'f', 'tank', 'forest', 'r', 'mega:Nature/Spirit:regrowth'],
+  ['Barklet,Elderoot', 'Nature|Nature/Spirit', 'tree', 'q:caught_sylvarch', 'tank', 'forest', 'r', 'mega:Nature/Spirit:regrowth'],
   ['Glimmit,Sparkelle,Aurorelle', 'Light', 'orb|ghost|ghost', '20,i:sun_shard', 'spec', 'meadow,sky', 'r', 'd,mega:Light/Psychic:radiant_aura'],
   ['Petalwing', 'Nature/Wind', 'bird', '', 'speed', 'meadow', 'u', 'd'],
   ['Bristlit,Voltquill', 'Electric|Electric/Earth', 'hedgehog', '26', 'phys', 'meadow,desert', 'u', ''],
@@ -105,7 +105,7 @@ MB.LINES_AETHERIA = [
   ['Cindercoil', 'Flame/Venom', 'serpent', '', 'mixed', 'volcano', 'u', ''],
   ['Frostmoth', 'Ice/Wind', 'moth', '', 'spec', 'snow', 'r', 'n'],
   ['Tickowl', 'Metal/Psychic', 'bird', '', 'spec', 'observatory,city', 'r', ''],
-  ['Cometling,Meteorix', 'Light/Earth', 'star', 'n40', 'mixed', 'observatory,sky', 'r', 'n,mega:Light/Earth:attunement'],
+  ['Cometling,Meteorix', 'Light/Earth', 'star', 'q:shard_starfall', 'mixed', 'observatory,sky', 'r', 'n,mega:Light/Earth:attunement'],
   ['Nebulite', 'Psychic/Spirit', 'orb', '', 'glass', 'observatory', 'vr', 'n'],
   ['Shadewisp,Umbraith', 'Shadow/Spirit', 'ghost', '34', 'spec', 'marsh,ruins', 'u', 'n'],
   ['Bogleap', 'Venom/Aqua', 'frog', '', 'bal', 'marsh', 'c', ''],
@@ -147,7 +147,7 @@ MB.LINES_VELORIA = [
   ['Cinderfoal,Blazesteed', 'Flame|Flame/Light', 'horse', '40', 'speed', 'v_field,v_volcano', 'r', 'mega:Flame/Light:sun_dancer'],
   ['Coppercog,Verdigear', 'Metal/Venom', 'mech', '32', 'tank', 'v_ruins', 'u', ''],
   ['Riftlet,Riftsprite,Riftseraph', 'Spirit/Psychic', 'orb|ghost|ghost', '20,42', 'spec', 'v_rift,v_ruins', 'u', 'mega:Spirit/Light:pressure_aura'],
-  ['Phasekit,Phaselynx', 'Psychic/Shadow', 'cat', '32', 'speed', 'v_rift', 'r', ''],
+  ['Phasekit,Phaselynx', 'Psychic/Shadow', 'cat', 'loc:rift:32', 'speed', 'v_rift', 'r', ''],
   ['Gemlet,Gemdrake,Crystalwyrm', 'Dragon/Light', 'lizard|dragon|dragon', '30,55', 'mixed', 'v_cave,v_rift', 'vr', 'mega:Dragon/Light:radiant_aura'],
   ['Galecoil', 'Wind/Dragon', 'serpent', '', 'speed', 'v_cliff', 'vr', ''],
   ['Ampercub,Thundertiger', 'Electric|Electric/Shadow', 'cat', '36', 'phys', 'v_cliff,v_field', 'u', 'mega:Electric/Shadow:static_fur'],
@@ -219,8 +219,8 @@ MB.SP = {}; // by key
     speed: [0.85, 1.15, 0.75, 1, 0.75, 1.55], glass: [0.7, 0.8, 0.6, 1.55, 0.8, 1.55], wall: [1.45, 0.6, 1.3, 0.7, 1.35, 0.55],
     mixed: [1, 1.2, 0.9, 1.2, 0.9, 1.05], bulk: [1.35, 1.35, 1.1, 0.75, 0.9, 0.65], spdef: [1.1, 0.8, 0.95, 1.1, 1.45, 0.75],
   };
-  const BST = { 1: [470], 2: [330, 495], 3: [305, 410, 530] };
-  const RAR_BST = { c: 0.95, u: 1, r: 1.05, vr: 1.1, anc: 1.05 };
+  const BST = { 1: [455], 2: [292, 470], 3: [298, 405, 525] };
+  const RAR_BST = { c: 0.93, u: 1, r: 1.06, vr: 1.12, anc: 1.06 };
   const CATCH = { c: [200, 120, 45], u: [160, 90, 45], r: [70, 45, 30], vr: [30, 25, 15], anc: [45, 30, 20], leg: [3], myth: [3], sec: [3] };
   const ABIL_BY_TYPE = {
     Normal: ['run_away', 'pickup', 'scrappy', 'grit', 'technique'], Flame: ['ember_hide', 'absorb_flame', 'sun_dancer', 'magma_armor', 'kindle_heart'],
@@ -331,6 +331,15 @@ MB.SP = {}; // by key
     if (signature) ls.push([signature[0], signature[1]]);
     // ensure at least one level-1 damaging Normal move
     ls.push([1, extra[0] ? extra[0].id : 'tackle']);
+    // early-level pacing: own-type attacks from Lv6, strong ones later, nasty status from Lv12
+    for (const e of ls) {
+      const m = MB.MOVES[e[1]];
+      if (m.signature) continue;
+      if (m.power > 0 && m.type !== 'Normal' && e[0] < 6) e[0] = 6 + (m.power >= 40 ? 2 : 0);
+      if (m.power >= 60 && e[0] < 12) e[0] = 12 + Math.floor(m.power / 20);
+      if (m.cat === 'status' && m.fx.some((f) => f.t === 'status' && ['slp', 'par', 'tox', 'frz'].includes(f.s)) && e[0] < 12) e[0] = 12 + (e[0] % 5);
+      if (m.fx.some((f) => f.t === 'drain' || f.t === 'leech') && e[0] < 9) e[0] = 9;
+    }
     // dedupe keep min level
     const best = {};
     for (const [l, id] of ls) if (!(id in best) || best[id] > l) best[id] = l;
@@ -371,7 +380,7 @@ MB.SP = {}; // by key
         typeIdx++;
         const types = tStr.split('/');
         const body = bodyParts[Math.min(st, bodyParts.length - 1)];
-        const total = Math.round((BST[nStages] || BST[3])[st] * (RAR_BST[rarity] || 1) * (flags.includes('start') ? 1.02 : 1) * (nStages === 1 && rarity === 'vr' ? 1.12 : 1));
+        const total = Math.round((BST[nStages] || BST[3])[st] * (RAR_BST[rarity] || 1) * (flags.includes('start') ? 1.08 : 1) * (nStages === 1 && rarity === 'vr' ? 1.12 : 1));
         const sp = {
           id: ++dex, key: name.toLowerCase(), name, types, body, stage: st, nStages, line: lineKey, region,
           base: makeStats(arch, total, name), arch, rarity, habitats, flags, night: nightOnly, day: dayOnly,
@@ -461,6 +470,18 @@ MB.SP = {}; // by key
   MB.MEGA_SPECIES = MB.SPECIES.filter((s) => s.mega);
 })();
 
+// Hand-tuned early learnsets for the three starters (levels 1-14), so the opening is fair and fun.
+(function () {
+  const EARLY = {
+    emberfox: [[1, 'scratch'], [1, 'growl'], [4, 'ember'], [8, 'quick_dash'], [11, 'smolder'], [14, 'flame_fang']],
+    aquaphin: [[1, 'tackle'], [1, 'tail_wag'], [4, 'bubble_jet'], [8, 'aqua_jet'], [11, 'brine_spray'], [14, 'water_pulse']],
+    leafling: [[1, 'tackle'], [1, 'growl'], [4, 'vine_lash'], [8, 'leech_seed'], [11, 'razor_leaf'], [14, 'bark_shield']],
+  };
+  for (const k in EARLY) {
+    const sp = MB.SP[k];
+    sp.learn = EARLY[k].concat(sp.learn.filter(([l, id]) => l > 14 && !EARLY[k].some((e) => e[1] === id))).sort((a, b) => a[0] - b[0]);
+  }
+})();
 MB.species = (k) => (typeof k === 'number' ? MB.SPECIES[k - 1] : MB.SP[k]);
 MB.firstStage = function (key) { let s = MB.SP[key]; while (s && s.prev) s = MB.SP[s.prev]; return s; };
 MB.evoChain = function (key) {
@@ -474,8 +495,8 @@ MB.evoText = function (e) {
     case 'level': return `Lv. ${e.v}${e.time ? ' (' + e.time + ')' : ''}`;
     case 'friend': return `High friendship${e.time ? ' (' + e.time + ')' : ''}`;
     case 'item': return `Use ${MB.ITEMS && MB.ITEMS[e.v] ? MB.ITEMS[e.v].name : e.v}`;
-    case 'loc': return `Level up at ${e.v}`;
-    case 'quest': return 'Special quest';
+    case 'loc': return `Level up in a ${e.v} area (Lv. ${e.lvl}+)`;
+    case 'quest': return { caught_sylvarch: 'Level up after befriending Sylvarch', shard_starfall: 'Level up after finding the Starfall shard' }[e.v] || 'Special quest';
   }
   return '?';
 };

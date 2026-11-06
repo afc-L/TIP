@@ -79,7 +79,7 @@
       MB.STAT_KEYS.forEach((k, i) => { const y = 66 + i * 11; UI.text(ctx, MB.STAT_NAMES[k], 136, y, { size: 6 }); UI.text(ctx, String(B[k]), 196, y, { size: 6, align: 'right', bold: true }); UI.bar(ctx, 200, y - 5, 108, 4, B[k] / 180, mega ? '#ff60d0' : '#60b060'); });
       UI.text(ctx, `Ability: ${mega ? MB.ABILITIES[s.mega.ability].name : s.abilities.slice(0, 2).map((a) => MB.ABILITIES[a].name).join(' / ')}`, 136, 136, { size: 6 });
       UI.box(ctx, 4, 146, MB.W - 8, 90);
-      const lines = MB.wrap(ctx, s.desc, MB.W - 30); MB.UI.font(ctx, 6.5);
+      const lines = MB.UI.wrapLines(ctx, s.desc, MB.W - 30, 6.5);
       lines.slice(0, 3).forEach((l, i) => UI.text(ctx, l, 12, 160 + i * 10, { size: 6.5 }));
       const hab = s.legendary ? 'Unique location' : s.eggOnly ? 'Hatches from Eggs only' : s.fossil ? 'Revived from fossils' : s.starter ? 'Gift from Prof. Hazel' : s.habitats.join(', ');
       UI.text(ctx, `Habitat: ${hab}${s.night ? ' (night)' : s.day ? ' (day)' : ''}${s.water ? ' — water' : ''}`, 12, 196, { size: 6, color: '#405080' });
@@ -194,8 +194,8 @@
         const st = S.quests[q.id];
         UI.text(ctx, q.name, 166, 38, { size: 8, bold: true });
         UI.text(ctx, 'From: ' + q.giver, 166, 52, { size: 6, color: '#606070' });
-        const intro = MB.wrap(ctx, q.intro, 140); MB.UI.font(ctx, 6); intro.slice(0, 7).forEach((l, i) => UI.text(ctx, l, 166, 68 + i * 10, { size: 6 }));
-        if (!st.done) { UI.text(ctx, 'Objective:', 166, 150, { size: 7, bold: true }); const p = MB.wrap(ctx, MB.Quests.progressText(q, st), 140); p.slice(0, 3).forEach((l, i) => UI.text(ctx, l, 166, 164 + i * 10, { size: 6, color: '#205080' })); if (q.type === 'stages') UI.text(ctx, `Stage ${st.stage + 1}/${q.stages.length}`, 166, 200, { size: 6 }); }
+        const intro = MB.UI.wrapLines(ctx, q.intro, 140, 6); MB.UI.font(ctx, 6); intro.slice(0, 7).forEach((l, i) => UI.text(ctx, l, 166, 68 + i * 10, { size: 6 }));
+        if (!st.done) { UI.text(ctx, 'Objective:', 166, 150, { size: 7, bold: true }); const p = MB.UI.wrapLines(ctx, MB.Quests.progressText(q, st), 140, 6); p.slice(0, 3).forEach((l, i) => UI.text(ctx, l, 166, 164 + i * 10, { size: 6, color: '#205080' })); if (q.type === 'stages') UI.text(ctx, `Stage ${st.stage + 1}/${q.stages.length}`, 166, 200, { size: 6 }); }
         else UI.text(ctx, '✓ Completed', 166, 150, { size: 8, bold: true, color: '#309030' });
         const R = q.reward || {};
         UI.text(ctx, 'Reward: ' + [...(R.items || []).map(([id, n]) => `${MB.ITEMS[id].name}${n > 1 ? ' x' + n : ''}`), R.money ? '$' + R.money : ''].filter(Boolean).join(', ').slice(0, 40), 166, 226, { size: 6, color: '#806020' });
@@ -505,7 +505,7 @@
       const sp = MB.SP[this.list[this.idx]];
       UI.box(ctx, 8, 166, MB.W - 16, 70);
       const fin = MB.SP[MB.evoChain(sp.key).slice(-1)[0].sp.key];
-      MB.wrap(ctx, sp.desc, MB.W - 40).slice(0, 2).forEach((l, i) => UI.text(ctx, l, 18, 182 + i * 12, { size: 7 }));
+      MB.UI.wrapLines(ctx, sp.desc, MB.W - 40, 7).slice(0, 2).forEach((l, i) => UI.text(ctx, l, 18, 182 + i * 12, { size: 7 }));
       UI.text(ctx, `Evolves: ${MB.evoChain(sp.key).map((c) => c.sp.name).join(' → ')}   Mega: ◆ ${fin.mega ? fin.mega.types.join('/') : ''}`, 18, 210, { size: 6, color: '#604080' });
       UI.text(ctx, '◄ ► choose    Z select', MB.W / 2, 228, { size: 6, align: 'center', color: '#606070' });
     }
@@ -536,7 +536,7 @@
       if (white > 0) { ctx.globalAlpha = white; ctx.drawImage(MB.BattleScene.whiteOf(img), 160 - sc / 2, 40, sc, sc); ctx.globalAlpha = 1; }
       if (this.phase === 'done' && t < 0.4) { ctx.fillStyle = `rgba(255,255,255,${1 - t * 2.5})`; ctx.fillRect(0, 0, MB.W, MB.H); }
       UI.box(ctx, 6, MB.H - 52, MB.W - 12, 48);
-      MB.wrap(ctx, this.msg, MB.W - 40).slice(0, 2).forEach((l, i) => UI.text(ctx, l, 18, MB.H - 32 + i * 14, { size: 8 }));
+      MB.UI.wrapLines(ctx, this.msg, MB.W - 40, 8).slice(0, 2).forEach((l, i) => UI.text(ctx, l, 18, MB.H - 32 + i * 14, { size: 8 }));
       if (this.phase === 'go') UI.text(ctx, 'X: stop', MB.W - 18, MB.H - 10, { size: 6, align: 'right', color: '#808090' });
     }
   }
@@ -589,7 +589,7 @@
       UI.text(ctx, `Rarity: ${s.rarity.toUpperCase()}`, 146, 94, { size: 7 });
       if (s.mega) UI.text(ctx, '◆ Can Mega Evolve!', 146, 110, { size: 7, color: '#c03090', bold: true });
       UI.box(ctx, 10, 150, MB.W - 20, 80);
-      MB.wrap(ctx, s.desc, MB.W - 44).slice(0, 4).forEach((l, i) => UI.text(ctx, l, 20, 168 + i * 13, { size: 7 }));
+      MB.UI.wrapLines(ctx, s.desc, MB.W - 44, 7).slice(0, 4).forEach((l, i) => UI.text(ctx, l, 20, 168 + i * 13, { size: 7 }));
     }
   }
 

@@ -6,7 +6,7 @@ MB.TYPE_COLORS = {
 };
 // chart[attacker][defender] = multiplier (missing = 1)
 MB.TYPE_CHART = {
-  Normal: { Metal: 0.5, Earth: 0.5, Spirit: 0 },
+  Normal: { Metal: 0.5, Spirit: 0 },
   Flame: { Nature: 2, Ice: 2, Metal: 2, Venom: 2, Aqua: 0.5, Earth: 0.5, Flame: 0.5, Dragon: 0.5 },
   Aqua: { Flame: 2, Earth: 2, Metal: 2, Aqua: 0.5, Nature: 0.5, Dragon: 0.5, Ice: 0.5 },
   Nature: { Aqua: 2, Earth: 2, Light: 2, Flame: 0.5, Nature: 0.5, Venom: 0.5, Wind: 0.5, Metal: 0.5, Dragon: 0.5 },

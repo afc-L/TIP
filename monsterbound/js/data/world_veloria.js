@@ -92,6 +92,9 @@
     items: [{ item: 'riftwyrm_stone', cond: 'caught_riftwyrm' }, { item: 'master_capsule', hidden: true }] });
   portal('zenith', 'rift_core', { cond: 'neo_done', locked: 'A swirling rift. It is too unstable to enter... for now.' });
 
+  // Rival encounters in Veloria
+  W.quartzvale.npcs.push({ id: 'rival_v1', name: 'Kael', kind: 'ace', at: 'exit:n', script: 'rival_v1', cond: 'v_badge2&!rival_v1_done' });
+  W.zenith.npcs.push({ id: 'rival_v2', name: 'Kael', kind: 'ace', at: 'door:v_league', script: 'rival_v2', cond: 'v_badge6&!rival_v2_done' });
   // rift crystal placement flag for generator
   for (const id of ['gloamwood', 'v_route2', 'riftwater', 'mirage_dunes', 'verdigris']) W[id].riftTiles = W[id].rift;
 })();

@@ -14,12 +14,19 @@ MB.Teams = {
   },
   auto(types, lvl, n, seed, region, opts = {}) {
     const r = new MB.RNG('team:' + seed);
-    const pool = MB.SPECIES.filter((s) => !s.legendary && !s.eggOnly && s.stage === 0 && (region === 'X' || s.region === region || (opts.mixed && Math.random() < 1)) && (!types || !types.length || s.types.some((t) => types.includes(t)) || MB.SP[MB.Teams.stageFor(s.key, 99)].types.some((t) => types.includes(t))));
+    const base = MB.SPECIES.filter((s) => !s.legendary && !s.eggOnly && !s.fossil && !s.starter && s.stage === 0 && (region === 'X' || s.region === region));
+    const typeOk = (s) => !types || !types.length || s.types.some((t) => types.includes(t)) || MB.SP[MB.Teams.stageFor(s.key, 99)].types.some((t) => types.includes(t));
+    const habOk = (s) => opts.habitats && s.habitats.some((h) => opts.habitats.includes(h)) && (!s.night || !opts.day);
+    // prefer creatures that actually live where the trainer stands, then the trainer's favourite types
+    let pool = base.filter((s) => habOk(s) && typeOk(s));
+    if (pool.length < 2 && opts.habitats) pool = base.filter(habOk);
+    if (pool.length < 2) pool = base.filter(typeOk);
+    if (!pool.length) pool = base;
     const team = [];
     for (let i = 0; i < n; i++) {
-      const base = r.pick(pool.length ? pool : MB.SPECIES.filter((s) => s.stage === 0 && !s.legendary));
+      const pick = r.pick(pool);
       const l = Math.max(2, lvl + r.int(-2, 1) + (i === n - 1 ? 1 : 0));
-      team.push([MB.Teams.stageFor(base.key, l, r), l]);
+      team.push([MB.Teams.stageFor(pick.key, l, r), l]);
     }
     return team;
   },
@@ -133,6 +140,6 @@ MB.rivalTeam = function (stage, starter) {
     const s = l >= p[4] ? 2 : l >= p[3] ? 1 : 0;
     team.push([p[s], l]);
   }
-  team.push([line[st], L + 2, { mega: stage >= 6 }]);
+  team.push([line[st], stage === 0 ? L : L + 2, stage === 0 ? { moves: ['tackle', 'growl'] } : { mega: stage >= 6 }]);
   return team;
 };

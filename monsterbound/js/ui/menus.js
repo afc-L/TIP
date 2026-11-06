@@ -114,7 +114,7 @@ class SummaryScene {
       L('Nature', MB.NATURES[m.nature][0], 94);
       const ab = MB.Mon.abilityId(m);
       L('Ability', MB.ABILITIES[ab].name + (m.ability === 2 ? ' (H)' : ''), 108);
-      const ad = MB.wrap(ctx, MB.ABILITIES[ab].desc, 176); ad.slice(0, 2).forEach((l, i) => UI.text(ctx, l, 128, 120 + i * 10, { size: 6 }));
+      const ad = MB.UI.wrapLines(ctx, MB.ABILITIES[ab].desc, 176, 6); ad.slice(0, 2).forEach((l, i) => UI.text(ctx, l, 128, 120 + i * 10, { size: 6 }));
       L('Held', m.item ? MB.ITEMS[m.item].name : 'None', 148);
       L('Met', `${m.met || '?'} (Lv${m.metLvl || '?'})`, 162);
       const g = sp.growth; const lo = MB.Mon.expFor(g, m.lvl), hi = MB.Mon.expFor(g, m.lvl + 1);
@@ -122,7 +122,7 @@ class SummaryScene {
       UI.bar(ctx, 128, 196, 180, 4, m.lvl >= 100 ? 1 : (m.exp - lo) / Math.max(1, hi - lo), '#40a0f0');
       L('Friendship', m.friend >= 220 ? '♥♥♥♥♥' : m.friend >= 160 ? '♥♥♥♥' : m.friend >= 100 ? '♥♥♥' : m.friend >= 50 ? '♥♥' : '♥', 214, '#e04070');
       L('Capsule', MB.ITEMS[m.ball] ? MB.ITEMS[m.ball].name : 'Basic Capsule', 228);
-      UI.box(ctx, 4, 146, 112, 90); const dl = MB.wrap(ctx, sp.desc, 100); MB.UI.font(ctx, 6); dl.slice(0, 8).forEach((l, i) => UI.text(ctx, l, 10, 158 + i * 10, { size: 6 }));
+      UI.box(ctx, 4, 146, 112, 90); const dl = MB.UI.wrapLines(ctx, sp.desc, 100, 6); MB.UI.font(ctx, 6); dl.slice(0, 8).forEach((l, i) => UI.text(ctx, l, 10, 158 + i * 10, { size: 6 }));
     } else if (this.tab === 1) {
       const st = MB.Mon.stats(m);
       const nat = MB.NATURES[m.nature];
@@ -283,7 +283,7 @@ class BagScene {
       const it = MB.ITEMS[sel.id];
       if (it.cat === 'mega') { const s = MB.SP[it.megaFor]; ctx.drawImage(MB.Sprites.get(s.key, true), 230, 28, 64, 64); }
       else if (it.cat === 'capsule') MB.drawCapsuleIcon(ctx, sel.id, 262, 56, 3, 0, 0);
-      const dl = MB.wrap(ctx, it.desc, 96); MB.UI.font(ctx, 6); dl.slice(0, 7).forEach((l, i) => UI.text(ctx, l, 214, 104 + i * 10, { size: 6 }));
+      const dl = MB.UI.wrapLines(ctx, it.desc, 96, 6); MB.UI.font(ctx, 6); dl.slice(0, 7).forEach((l, i) => UI.text(ctx, l, 214, 104 + i * 10, { size: 6 }));
     }
     UI.box(ctx, 4, 178, MB.W - 8, 58);
     UI.text(ctx, this.opts.battle ? 'Choose an item to use in battle.' : this.opts.pickHeld ? 'Choose an item to hold.' : 'Z: select   X: close   ◄ ►: pocket', 14, 196, { size: 7 });
@@ -461,7 +461,7 @@ class ShopScene {
     });
     UI.box(ctx, 208, 22, 108, 164);
     const it = MB.ITEMS[this.list[this.idx]];
-    const dl = MB.wrap(ctx, it.desc, 96); MB.UI.font(ctx, 6); dl.slice(0, 9).forEach((l, i) => UI.text(ctx, l, 214, 40 + i * 10, { size: 6 }));
+    const dl = MB.UI.wrapLines(ctx, it.desc, 96, 6); MB.UI.font(ctx, 6); dl.slice(0, 9).forEach((l, i) => UI.text(ctx, l, 214, 40 + i * 10, { size: 6 }));
     UI.text(ctx, `In bag: ${MB.Bag.count(it.id)}`, 214, 176, { size: 6 });
     UI.box(ctx, 4, 190, MB.W - 8, 46);
     UI.text(ctx, MB.World.events().some((e) => e.type === 'festival') ? 'Festival sale! 20% off everything!' : 'Z: buy   X: leave', 14, 210, { size: 7 });

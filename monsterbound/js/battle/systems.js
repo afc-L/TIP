@@ -140,7 +140,8 @@ MB.Battles = {
   async rival(stage, opts = {}) {
     const S = MB.state;
     const starter = MB.Sc.rivalStarter();
-    const team = MB.rivalTeam(stage, starter);
+    let team = MB.rivalTeam(stage, starter);
+    if (opts.boost) team = team.map(([k, l, e]) => [k, l + opts.boost, e]);
     const enemy = MB.Teams.build(team, 'rival' + stage, { ivs: 10 + stage * 3, heldItems: stage >= 4 });
     const app = S.rivalApp || { skin: '#f8d8b8', hair: '#c03828', hairStyle: 'spiky', top: '#303038', bottom: '#3050a0', shoes: '#202020' };
     const res = await MB.Battles.run({
@@ -165,7 +166,7 @@ MB.Battles = {
     const t = npc.trainer;
     const lvl = t.lvl || ((map.wild && map.wild.lvl ? map.wild.lvl[1] : 5) + 1);
     const seed = npc.id;
-    const team = t.team || MB.Teams.auto(t.types || MB.CLASS_TYPES[t.cls], lvl, t.n || 2, seed, map.region);
+    const team = t.team || MB.Teams.auto(t.types || MB.CLASS_TYPES[t.cls], lvl, t.n || 2, seed, map.region, { habitats: t.types ? null : map.wild && map.wild.habitats });
     const enemy = MB.Teams.build(team, seed, { ivs: Math.min(31, Math.floor(lvl / 3)), heldItems: lvl >= 55 });
     const r = new MB.RNG(seed);
     const name = t.name || r.pick(MB.TRAINER_NAMES[t.cls] || ['Alex']);

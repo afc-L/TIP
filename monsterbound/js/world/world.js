@@ -233,7 +233,7 @@ MB.World = (function () {
         if (e) { pos = [e.inner[0], e.inner[1]]; }
       } else if (typeof n.at === 'string' && n.at.startsWith('door:')) {
         const b = m.buildings.find((bb) => bb.id === n.at.slice(5) || bb.kind === n.at.slice(5));
-        if (b) pos = [b.door.x + 1, b.door.y + 1];
+        if (b) pos = (n.script || '').startsWith('gate') ? [b.door.x, b.door.y + 1] : [b.door.x + 1, b.door.y + 1];
       } else if (n.at === 'path' && m.pathCells) {
         for (let t = 0; t < 300 && !pos; t++) {
           const c = r.pick(m.pathCells); const side = r.pick([[-2, 0, 'right'], [2, 0, 'left'], [0, -2, 'down'], [0, 2, 'up'], [-1, 0, 'right'], [1, 0, 'left']]);

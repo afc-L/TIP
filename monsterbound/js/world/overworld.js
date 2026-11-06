@@ -375,8 +375,8 @@ class Overworld {
     const S = this.S;
     for (const n of this.visibleNpcs()) {
       const isTrainer = n.trainer && !S.flags['tr:' + n.id];
-      const isStory = n.sight && n.script && (n.id || '').startsWith('rival') && !n.trainer;
-      const isRival = !n.trainer && /^rival\d/.test(n.id || '');
+      const isStory = n.sight && n.script && !n.trainer && !(n.script || '').startsWith('gate');
+      const isRival = !n.trainer && /^rival(\d|_v)/.test(n.id || '');
       if (!isTrainer && !isStory && !isRival) continue;
       const range = n.sight || 4;
       const [dx, dy] = MB.dirs[n.dir];
