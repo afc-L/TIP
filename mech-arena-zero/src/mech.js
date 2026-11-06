@@ -9,7 +9,7 @@ import { clamp, wrapAngle, dampAngle, rand } from './util.js';
 const _v = new THREE.Vector3(), _w = new THREE.Vector3();
 let NEXT_ID = 1;
 
-const MICRO = { id: 'micro', name: 'Micro Missile', dmgType: 'explosive', kind: 'missile', dmg: 16, splash: 3, speed: 78, turn: 4.5, range: 180, size: 0.3, color: 0xffbb55, spread: 0.3 };
+const MICRO = { id: 'micro', name: 'Micro Missile', dmgType: 'explosive', kind: 'missile', dmg: 16, splash: 3, speed: 85, launchSpeed: 0.45, turn: 7, range: 180, size: 0.3, color: 0xffbb55, spread: 0.3 };
 const DRONE_GUN = { ...WEAPONS.arc, id: 'drone', dmg: 8, spread: 0.03 };
 
 export class Mech {
@@ -113,13 +113,18 @@ export class Mech {
     g.onAbility(this);
     switch (a.id) {
       case 'barrage': {
-        const tgt = this.intent.lock && this.intent.lock.alive ? this.intent.lock : null;
+        // home on the locked target, or else pick the enemy nearest the crosshair
+        const tgt = this.intent.lock && this.intent.lock.alive ? this.intent.lock : g.barrageTarget(this);
+        const aimAt = this.intent.aim.clone();
         for (let i = 0; i < 12; i++) {
           g.schedule(i * 0.07, () => {
             if (!this.alive || g.ended) return;
             const from = this.center(new THREE.Vector3()); from.y += this.height * 0.35;
-            const dir = new THREE.Vector3(rand(-0.4, 0.4), 1, rand(-0.4, 0.4)).normalize();
-            g.projectiles.spawn(this, from, dir, MICRO, MICRO.dmg * this.damageMul(), tgt, this.intent.aim);
+            const goal = tgt && tgt.alive ? tgt.center(new THREE.Vector3()) : aimAt;
+            const toGoal = goal.clone().sub(from).setY(0).normalize();
+            // fan out up and toward the target so the swarm arcs in from above
+            const dir = new THREE.Vector3(toGoal.x * 0.8 + rand(-0.45, 0.45), 1, toGoal.z * 0.8 + rand(-0.45, 0.45)).normalize();
+            g.projectiles.spawn(this, from, dir, MICRO, MICRO.dmg * this.damageMul(), tgt && tgt.alive ? tgt : null, aimAt);
             g.sound('missile', from, 0.5);
           });
         }

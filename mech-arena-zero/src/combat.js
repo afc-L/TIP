@@ -152,7 +152,7 @@ export class ProjectileSystem {
     const shape = def.kind === 'missile' ? 'missile' : (def.size >= 0.8 ? 'ball' : 'bolt');
     const p = {
       owner, team: owner.team, def, dmg, pos: pos.clone(), prev: pos.clone(),
-      vel: dir.clone().multiplyScalar(def.speed), life: def.range / def.speed * 1.15 + (def.kind === 'missile' ? 1.2 : 0),
+      vel: dir.clone().multiplyScalar(def.speed * (def.launchSpeed || 1)), life: def.range / def.speed * 1.15 + (def.kind === 'missile' ? 1.2 : 0),
       target, aimPoint: aimPoint ? aimPoint.clone() : null, gravity: def.gravity || 0, mesh: this._mesh(shape, def.color), shape, age: 0,
     };
     const s = def.size;
@@ -225,15 +225,38 @@ export class ProjectileSystem {
       p.age += dt; p.life -= dt;
       p.prev.copy(p.pos);
       if (p.def.kind === 'missile') {
-        // homing
-        let goal = null;
-        if (p.target && p.target.alive && !p.target.cloaked) goal = _a.copy(p.target.pos).setY(p.target.pos.y + p.target.height * 0.5);
-        else if (p.aimPoint) goal = p.aimPoint;
-        if (goal && p.age > 0.15) {
-          _d.subVectors(goal, p.pos).normalize().multiplyScalar(p.def.speed);
-          const k = Math.min(1, p.def.turn * dt * (p.target ? 1 : 0.6));
-          p.vel.lerp(_d, k).setLength(p.def.speed);
+        // guidance: accelerate from launch speed, steer toward a predicted intercept with a
+        // turn rate (rad/s) that tightens as the missile ages and when it is close
+        const speed = Math.min(p.def.speed, p.vel.length() + p.def.speed * 1.6 * dt);
+        let goal = null, tracking = false;
+        if (p.target && p.target.alive && !p.target.cloaked && !p.target.removed) {
+          goal = p.target.center ? p.target.center(_a) : _a.copy(p.target.pos);
+          const tgo = Math.min(goal.distanceTo(p.pos) / speed, 1.5);
+          if (p.target.vel) goal.addScaledVector(p.target.vel, tgo * 0.9);
+          tracking = true;
+        } else if (p.aimPoint) goal = p.aimPoint;
+        _m.copy(p.vel).normalize();
+        if (goal && p.age > 0.1) {
+          _d.subVectors(goal, p.pos);
+          const dist = _d.length();
+          _d.divideScalar(dist || 1);
+          let rate = p.def.turn * (1 + p.age * 1.2) * (tracking ? 1 : 0.8);
+          if (dist < 20) rate *= 2.5;
+          const ang = Math.acos(clamp(_m.dot(_d), -1, 1));
+          const maxA = rate * dt;
+          if (ang <= maxA || ang < 1e-4) _m.copy(_d);
+          else {
+            _b.crossVectors(_m, _d);
+            if (_b.lengthSq() < 1e-8) _b.set(0, 1, 0);
+            _m.applyAxisAngle(_b.normalize(), maxA);
+          }
+          // proximity fuse: burst next to the target instead of grazing past it
+          if (tracking && dist < p.target.radius + 1.6) {
+            this._impact(p, p.pos.clone(), p.target, false, false);
+            this._release(p); list.splice(i, 1); continue;
+          }
         }
+        p.vel.copy(_m).multiplyScalar(speed);
         if (Math.random() < 0.7) game.effects.smokePuff(p.pos, 0.8, 0.6, 0.55, 0.5);
         game.effects.trail(p.pos, 0xffaa55, 0.9, 0.12);
       } else if (p.gravity) {

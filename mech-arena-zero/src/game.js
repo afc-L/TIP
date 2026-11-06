@@ -173,6 +173,24 @@ export class Game {
       onDeath: (o) => { this.explode(o.center(new THREE.Vector3()), 9, 130, 'explosive', o.lastHitBy || null, { color: 0xff7a1a, prop: true }); } });
     this.addStructure(st);
   }
+  /** Best barrage target for a mech: the visible enemy nearest its aim (players) or its AI target. */
+  barrageTarget(m) {
+    if (m.controller && m.controller.target && m.controller.target.alive && !m.isPlayer) return m.controller.target;
+    const eye = m.eye(new THREE.Vector3());
+    const aimDir = m.intent.aim.clone().sub(eye).normalize();
+    let best = null, bestScore = Infinity;
+    for (const t of this.targets) {
+      if (!t.alive || t.team === m.team || t.team === 2 || t.intangible || t.cloaked) continue;
+      const c = t.center(new THREE.Vector3());
+      const d = c.distanceTo(eye);
+      if (d > 180) continue;
+      const ang = Math.acos(clamp(c.clone().sub(eye).normalize().dot(aimDir), -1, 1));
+      if (ang > 0.6 || !this.arena.lineOfSight(eye, c)) continue;
+      const score = ang * 60 + d * 0.1;
+      if (score < bestScore) { bestScore = score; best = t; }
+    }
+    return best;
+  }
   spawnDrone(owner, life) { this.drones.push(new Drone(this, owner, life)); }
   spawnDome(owner, dur) {
     const m = new THREE.Mesh(new THREE.SphereGeometry(12, 20, 12), new THREE.MeshBasicMaterial({ color: owner.model.P.glowColor, transparent: true, opacity: 0.12, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }));
