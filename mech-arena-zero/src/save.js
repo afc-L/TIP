@@ -8,6 +8,7 @@ import {
 const KEY = 'mechArenaZero.save.v1';
 
 export const DEFAULT_KEYS = {
+  fire1: 'Mouse0', fire2: 'Mouse2',
   forward: 'KeyW', back: 'KeyS', left: 'KeyA', right: 'KeyD',
   jump: 'Space', sprint: 'ShiftLeft', dash: 'KeyC', reload: 'KeyR',
   equipUse: 'KeyQ', ability: 'KeyF', lock: 'KeyT', zoom: 'KeyV',
@@ -15,12 +16,20 @@ export const DEFAULT_KEYS = {
   scoreboard: 'Tab',
 };
 export const KEY_LABELS = {
+  fire1: 'Fire Primary Weapon', fire2: 'Fire Secondary Weapon',
   forward: 'Move Forward', back: 'Move Back', left: 'Strafe Left', right: 'Strafe Right',
   jump: 'Jump / Jets (hold)', sprint: 'Sprint (hold)', dash: 'Boost Dash', reload: 'Reload / Vent Heat',
   equipUse: 'Use Selected Equipment', ability: 'Mech Ability', lock: 'Target Lock', zoom: 'Zoom (hold)',
   slot1: 'Equipment Slot 1', slot2: 'Equipment Slot 2', slot3: 'Equipment Slot 3', slot4: 'Equipment Slot 4',
   scoreboard: 'Scoreboard (hold)',
 };
+
+export const KEY_GROUPS = [
+  { name: 'Movement', keys: ['forward', 'back', 'left', 'right', 'jump', 'sprint', 'dash'] },
+  { name: 'Combat', keys: ['fire1', 'fire2', 'reload', 'ability', 'lock', 'zoom'] },
+  { name: 'Equipment', keys: ['slot1', 'slot2', 'slot3', 'slot4', 'equipUse'] },
+  { name: 'Interface', keys: ['scoreboard'] },
+];
 
 function defaultSettings() {
   return {
@@ -77,14 +86,16 @@ function load() {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return defaultProfile();
-    const p = merge(defaultProfile(), JSON.parse(raw));
+    const parsed = JSON.parse(raw);
+    const p = merge(defaultProfile(), parsed);
     // sanitize loadouts
     for (const id of FRAME_ORDER) {
       const l = p.loadouts[id];
       if (!l || !Array.isArray(l.weapons) || l.weapons.length !== 2) p.loadouts[id] = defaultLoadout(id);
       if (!Array.isArray(p.loadouts[id].equip)) p.loadouts[id].equip = [];
     }
-    p.settings.keys = { ...DEFAULT_KEYS, ...p.settings.keys };
+    // keep deliberately unbound (null) actions; only fill in actions added in newer versions
+    p.settings.keys = { ...DEFAULT_KEYS, ...((parsed.settings && parsed.settings.keys) || {}) };
     return p;
   } catch (e) {
     console.warn('Save load failed, starting fresh', e);

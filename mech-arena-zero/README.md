@@ -28,7 +28,9 @@ Use a desktop browser with a mouse. Click the game view to capture the mouse. Es
 LOW turns off shadows, lowers the render resolution and reduces particles. MEDIUM is the default.
 You can also lower *Render scale* on its own.
 
-## Controls (remappable in Settings → Controls)
+## Controls
+
+Every action can be rebound to any key or mouse button on the **Keybinds** screen (main menu, pause menu, or Settings → Controls). Click an action, press the new key; Esc cancels, Backspace unbinds, and taking a key that's already in use swaps the two actions.
 
 | Input | Action |
 | --- | --- |

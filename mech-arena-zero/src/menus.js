@@ -6,7 +6,7 @@ import {
 } from './data.js';
 import {
   profile, save, resetProfile, owns, canBuy, buy, canUpgrade, doUpgrade, upgradeCost, loadoutWeight, computeStats,
-  arenaUnlocked, bossUnlocked, ensureDaily, KEY_LABELS, DEFAULT_KEYS, checkAchievements,
+  arenaUnlocked, bossUnlocked, ensureDaily, KEY_LABELS, DEFAULT_KEYS, KEY_GROUPS, checkAchievements,
 } from './save.js';
 import { sfx, applyVolumes, playMusic } from './audio.js';
 import { Input, keyName } from './input.js';
@@ -75,8 +75,13 @@ export class Menus {
   }
 
   header(title, sub = '') {
-    return `<div class="topbar"><button class="back" data-act="go" data-to="${this.screen === 'settings' && this.returnTo === 'pause' ? 'pause' : 'main'}">◂ BACK</button>
+    return `<div class="topbar"><button class="back" data-act="go" data-to="${this.backTarget()}">◂ BACK</button>
       <div class="ttl"><h2>${title}</h2><span>${sub}</span></div>${this.wallet()}</div>`;
+  }
+  backTarget() {
+    if (this.screen === 'keybinds') return this.keybindsReturn || 'main';
+    if (this.screen === 'settings' && this.returnTo === 'pause') return 'pause';
+    return 'main';
   }
   wallet() {
     return `<div class="wallet"><span class="lv">LV ${profile.level}</span><span class="cr">${fmtNum(profile.credits)} CR</span><span class="rp">${fmtNum(profile.rp)} RP</span></div>`;
@@ -98,6 +103,7 @@ export class Menus {
       ['missions', 'MISSIONS', `Challenges, daily op ${daily.op.done ? '✓' : '●'} and contracts`],
       ['stats', 'STATISTICS', 'Career record and achievements'],
       ['settings', 'SETTINGS', 'Graphics, audio and controls'],
+      ['keybinds', 'KEYBINDS', 'Change your keyboard and mouse controls'],
     ];
     return `
     <div class="main-left">
@@ -357,9 +363,9 @@ export class Menus {
       body = `${range('sensitivity', 0.2, 3, 0.05, 'Mouse sensitivity', (v) => v.toFixed(2))}
       ${check('invertY', 'Invert Y axis')}
       ${check('aimAssist', 'Aim assist on locked targets')}
-      <div class="opt-h">KEY BINDINGS <small>(mouse: LMB primary · RMB secondary · Esc pause)</small></div>
-      <div class="keys">${Object.keys(DEFAULT_KEYS).map((k) => `<div class="keyrow"><span>${KEY_LABELS[k]}</span><button class="keybtn" data-act="rebind" data-v="${k}">${keyName(s.keys[k])}</button></div>`).join('')}</div>
-      <button class="btn small" data-act="resetkeys">RESET TO DEFAULTS</button>`;
+      <div class="opt-h">KEY BINDINGS</div>
+      <p class="note">Rebind any action to a key or mouse button.</p>
+      <button class="btn" data-act="openkeys" data-from="settings">EDIT KEYBINDS ▸</button>`;
     } else if (t === 'gameplay') {
       body = `<div class="setrow"><label>Default difficulty</label><div class="seg">${DIFF_ORDER.map((d) => `<button class="${s.difficulty === d ? 'sel' : ''}" data-act="setdiff" data-v="${d}">${DIFFICULTIES[d].name}</button>`).join('')}</div></div>
       <p class="note">${DIFFICULTIES[s.difficulty].desc}</p>
@@ -372,6 +378,49 @@ export class Menus {
     }
     return `${this.header('SETTINGS', 'Changes save automatically')}<div class="tabs">${tabs.map(([k, n]) => `<button class="${t === k ? 'sel' : ''}" data-act="stab" data-v="${k}">${n}</button>`).join('')}</div><div class="setbody">${body}</div>`;
   }
+  r_keybinds() {
+    const keys = profile.settings.keys;
+    const counts = {};
+    for (const k of Object.keys(DEFAULT_KEYS)) if (keys[k]) counts[keys[k]] = (counts[keys[k]] || 0) + 1;
+    const row = (k) => {
+      const code = keys[k];
+      const listening = this.listening === k;
+      const changed = code !== DEFAULT_KEYS[k];
+      const clash = code && counts[code] > 1;
+      return `<div class="kbrow ${listening ? 'listening' : ''} ${clash ? 'clash' : ''}">
+        <span class="kbl">${KEY_LABELS[k]}</span>
+        <button class="keybtn ${listening ? 'listening' : ''} ${code ? '' : 'unbound'}" data-act="rebind" data-v="${k}" id="kb-${k}">${listening ? 'PRESS A KEY…' : code ? keyName(code) : 'UNBOUND'}</button>
+        <button class="kbreset" data-act="resetkey" data-v="${k}" title="Reset to ${keyName(DEFAULT_KEYS[k])}" ${changed ? '' : 'disabled'}>↺</button>
+      </div>`;
+    };
+    const unbound = Object.keys(DEFAULT_KEYS).filter((k) => !keys[k]).length;
+    return `${this.header('KEYBINDS', 'Click an action, then press a key or mouse button')}
+    <div class="kbhelp"><span><b>Esc</b> cancels</span><span><b>Backspace</b> unbinds</span><span>Binding a key that is already used swaps the two actions</span><span><b>Esc</b> always pauses the game and can't be rebound</span></div>
+    ${unbound ? `<div class="warnmsg">${unbound} action${unbound > 1 ? 's are' : ' is'} unbound and can't be used in a match.</div>` : ''}
+    <div class="kbgrid">${KEY_GROUPS.map((g) => `<section class="kbgroup"><div class="opt-h">${g.name.toUpperCase()}</div>${g.keys.map(row).join('')}</section>`).join('')}</div>
+    <div class="kbfoot"><button class="btn small" data-act="resetkeys">RESET ALL TO DEFAULTS</button></div>`;
+  }
+  startRebind(action) {
+    this.listening = action;
+    this.render();
+    // start listening after the click that opened it has finished
+    setTimeout(() => Input.captureNextKey((code) => this.finishRebind(action, code)), 0);
+  }
+  finishRebind(action, code) {
+    const keys = profile.settings.keys;
+    this.listening = null;
+    if (code === 'Escape') { sfx('ui'); this.render(); return; }
+    if (code === 'Backspace' || code === 'Delete') { keys[action] = null; save(); sfx('ui'); this.toast(`${KEY_LABELS[action]} unbound`); this.render(); return; }
+    const other = Object.keys(DEFAULT_KEYS).find((k) => keys[k] === code && k !== action);
+    const prev = keys[action];
+    keys[action] = code;
+    if (other) {
+      keys[other] = prev || null;
+      this.toast(`${keyName(code)} moved from ${KEY_LABELS[other]} — that action is now ${prev ? keyName(prev) : 'unbound'}`);
+    }
+    save(); sfx('uiconfirm'); this.render();
+  }
+
   setSetting(k, v, el) {
     if (k === 'pilot') { profile.pilot = String(v).toUpperCase().slice(0, 14) || 'PILOT'; save(); return; }
     profile.settings[k] = v;
@@ -393,9 +442,10 @@ export class Menus {
     return `<div class="pausebox"><h2>PAUSED</h2><div class="psub">${info.title} · ${g ? fmtTime(g.time) : ''}</div>
       <button class="btn" data-act="resume">RESUME</button>
       <button class="btn" data-act="psettings">SETTINGS</button>
+      <button class="btn" data-act="openkeys" data-from="pause">KEYBINDS</button>
       <button class="btn" data-act="restart">RESTART MATCH</button>
       <button class="btn danger" data-act="abandon">ABANDON MATCH</button>
-      <div class="pcontrols">WASD move · Mouse aim · LMB/RMB fire · Space jump (hold: jets) · Shift sprint · ${keyName(profile.settings.keys.dash)} dash · ${keyName(profile.settings.keys.ability)} ability · 1-4 select module · ${keyName(profile.settings.keys.equipUse)} use module · ${keyName(profile.settings.keys.lock)} lock · ${keyName(profile.settings.keys.zoom)} zoom · ${keyName(profile.settings.keys.reload)} reload</div></div>`;
+      <div class="pcontrols">${['forward', 'left', 'back', 'right'].map((k) => keyName(profile.settings.keys[k])).join('')} move · Mouse aim · ${keyName(profile.settings.keys.fire1)} / ${keyName(profile.settings.keys.fire2)} fire · ${keyName(profile.settings.keys.jump)} jump (hold: jets) · ${keyName(profile.settings.keys.sprint)} sprint · ${keyName(profile.settings.keys.dash)} dash · ${keyName(profile.settings.keys.ability)} ability · ${[1, 2, 3, 4].map((i) => keyName(profile.settings.keys['slot' + i])).join('/')} select module · ${keyName(profile.settings.keys.equipUse)} use module · ${keyName(profile.settings.keys.lock)} lock · ${keyName(profile.settings.keys.zoom)} zoom · ${keyName(profile.settings.keys.reload)} reload</div></div>`;
   }
 
   r_results() {
@@ -427,6 +477,9 @@ export class Menus {
     switch (a) {
       case 'go':
         sfx('ui');
+        Input.cancelCapture(); this.listening = null;
+        if (d.to === 'keybinds') this.keybindsReturn = 'main';
+        if (d.to === 'settings' && this.screen === 'keybinds' && this.keybindsReturn === 'settings') { this.show('settings'); return; }
         if (d.to === 'pause') { this.show('pause'); return; }
         if (this.app.game && d.to === 'main' && this.screen !== 'results') { this.show('pause'); return; }
         if (this.app.game) this.app.endGame();
@@ -499,21 +552,19 @@ export class Menus {
       }
       case 'setdiff': profile.settings.difficulty = d.v; this.modeSel.difficulty = d.v; save(); sfx('ui'); this.render(); break;
       case 'testsound': sfx('explosion', 1); setTimeout(() => sfx('pulse', 1), 300); break;
-      case 'rebind': {
-        el.textContent = 'PRESS A KEY…'; el.classList.add('listening');
-        Input.captureNextKey((code) => {
-          if (code !== 'Escape') {
-            // swap if already used
-            const keys = profile.settings.keys;
-            const other = Object.keys(keys).find((k) => keys[k] === code && k !== d.v);
-            if (other) keys[other] = keys[d.v];
-            keys[d.v] = code; save();
-          }
-          sfx('ui'); this.render();
-        });
+      case 'rebind':
+        if (this.listening === d.v) { Input.cancelCapture(); this.listening = null; this.render(); break; }
+        Input.cancelCapture();
+        sfx('ui'); this.startRebind(d.v);
         break;
+      case 'resetkey': {
+        const keys = profile.settings.keys, def = DEFAULT_KEYS[d.v], prev = keys[d.v];
+        const other = Object.keys(DEFAULT_KEYS).find((k) => k !== d.v && keys[k] === def);
+        if (other) keys[other] = prev || null;
+        keys[d.v] = def; save(); sfx('ui'); this.render(); break;
       }
-      case 'resetkeys': profile.settings.keys = { ...DEFAULT_KEYS }; save(); sfx('ui'); this.render(); break;
+      case 'openkeys': sfx('ui'); this.keybindsReturn = d.from || 'main'; this.show('keybinds'); break;
+      case 'resetkeys': Input.cancelCapture(); this.listening = null; profile.settings.keys = { ...DEFAULT_KEYS }; save(); sfx('ui'); this.toast('All keybinds reset to defaults'); this.render(); break;
       case 'savenow': save(); sfx('uiconfirm'); this.toast('Progress saved'); break;
       case 'reset':
         this.confirm('RESET ALL PROGRESS?', 'This permanently deletes your save data. This cannot be undone.', () => {

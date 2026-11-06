@@ -666,8 +666,8 @@ class PlayerController {
     }
     if (Input.hit('equipUse') && m.equip.length) I.equip = m.selEquip;
     if (Input.hit('lock')) this.toggleLock();
-    I.fire[0] = Input.mouseDown(0);
-    I.fire[1] = Input.mouseDown(2);
+    I.fire[0] = Input.held('fire1');
+    I.fire[1] = Input.held('fire2');
     if (I.lock && (!I.lock.alive || I.lock.removed)) { I.lock = null; }
     if (I.lock) {
       // drop lock if out of range / LOS lost for a while

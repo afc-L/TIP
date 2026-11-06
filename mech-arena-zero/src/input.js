@@ -18,13 +18,24 @@ export const Input = {
     });
     window.addEventListener('keyup', (e) => { down.delete(e.code); });
     window.addEventListener('blur', () => { down.clear(); mouse.buttons = [false, false, false]; });
+    // while rebinding, any mouse button press is captured as the new binding
+    window.addEventListener('mousedown', (e) => {
+      if (!captureCb || (e.target.closest && e.target.closest('button, select, input, a, [data-act]'))) return; // menu controls still work
+      e.preventDefault(); e.stopPropagation();
+      const cb = captureCb; captureCb = null; cb('Mouse' + e.button);
+    }, true);
+    window.addEventListener('auxclick', (e) => { if (e.button === 1) e.preventDefault(); });
     window.addEventListener('mousemove', (e) => {
       if (Input.locked() || (Input.freeLook && e.target === canvas)) { mouse.dx += e.movementX; mouse.dy += e.movementY; }
     });
     canvas.addEventListener('mousedown', (e) => {
       if (e.button < 3) { mouse.buttons[e.button] = true; mouse.clicked[e.button] = true; }
+      const code = 'Mouse' + e.button;
+      if (!down.has(code)) pressed.add(code);
+      down.add(code);
+      if (e.button > 0) e.preventDefault();
     });
-    window.addEventListener('mouseup', (e) => { if (e.button < 3) mouse.buttons[e.button] = false; });
+    window.addEventListener('mouseup', (e) => { if (e.button < 3) mouse.buttons[e.button] = false; down.delete('Mouse' + e.button); });
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
     window.addEventListener('wheel', (e) => { mouse.wheel += Math.sign(e.deltaY); }, { passive: true });
   },
@@ -54,12 +65,17 @@ export const Input = {
   endFrame() { pressed.clear(); mouse.clicked = [false, false, false]; },
   clearAll() { down.clear(); pressed.clear(); mouse.buttons = [false, false, false]; mouse.dx = mouse.dy = 0; },
   captureNextKey(cb) { captureCb = cb; },
+  cancelCapture() { captureCb = null; },
+  capturing() { return !!captureCb; },
 };
 
 export function keyName(code) {
   if (!code) return '—';
   if (code.startsWith('Key')) return code.slice(3);
+  if (code.startsWith('Mouse')) return ({ Mouse0: 'Left Mouse', Mouse1: 'Middle Mouse', Mouse2: 'Right Mouse', Mouse3: 'Mouse 4', Mouse4: 'Mouse 5' })[code] || code;
+  if (code.startsWith('Numpad')) return 'Num ' + code.slice(6);
+  if (code.startsWith('Arrow')) return code.slice(5) + ' Arrow';
   if (code.startsWith('Digit')) return code.slice(5);
-  const map = { Space: 'Space', ShiftLeft: 'L-Shift', ShiftRight: 'R-Shift', ControlLeft: 'L-Ctrl', ControlRight: 'R-Ctrl', AltLeft: 'L-Alt', AltRight: 'R-Alt', Tab: 'Tab', CapsLock: 'Caps', Backquote: '`', Escape: 'Esc' };
+  const map = { Space: 'Space', ShiftLeft: 'L-Shift', ShiftRight: 'R-Shift', ControlLeft: 'L-Ctrl', ControlRight: 'R-Ctrl', AltLeft: 'L-Alt', AltRight: 'R-Alt', Tab: 'Tab', CapsLock: 'Caps', Backquote: '`', Escape: 'Esc', Enter: 'Enter', Backspace: 'Backspace', Minus: '-', Equal: '=', BracketLeft: '[', BracketRight: ']', Semicolon: ';', Quote: "'", Comma: ',', Period: '.', Slash: '/', Backslash: '\\', MetaLeft: 'L-Cmd', MetaRight: 'R-Cmd' };
   return map[code] || code;
 }

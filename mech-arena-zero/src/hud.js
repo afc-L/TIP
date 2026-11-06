@@ -31,7 +31,7 @@ export class Hud {
     const keys = profile.settings.keys;
     this.el.weapons.innerHTML = p.weapons.map((w, i) => `
       <div class="wcard ${i === 1 && p.mods.noSecondary ? 'disabled' : ''}" data-w="${i}">
-        <div class="wkey">${i === 0 ? 'LMB' : 'RMB'}</div>
+        <div class="wkey">${keyName(keys[i === 0 ? 'fire1' : 'fire2'])}</div>
         <div class="wname">${w.def.name}<span class="dtype" style="color:${DAMAGE_TYPES[w.def.dmgType].color}">${DAMAGE_TYPES[w.def.dmgType].name}</span></div>
         <div class="wstat"></div>
         <div class="wbar"><div></div></div>
