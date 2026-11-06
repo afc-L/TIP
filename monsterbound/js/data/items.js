@@ -22,6 +22,10 @@ MB.ITEMS = {};
   I('full_heal', 'Full Heal', 'heal', 500, 'Cures any status condition.', { cure: 'all' });
   I('ether', 'Ether', 'heal', 1200, 'Restores 10 PP to all moves.', { pp: 10 });
   I('elixir', 'Elixir', 'heal', 3000, 'Fully restores PP of all moves.', { pp: 99 });
+  I('xp_candy_s', 'XP Candy S', 'heal', 300, 'Gives a creature 100 Exp. Points.', { exp: 100 });
+  I('xp_candy_m', 'XP Candy M', 'heal', 1000, 'Gives a creature 800 Exp. Points.', { exp: 800 });
+  I('xp_candy_l', 'XP Candy L', 'heal', 3000, 'Gives a creature 3,000 Exp. Points.', { exp: 3000 });
+  I('xp_candy_xl', 'XP Candy XL', 'heal', 8000, 'Gives a creature 10,000 Exp. Points.', { exp: 10000 });
   I('rare_candy', 'Rare Candy', 'heal', 4800, 'Raises a creature by one level.', { levelUp: 1 });
   I('vigor_tonic', 'Vigor Tonic', 'heal', 9800, 'Raises the potential (IVs) of HP.', { vitamin: 'hp' });
   I('power_tonic', 'Power Tonic', 'heal', 9800, 'Raises the potential of Attack.', { vitamin: 'atk' });
@@ -115,7 +119,7 @@ MB.ITEMS = {};
   for (const sp of MB.MEGA_SPECIES) I(sp.mega.stone, sp.name + ' Stone', 'mega', 0, `An Aether Stone attuned to ${sp.name}. Hold it with the Aether Gauntlet to Mega Evolve.`, { megaFor: sp.key });
 })();
 
-MB.SHOPS = {
+MB.SHOPS_BASE = {
   t1: ['basic_capsule', 'potion', 'antidote', 'nerve_tonic', 'wild_ward'],
   t2: ['basic_capsule', 'great_capsule', 'potion', 'super_potion', 'antidote', 'burn_salve', 'nerve_tonic', 'wake_bell', 'wild_ward', 'dungeon_rope'],
   t3: ['basic_capsule', 'great_capsule', 'ultra_capsule', 'super_potion', 'hyper_potion', 'revive', 'full_heal', 'thaw_spray', 'max_ward', 'dungeon_rope', 'ether'],
@@ -130,3 +134,10 @@ MB.SHOPS = {
   merchant: ['ancient_capsule', 'rare_candy', 'bond_cord', 'ever_glow', 'fortune_coin', 'elixir', 'max_revive', 'lure_incense'],
   frontier: ['rare_candy', 'ever_glow', 'power_charm', 'last_stand_band', 'spring_moss', 'ancient_capsule', 'vigor_tonic', 'power_tonic', 'mind_tonic', 'swift_tonic'],
 };
+
+// XP Candy is sold in every shop; bigger candies in later towns and specialty shops.
+MB.SHOPS = MB.SHOPS_BASE;
+(function () {
+  const C = { t1: ['xp_candy_s'], t2: ['xp_candy_s', 'xp_candy_m'], t3: ['xp_candy_s', 'xp_candy_m', 'xp_candy_l'], t4: ['xp_candy_s', 'xp_candy_m', 'xp_candy_l', 'xp_candy_xl'], merchant: ['xp_candy_l', 'xp_candy_xl'], frontier: ['xp_candy_l', 'xp_candy_xl'] };
+  for (const k in MB.SHOPS) { const add = C[k] || ['xp_candy_s', 'xp_candy_m']; for (const id of add) if (!MB.SHOPS[k].includes(id)) MB.SHOPS[k].push(id); }
+})();

@@ -230,7 +230,7 @@ class BagScene {
       const B = this.opts.battle;
       if (it.cat === 'capsule') { if (B.kind === 'trainer') { await MB.say('You can\'t catch another trainer\'s creature!'); return; } this.close({ type: 'ball', id }); return; }
       if (it.cat === 'battle') { this.close({ type: 'item', id, target: B.p.idx }); return; }
-      if (it.cat === 'heal' && !it.field && !it.levelUp && !it.vitamin) {
+      if (it.cat === 'heal' && !it.field && !it.levelUp && !it.exp && !it.vitamin) {
         const t = await MB.Game.push(new PartyScene({ pickOnly: true, prompt: `Use ${it.name} on which creature?` }));
         if (t < 0) return;
         const m = S.party[t];
@@ -317,11 +317,14 @@ MB.ItemUse = {
       MB.Bag.remove(id); await MB.Screens.evolve(m, to); return true;
     }
     if (it.revive) { if (m.hp > 0) { await MB.say('It won\'t have any effect.'); return false; } m.hp = Math.floor(max * it.revive); MB.Bag.remove(id); MB.audio.sfx('heal'); await MB.say(`${m.name} was revived!`); return true; }
-    if (it.levelUp) {
+    if (it.levelUp || it.exp) {
       if (m.lvl >= 100) { await MB.say('It won\'t have any effect.'); return false; }
       MB.Bag.remove(id);
-      const ev = MB.Mon.gainExp(m, MB.Mon.expFor(MB.SP[m.sp].growth, m.lvl + 1) - m.exp);
-      MB.audio.sfx('levelup'); await MB.say(`${m.name} grew to Lv. ${m.lvl}!`);
+      const before = m.lvl;
+      const ev = MB.Mon.gainExp(m, it.exp || MB.Mon.expFor(MB.SP[m.sp].growth, m.lvl + 1) - m.exp);
+      if (m.lvl > before) MB.audio.sfx('levelup');
+      if (it.exp) await MB.say(`${m.name} gained ${it.exp} Exp. Points!`);
+      if (m.lvl > before) await MB.say(`${m.name} grew to Lv. ${m.lvl}!`);
       for (const e of ev) if (e.type === 'move') await MB.Screens.teachMove(m, e.id);
       const to = MB.Mon.checkEvolution(m, { time: MB.World.isNight() ? 'night' : 'day', flags: S.flags });
       if (to) await MB.Screens.evolve(m, to);
