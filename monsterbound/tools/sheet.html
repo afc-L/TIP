@@ -1,0 +1,13 @@
+<!doctype html><html><body style="background:#223;margin:0">
+<canvas id="c"></canvas>
+<script src="../js/core/util.js"></script><script src="../js/data/types.js"></script><script src="../js/data/moves.js"></script>
+<script src="../js/data/abilities.js"></script><script src="../js/data/creatures.js"></script><script src="../js/data/items.js"></script>
+<script src="../js/gfx/creatureSprites.js"></script>
+<script>
+const q=new URLSearchParams(location.search);const start=+(q.get('s')||0),cnt=+(q.get('n')||120),mega=q.get('m')==='1';
+const list=(mega?MB.MEGA_SPECIES:MB.SPECIES).slice(start,start+cnt);
+const cols=12,cw=100,ch=112;const c=document.getElementById('c');c.width=cols*cw;c.height=Math.ceil(list.length/cols)*ch;
+const x=c.getContext('2d');x.imageSmoothingEnabled=false;
+list.forEach((s,i)=>{const px=(i%cols)*cw,py=Math.floor(i/cols)*ch;x.fillStyle='#ddd8c8';x.fillRect(px+2,py+2,cw-4,ch-4);
+x.drawImage(MB.Sprites.get(s,mega),px+2,py+2,96,96);x.fillStyle='#000';x.font='10px sans-serif';x.fillText((mega?'M ':'')+s.name,px+4,py+ch-6);});
+</script></body></html>
