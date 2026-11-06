@@ -77,7 +77,7 @@ MB.ITEMS = {};
   I('aetherdex', 'Aetherdex', 'key', 0, 'A device that records data on every creature you encounter.');
   I('town_map', 'Town Map', 'key', 0, 'A map of the region. Press M to view.');
   I('aether_gauntlet', 'Aether Gauntlet', 'key', 0, 'An ancient gauntlet. Lets a creature holding its Aether Stone Mega Evolve once per battle.');
-  I('exp_link', 'Exp. Link', 'key', 0, 'Shares 50% of battle experience with the whole party.');
+  I('exp_link', 'Exp. Link', 'key', 0, 'Your whole party earns 25% more experience from battles.');
   I('running_shoes', 'Trail Shoes', 'key', 0, 'Hold Shift to run.');
   I('trail_bike', 'Trail Bike', 'key', 0, 'A folding bike. Use it from the bag to ride twice as fast.', { field: true, bike: true });
   I('aqua_saddle', 'Aqua Saddle', 'key', 0, 'Lets your creatures carry you across water. Face water and press Z.');

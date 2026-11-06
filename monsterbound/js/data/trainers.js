@@ -67,7 +67,7 @@ MB.BOSSES = {
     intro: 'Welcome to Verdant Gym! My creatures grow strong in the sun. Let\'s see if your bond can bloom!', lose: 'Your team blossomed beautifully. Take the Sprout Badge!',
     reward: 'shears', rewardText: 'These Garden Shears will cut through thorny bushes on the routes.' },
   voltan: { name: 'Voltan', title: 'Leader', type: 'Electric', badge: 'Surge Badge', pay: 2200, team: [['fluffbolt', 17], ['ampig', 17], ['zapeel', 18], ['voltpaw', 20]], items: ['super_potion'], ai: 2,
-    intro: 'The Crystalwater dam powers the whole lake! Can you handle a hundred thousand volts?', lose: 'Shocking! You earned the Surge Badge, fair and square.', reward: 'exp_link', rewardText: 'This Exp. Link shares experience with your whole team!' },
+    intro: 'The Crystalwater dam powers the whole lake! Can you handle a hundred thousand volts?', lose: 'Shocking! You earned the Surge Badge, fair and square.', reward: 'exp_link', rewardText: 'This Exp. Link boosts the experience your whole team earns!' },
   brutus: { name: 'Brutus', title: 'Leader', type: 'Earth', badge: 'Bedrock Badge', pay: 3000, team: [['sandrit', 24], ['molekin', 24], ['bouldrone', 25], ['duneclaw', 27]], items: ['super_potion', 'super_potion'], ai: 2,
     intro: 'HAH! The desert forges strong bodies. I hope you brought more than sand in your boots!', lose: 'You hit like an earthquake! The Bedrock Badge is yours.', reward: 'pick_hammer', rewardText: 'Take this Pick Hammer to smash cracked boulders.' },
   marina: { name: 'Marina', title: 'Leader', type: 'Aqua', badge: 'Tide Badge', pay: 3800, team: [['jellune', 30], ['pinchel', 30], ['croakwell', 31], ['tidesteed', 33]], items: ['hyper_potion'], ai: 3,

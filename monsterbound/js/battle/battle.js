@@ -476,6 +476,7 @@ class BattleScene {
         this.fx[tside.id].flash = 0.45; this.shakeT = r.eff > 1 ? 0.35 : 0.15;
         MB.audio.sfx(r.eff > 1 ? 'super' : r.eff < 1 ? 'weak' : 'hit');
         await this.animHp(tside, def.hp - dmg);
+        if (side === this.p) { this.dmgDone = this.dmgDone || {}; this.dmgDone[atk.uid] = (this.dmgDone[atk.uid] || 0) + dmg; }
         total += dmg; hitCount++; lastEff = r.eff; if (r.crit) crits++;
         if (r.crit && hits === 1) await this.say('A critical hit!', 0.3);
         // contact abilities
@@ -649,8 +650,12 @@ class BattleScene {
     if (this.opts.noExp) return;
     const S = MB.state;
     const foe = this.mon(this.e), fsp = MB.SP[foe.sp];
-    const parts = S.party.filter((m) => this.p.participants.has(m.uid) && m.hp > 0 && !m.egg);
-    const share = S.keyItems.exp_link ? S.party.filter((m) => !parts.includes(m) && m.hp > 0 && !m.egg) : [];
+    // Experience goes to the whole party (fainted members too), weighted by the damage
+    // each creature dealt this battle. Everyone gets at least a small share.
+    const members = S.party.filter((m) => !m.egg);
+    const dmg = this.dmgDone || {};
+    const totalDmg = members.reduce((a, m) => a + (dmg[m.uid] || 0), 0);
+    const weight = (m) => (totalDmg > 0 ? (dmg[m.uid] || 0) / totalDmg : (m === this.mon(this.p) ? 1 : 0));
     const base = fsp.baseExp * foe.lvl / 5 * (this.kind === 'trainer' ? 1.5 : 1);
     const give = async (m, frac) => {
       const L = m.lvl;
@@ -658,6 +663,7 @@ class BattleScene {
       if (m.item === 'scholar_charm') exp = Math.floor(exp * 1.5);
       if (m.ot && m.ot !== S.trainerId) exp = Math.floor(exp * 1.5);
       if (S.bonusExp) exp = Math.floor(exp * S.bonusExp);
+      if (S.keyItems.exp_link) exp = Math.floor(exp * 1.25);
       // effort
       const top = MB.STAT_KEYS.reduce((a, k) => (fsp.base[k] > fsp.base[a] ? k : a), 'hp');
       m.bonus = m.bonus || {};
@@ -665,7 +671,7 @@ class BattleScene {
       if (tot < 127 && (m.bonus['e' + top] || 0) < 63) m.bonus['e' + top] = (m.bonus['e' + top] || 0) + 1;
       if (m.lvl >= 100) return;
       await this.say(`${m.name} gained ${exp} Exp. Points!`, 0.25);
-      const isActive = m === this.mon(this.p);
+      const isActive = m === this.mon(this.p) && m.hp > 0;
       const sp = MB.SP[m.sp];
       const evs = [];
       // animate exp bar for active
@@ -696,8 +702,7 @@ class BattleScene {
         }
       }
     };
-    for (const m of parts) await give(m, 1 / parts.length);
-    for (const m of share) await give(m, 0.5);
+    for (const m of members) await give(m, 0.15 + 0.85 * weight(m));
   }
   async showLevelStats(ev) {
     this.lvlPanel = ev;

@@ -389,7 +389,7 @@
   class TitleScene {
     constructor() { this.idx = 0; this.t = 0; this.mons = MB.SPECIES.filter((s) => s.mega).map((s) => s.key); }
     enter() { MB.audio.play('title'); }
-    options() { return ['New Game', MB.Save.any() ? 'Continue' : null, 'Settings', 'Save Slots'].filter(Boolean); }
+    options() { return [MB.Save.any() ? 'Continue' : null, 'New Game', 'Settings', 'Save Slots'].filter(Boolean); }
     update(dt) {
       this.t += dt;
       const I = MB.input, L = this.options();

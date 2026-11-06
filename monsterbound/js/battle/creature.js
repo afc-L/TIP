@@ -75,7 +75,7 @@ MB.Mon = {
       const before = MB.Mon.stats(mon);
       mon.lvl++;
       const after = MB.Mon.stats(mon);
-      mon.hp += after.hp - before.hp;
+      if (mon.hp > 0) mon.hp += after.hp - before.hp;
       mon.friend = Math.min(255, mon.friend + 2);
       ev.push({ type: 'level', lvl: mon.lvl, before, after });
       for (const [l, id] of sp.learn) if (l === mon.lvl && !mon.moves.some((m) => m.id === id)) ev.push({ type: 'move', id });
