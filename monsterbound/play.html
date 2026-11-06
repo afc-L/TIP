@@ -1,0 +1,110 @@
+<title>Monsterbound</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+  /* Single dark arcade look: the game screen fills the frame, letterboxed on black. */
+  :root { --bg: #07060f; --ink: #f6f1ff; --gold: #ffe070; --dim: #a9a3c9; --panel: rgba(20, 16, 44, 0.92); --edge: #5868a0; color-scheme: dark; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--ink); }
+  canvas#game { display: block; image-rendering: pixelated; image-rendering: crisp-edges; outline: none; }
+  #loading { position: fixed; inset: 0; display: grid; place-content: center; text-align: center; background: var(--bg); color: var(--gold); font: 700 28px Monaco, Menlo, Consolas, monospace; letter-spacing: 3px; }
+  #loading small { display: block; color: var(--dim); font-size: 13px; letter-spacing: 0; margin-top: 10px; }
+  #start { position: fixed; inset: 0; display: grid; place-items: center; background: radial-gradient(circle at 50% 40%, rgba(90, 50, 160, 0.55), rgba(7, 6, 15, 0.94) 70%); z-index: 20; cursor: pointer; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  #start .card { max-width: 30rem; text-align: center; font-family: Monaco, Menlo, Consolas, monospace; display: grid; gap: 14px; }
+  #start h1 { margin: 0; color: var(--gold); font-size: clamp(26px, 7vw, 44px); letter-spacing: 4px; text-wrap: balance; text-shadow: 0 3px 0 #a02060; }
+  #start .sub { color: var(--ink); letter-spacing: 2px; font-size: 13px; }
+  #start button { justify-self: center; font: 700 15px Monaco, Menlo, Consolas, monospace; letter-spacing: 2px; color: #1a1030; background: var(--gold); border: 3px solid #fff8d0; border-radius: 6px; padding: 12px 26px; cursor: pointer; box-shadow: 0 4px 0 #a07820; }
+  #start button:focus-visible { outline: 3px solid #60f0ff; outline-offset: 3px; }
+  #start .keys { color: var(--dim); font-size: 12px; line-height: 1.7; }
+  #start kbd { color: var(--ink); border: 1px solid var(--edge); border-radius: 3px; padding: 0 4px; }
+  /* touch controls (phones / tablets only) */
+  #touch { position: fixed; inset: auto 0 0 0; display: none; justify-content: space-between; align-items: end; padding: 0 max(16px, env(safe-area-inset-right, 0px)) calc(14px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); pointer-events: none; z-index: 10; }
+  @media (pointer: coarse) { #touch { display: flex; } }
+  #touch .pad { display: grid; grid-template: repeat(3, 46px) / repeat(3, 46px); gap: 2px; pointer-events: auto; }
+  #touch .btns { display: grid; grid-template-columns: repeat(2, 56px); gap: 10px; pointer-events: auto; }
+  #touch button { font: 700 15px Monaco, Menlo, Consolas, monospace; color: var(--ink); background: var(--panel); border: 2px solid var(--edge); border-radius: 10px; opacity: 0.75; touch-action: none; user-select: none; -webkit-user-select: none; }
+  #touch .btns button { height: 56px; border-radius: 50%; }
+  #touch button.a { background: #a02060; } #touch button.b { background: #304080; }
+  #touch .menu { grid-column: span 2; height: 34px !important; border-radius: 10px !important; font-size: 11px; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<canvas id="game" tabindex="0" aria-label="Monsterbound game screen"></canvas>
+<div id="loading">MONSTERBOUND<small>Generating the world of Aetheria…</small></div>
+
+<div id="start" role="button" aria-label="Start Monsterbound">
+  <div class="card">
+    <h1>MONSTERBOUND</h1>
+    <div class="sub">LEGENDS OF AETHER</div>
+    <button id="startBtn" type="button">PRESS TO PLAY</button>
+    <div class="keys">
+      <kbd>WASD</kbd>/<kbd>Arrows</kbd> move · <kbd>Z</kbd>/<kbd>Enter</kbd> confirm · <kbd>X</kbd>/<kbd>Esc</kbd> back &amp; menu<br>
+      <kbd>Shift</kbd> run · <kbd>I</kbd> bag · <kbd>C</kbd> party · <kbd>M</kbd> map · <kbd>P</kbd> dex · <kbd>Q</kbd> quests · <kbd>R</kbd> rift<br>
+      Progress saves in this browser.
+    </div>
+  </div>
+</div>
+
+<div id="touch" aria-hidden="true">
+  <div class="pad">
+    <span></span><button data-k="up">▲</button><span></span>
+    <button data-k="left">◀</button><span></span><button data-k="right">▶</button>
+    <span></span><button data-k="down">▼</button><span></span>
+  </div>
+  <div class="btns">
+    <button class="b" data-k="b">B</button><button class="a" data-k="a">A</button>
+    <button class="menu" data-k="run">RUN</button>
+  </div>
+</div>
+
+<script src="js/core/util.js"></script>
+<script src="js/core/input.js"></script>
+<script src="js/core/audio.js"></script>
+<script src="js/data/types.js"></script>
+<script src="js/data/moves.js"></script>
+<script src="js/data/abilities.js"></script>
+<script src="js/data/creatures.js"></script>
+<script src="js/data/items.js"></script>
+<script src="js/gfx/creatureSprites.js"></script>
+<script src="js/gfx/tiles.js"></script>
+<script src="js/gfx/characters.js"></script>
+<script src="js/gfx/battlebg.js"></script>
+<script src="js/ui/ui.js"></script>
+<script src="js/battle/creature.js"></script>
+<script src="js/data/trainers.js"></script>
+<script src="js/world/mapgen.js"></script>
+<script src="js/world/world.js"></script>
+<script src="js/data/world_aetheria.js"></script>
+<script src="js/data/world_veloria.js"></script>
+<script src="js/data/story.js"></script>
+<script src="js/data/quests.js"></script>
+<script src="js/battle/battle.js"></script>
+<script src="js/battle/systems.js"></script>
+<script src="js/battle/facilities.js"></script>
+<script src="js/core/save.js"></script>
+<script src="js/ui/menus.js"></script>
+<script src="js/ui/screens.js"></script>
+<script src="js/world/overworld.js"></script>
+<script src="js/main.js"></script>
+<script>
+  (function () {
+    var start = document.getElementById('start');
+    var canvas = document.getElementById('game');
+    function go() {
+      start.hidden = true;
+      try { MB.audio.unlock(); } catch (e) { /* audio unavailable */ }
+      canvas.focus();
+    }
+    start.addEventListener('click', go);
+    document.addEventListener('keydown', function (e) { if (!start.hidden && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); go(); } });
+    canvas.addEventListener('mousedown', function () { canvas.focus(); });
+    // touch controls feed the same input actions as the keyboard
+    document.querySelectorAll('#touch button').forEach(function (b) {
+      var k = b.getAttribute('data-k');
+      var down = function (e) { e.preventDefault(); MB.input._hold(k, true); try { MB.audio.unlock(); } catch (x) {} };
+      var up = function (e) { e.preventDefault(); MB.input._hold(k, false); };
+      b.addEventListener('pointerdown', down);
+      b.addEventListener('pointerup', up);
+      b.addEventListener('pointercancel', up);
+      b.addEventListener('pointerleave', up);
+    });
+  })();
+</script>
