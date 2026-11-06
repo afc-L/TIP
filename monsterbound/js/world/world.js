@@ -247,6 +247,8 @@ MB.World = (function () {
         }
       } else if (n.at === 'trainerSpot' && m.trainerSpots) { pos = m.trainerSpots[i % m.trainerSpots.length]; }
       if (!pos) pos = freeSpot(m, r, { grassOk: true }) || [Math.floor(m.w / 2), Math.floor(m.h / 2)];
+      // keep doorsteps clear unless this NPC is deliberately guarding a door
+      if (!(n.script || '').startsWith('gate') && m.buildings.some((b) => b.door.x === pos[0] && b.door.y + 1 === pos[1])) pos = freeSpot(m, r, {}) || pos;
       npc.x = pos[0]; npc.y = pos[1]; npc.homeX = npc.x; npc.homeY = npc.y;
       if (m.tiles[npc.y] && m.tiles[npc.y][npc.x] === ',' && !npc.trainer) m.tiles[npc.y][npc.x] = '.';
       if (!npc.app) npc.app = MB.Chars.randomApp(npc.id, npc.kind);

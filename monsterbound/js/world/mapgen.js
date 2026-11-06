@@ -362,7 +362,7 @@ MB.MapGen = (function () {
       spec.teleports = [[3, 16, 10, 12], [11, 16, 3, 17], [4, 12, 11, 7], [10, 12, 3, 13], [3, 7, 7, 3], [11, 7, 4, 10]];
       trainerSpots.push([7, 16], [7, 11], [7, 6]);
     } else if (puzzle === 'dark') { // Shadow: invisible maze in darkness
-      for (let y = 4; y < h - 3; y += 2) { const gap = r.int(2, w - 3); for (let x = 1; x < w - 1; x++) if (Math.abs(x - gap) > 0) g[y][x] = 'X'; }
+      for (let y = 4; y < h - 3; y += 3) { const gap = r.int(2, w - 3); for (let x = 1; x < w - 1; x++) if (Math.abs(x - gap) > 0) g[y][x] = 'X'; }
       spec.dark = true;
       trainerSpots.push([3, h - 5], [11, 9], [5, 5]);
     } else if (puzzle === 'arena') {
@@ -378,6 +378,11 @@ MB.MapGen = (function () {
     spec.exits = [];
     const res = finish(spec, g, r, {});
     res.indoor = true; res.gym = true;
+    // never let a trainer stand beside a one-tile chokepoint (gap in a wall row)
+    const solid = (c) => c === 'X' || c === 'T' || c === 'f' || c === 'W' || c === '#' || c === 'w' || c === 'x';
+    const choke = (x, y) => inb(g, x, y) && !solid(g[y][x]) && inb(g, x - 1, y) && inb(g, x + 1, y) && solid(g[y][x - 1]) && solid(g[y][x + 1]);
+    const nearChoke = (x, y) => choke(x, y) || choke(x, y - 1) || choke(x, y + 1) || choke(x - 1, y) || choke(x + 1, y);
+    for (const sp of trainerSpots) { let guard = 0; while (nearChoke(sp[0], sp[1]) && guard++ < 12) sp[0] = 2 + ((sp[0] + 1) % (w - 4)); }
     res.trainerSpots = trainerSpots.filter(([x, y]) => inb(g, x, y));
     for (const [x, y] of res.trainerSpots) if (res.tiles[y][x] !== 'G') res.tiles[y][x] = 'G';
     res.leaderSpot = [7, 2];

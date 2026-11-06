@@ -66,3 +66,23 @@ const scan=(o)=>{ const j=JSON.stringify(o); for(const sp of MB.MEGA_SPECIES) if
 scan(MB.WORLD_SPECS); scan(MB.QUESTS); scan(MB.Dex.MILESTONES); 
 const storySrc=require('fs').readFileSync(__dirname+'/../js/data/story.js','utf8'); for(const sp of MB.MEGA_SPECIES) if(storySrc.includes(sp.mega.stone)) stoneSrc.add(sp.mega.stone);
 console.log('stones with explicit source',stoneSrc.size,'/',MB.MEGA_SPECIES.length,' missing:',MB.MEGA_SPECIES.filter(s=>!stoneSrc.has(s.mega.stone)).map(s=>s.key).join(','));
+// ---- gyms: leader reachable with trainers standing as obstacles ----
+for(const id of ids){ const sp=MB.WORLD_SPECS[id]; for(const b of sp.buildings||[]){ if(b.kind!=='gym') continue; const m=MB.World.get(b.id);
+  const block=new Set(m.npcs.filter(n=>!n.script||!n.script.startsWith('leader')).map(n=>n.x+','+n.y));
+  const g=m.tiles.map((r,y)=>r.map((c,x)=>block.has(x+','+y)?'#':c));
+  const passFn=(c)=>PASS.has(c)||c==='B'||c==='v'||c==='i'||c==='t';
+  const [ex,ey]=m.entry; let reach=MB.MapGen.flood(g,ex,ey,passFn);
+  if(m.teleports){ for(let it=0;it<8;it++) for(const [a,bb,c,d] of m.teleports) if(reach[bb*m.w+a]&&!reach[d*m.w+c]){ const r2=MB.MapGen.flood(g,c,d,passFn); for(let i=0;i<r2.length;i++) if(r2[i]) reach[i]=1; } }
+  const [lx,ly]=m.leaderSpot; if(!reach[(ly+1)*m.w+lx]) console.log('GYM BLOCKED by trainers:',b.id, m.npcs.map(n=>[n.x,n.y]).join(' '));
+}}
+console.log('gym check done');
+let blockedMaps=0;
+for(const id of Object.keys(MB.World.maps)){ const m=MB.World.maps[id]; if(m.gym) continue;
+  const block=new Set(m.npcs.filter(n=>!(n.script||'').startsWith('gate')&&n.script!=='wb_guard'&&!(n.at||'').toString().startsWith('exit:')&&!n.cond).map(n=>n.x+','+n.y));
+  const g=m.tiles.map((r,y)=>r.map((c,x)=>block.has(x+','+y)?'#':c));
+  const passFn=(c)=>PASS.has(c)||c==='K'||c==='~'||c==='D'||c==='H'||c==='b'||c==='C'||c==='B'||c==='R'||c==='r'||c==='i';
+  const pts=[]; for(const e of m.exits) pts.push(e.inner); for(const b of m.buildings) pts.push([b.door.x,b.door.y+1]); for(const w of m.warps.filter(w=>w.exitTo)) pts.push([w.x,w.y]);
+  if(pts.length<2) continue; const reach=MB.MapGen.flood(g,pts[0][0],pts[0][1],passFn);
+  for(const [x,y] of pts.slice(1)) if(!reach[y*m.w+x]){ console.log('NPC-BLOCKED',id,x,y); blockedMaps++; break; }
+}
+console.log('npc block check done',blockedMaps);
