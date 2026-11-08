@@ -357,13 +357,21 @@ class PCScene {
     const I = MB.input, S = this.S;
     if (I.pressed('b')) { if (this.held) { MB.say('Put the creature down first!'); return; } this.close(); return; }
     if (this.side === 'box') {
-      if (I.repeat('right')) this.cx = (this.cx + 1) % 6; if (I.repeat('left')) this.cx = (this.cx + 5) % 6;
-      if (I.repeat('down')) { if (this.cy === 4) { this.side = 'party'; this.pi = 0; } else this.cy++; }
-      if (I.repeat('up')) { if (this.cy === 0) this.cy = -1; else if (this.cy > 0) this.cy--; }
-      if (this.cy === -1) { if (I.pressed('left')) { this.box = (this.box + S.boxes.length - 1) % S.boxes.length; } if (I.pressed('right')) { this.box = (this.box + 1) % S.boxes.length; } if (I.repeat('down')) this.cy = 0; }
+      if (this.cy === -1) {
+        // box selector row: left/right changes box
+        if (I.pressed('left')) this.box = (this.box + S.boxes.length - 1) % S.boxes.length;
+        if (I.pressed('right')) this.box = (this.box + 1) % S.boxes.length;
+        if (I.repeat('down')) this.cy = 0;
+      } else {
+        if (I.repeat('right')) { if (this.cx === 5) { this.side = 'party'; this.pi = Math.min(this.cy, Math.max(0, S.party.length - 1)); MB.audio.sfx('move'); } else this.cx++; }
+        else if (I.repeat('left')) { if (this.cx > 0) this.cx--; }
+        if (I.repeat('down')) { if (this.cy === 4) { this.side = 'party'; this.pi = 0; } else this.cy++; }
+        else if (I.repeat('up')) this.cy--;
+      }
     } else {
-      if (I.repeat('down')) this.pi = Math.min(S.party.length, this.pi + 1);
+      if (I.repeat('down')) this.pi = Math.min(S.party.length < 6 ? S.party.length : 5, this.pi + 1);
       if (I.repeat('up')) { if (this.pi === 0) { this.side = 'box'; this.cy = 4; } else this.pi--; }
+      if (I.repeat('left')) { this.side = 'box'; this.cx = 5; this.cy = Math.min(4, this.pi); MB.audio.sfx('move'); }
     }
     if (I.pressed('a')) this.act();
   }
@@ -415,12 +423,12 @@ class PCScene {
     for (let i = 0; i <= Math.min(5, S.party.length); i++) {
       const y = 24 + i * 24;
       const m = S.party[i];
-      if (this.side === 'party' && this.pi === i) { ctx.fillStyle = '#f8e8a0'; ctx.fillRect(212, y, 100, 23); if (this.held) UI.monIcon(ctx, this.held, 290, y - 4, 22); }
+      if (this.side === 'party' && this.pi === i) { ctx.fillStyle = '#f8e8a0'; ctx.fillRect(212, y, 100, 23); ctx.strokeStyle = '#e04040'; ctx.lineWidth = 1.5; ctx.strokeRect(212, y, 100, 23); if (this.held) UI.monIcon(ctx, this.held, 290, y - 4, 22); }
       if (m) { UI.monIcon(ctx, m, 214, y, 22); UI.text(ctx, m.name, 238, y + 10, { size: 6, bold: true }); UI.text(ctx, m.egg ? 'Egg' : 'Lv' + m.lvl, 238, y + 19, { size: 6 }); }
       else if (i === S.party.length && S.party.length < 6) UI.text(ctx, '(empty)', 240, y + 14, { size: 6, color: '#808080' });
     }
     UI.box(ctx, 4, 180, MB.W - 8, 56);
-    let info = this.held ? `Holding ${this.held.name}. Choose a spot.` : 'Z: select  X: close.  Move up from the grid to change boxes.';
+    let info = this.held ? `Holding ${this.held.name}. Choose a spot.` : this.side === 'party' ? 'Party: Z to deposit or move.  Left: back to the box.' : 'Z: select  Right edge: party  Top: change box  X: close';
     const cur = this.side === 'box' ? list[this.cy * 6 + this.cx] : S.party[this.pi];
     if (cur && !this.held) { const sp = MB.SP[cur.sp]; info = `${cur.name} — ${cur.egg ? 'Egg' : sp.name + ' Lv' + cur.lvl + ' ' + sp.types.join('/')}${cur.shiny ? ' ★' : ''}`; }
     UI.text(ctx, info, 14, 200, { size: 7 });
