@@ -89,7 +89,7 @@ class BattleScene {
   // ---------------- lifecycle ----------------
   enter() {
     MB.audio.play(this.opts.music || (this.kind === 'wild' ? (this.opts.legendary ? 'legend' : 'wild') : 'trainer'));
-    this.run().catch((e) => { console.error(e); this.result = this.result || { outcome: 'win' }; this.close(this.result); });
+    this.run().catch((e) => { console.error(e); MB.toast && MB.toast('Battle error: ' + e.message, '#802020'); this.close(this.result || { outcome: 'run' }); });
   }
   async run() {
     const S = MB.state;
@@ -232,7 +232,12 @@ class BattleScene {
   async openParty(forced) {
     const M = this.menu; this.menu = null;
     const res = await MB.Game.push(new MB.PartyScene({ battle: this, forced, current: this.p.idx }));
-    if (res === null || res === undefined || res < 0) { if (forced) return this.openParty(true); return this.reopen(M); }
+    if (res === null || res === undefined || res < 0) {
+      if (forced) return this.openParty(true);
+      // opened mid-turn (e.g. the "switch?" prompt after a knockout): cancelling just keeps the current creature
+      if (!M) return -1;
+      return this.reopen(M);
+    }
     if (M) M.res({ type: 'switch', to: res }); else return res;
   }
 
