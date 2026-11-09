@@ -135,6 +135,22 @@ SC.prof_talk = async (ctx) => {
   await MB.Dex.milestoneRewards(P);
 };
 SC.r1_hint = async () => { if (!S_().flags.r1_hint_done) { MB.Sc.set('r1_hint_done'); await MB.say('Tip: Press Esc or X to open the menu. C opens your party, I your bag, M the map, Q your quest journal.'); } };
+SC.trail_bike = async () => {
+  const S = S_(), C = 'Cyclist Bea';
+  if (S.keyItems.trail_bike) return MB.say('Use the Trail Bike from your Bag (Key Items) to ride twice as fast outdoors!', { speaker: C });
+  if (!S.flags.badge_mira) return MB.say('I ride everywhere on my Trail Bike! Earn the Sprout Badge and maybe I\'ll lend you my spare.', { speaker: C });
+  await MB.say('The Sprout Badge! You\'re going places. Get there faster with my spare Trail Bike!', { speaker: C });
+  await MB.Sc.give('trail_bike');
+  await MB.say('Open your Bag, go to Key Items and use it to hop on or off. It doesn\'t work indoors.', { speaker: C });
+};
+SC.power_gloves = async () => {
+  const S = S_(), R = 'Strongman Rocco';
+  if (S.keyItems.power_gloves) return MB.say('Push those boulders with pride! Strength is nothing without a good partner.', { speaker: R });
+  if (!S.flags.badge_brutus) return MB.sayAll(['HNNGH! I lift boulders for fun. Brutus is my training buddy!', 'Beat him at the gym and come see me. I have something for strong trainers.'], R);
+  await MB.sayAll(['You beat Brutus?! Ha! Then you\'ve earned these.', 'My old Power Gloves. With them you can push heavy boulders out of your way.'], R);
+  await MB.Sc.give('power_gloves');
+  await MB.say('Walk into a boulder to push it. Some hide treasure behind them!', { speaker: R });
+};
 SC.gate_badge = async (ctx) => MB.sayAll(ctx.npc.talk || ['You need more badges to pass.']);
 SC.gate_flag = async (ctx) => MB.sayAll(ctx.npc.talk || ['You can\'t go this way yet.']);
 

@@ -65,6 +65,7 @@ MB.WorldDSL = (function () {
       npc(['The Day Care here raises creatures for you. Leave two together and you might find an Egg!'], { move: 'wander', kind: 'old' }),
       { at: 'exit:e', kind: 'hiker', script: 'gate_badge', gate: 1, cond: '!badge_mira', talk: ['The forest east of here is crawling with strong creatures. Come back with Mira\'s badge!'] },
       { script: 'q:verdant_lost_twigeet', kind: 'kid', at: [6, 20] },
+      { id: 'cyclist', name: 'Cyclist Bea', kind: 'ranger', at: 'path', script: 'trail_bike' },
     ],
     items: [{ item: 'great_capsule', hidden: true }],
   });
@@ -129,7 +130,7 @@ MB.WorldDSL = (function () {
       house([{ at: [3, 2], script: 'q:sunmane_trial' }], { id: 'ss_h1' }),
       { kind: 'shop', id: 'ss_shop2', label: 'TONIC', shop: 'tonic' },
     ]),
-    npcs: [npc(['Sunspire was built on the ruins of an ancient Aetherian city. Dig anywhere and you\'ll find relics!'], { move: 'wander' }), npc(['Brutus\'s gym is full of boulders. Push them out of your way!'], { kind: 'hiker' }), { at: 'exit:s', kind: 'hiker', script: 'gate_badge', gate: 3, cond: '!badge_brutus', talk: ['The road to Ancient Hollow is closed to all but those with the Bedrock Badge.'] }],
+    npcs: [{ id: 'strongman', name: 'Strongman Rocco', kind: 'hiker', at: 'path', script: 'power_gloves' }, npc(['Sunspire was built on the ruins of an ancient Aetherian city. Dig anywhere and you\'ll find relics!'], { move: 'wander' }), npc(['Brutus\'s gym is full of boulders. Push them out of your way!'], { kind: 'hiker' }), { at: 'exit:s', kind: 'hiker', script: 'gate_badge', gate: 3, cond: '!badge_brutus', talk: ['The road to Ancient Hollow is closed to all but those with the Bedrock Badge.'] }],
     items: [{ item: 'ancient_coin', hidden: true }, { item: 'hyper_potion' }],
   });
   link('route5', 'e', 'sunspire', 'w');

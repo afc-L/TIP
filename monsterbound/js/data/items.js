@@ -91,11 +91,9 @@ MB.ITEMS = {};
   I('fishing_rod', 'Fishing Rod', 'key', 0, 'Face water and use it to fish for aquatic creatures.', { field: true, rod: true });
   I('rift_lens', 'Rift Lens', 'key', 0, 'Press R to shift between the Bright and Gloam phases of Velorian rifts.');
   I('veloria_pass', 'Veloria Pass', 'key', 0, 'A ship ticket from Stormport to Halcyon Harbor in Veloria.');
-  I('fossil_kit', 'Revival Kit', 'key', 0, 'Fossils can be revived at the Ancient Hollow research camp.');
   I('star_shard', 'Star Shard', 'quest', 0, 'One of the fragments of the original creature. Collect them all.');
   I('egg_incubator', 'Egg Warmer', 'key', 0, 'Eggs in the party hatch twice as fast.');
   I('radiant_charm', 'Radiant Charm', 'key', 0, 'Triples the chance of meeting Radiant (shiny) creatures.');
-  I('aether_core_shard', 'Heart Fragment', 'quest', 0, 'A fragment of the Aether Heart. It thrums with power.');
   I('syndicate_badge', 'Syndicate Keycard', 'quest', 0, 'An Eclipse Syndicate keycard. Opens their laboratory doors.');
   I('rival_letter', "Rival's Letter", 'quest', 0, 'A letter left by your rival.');
   // ---- fossils ----
