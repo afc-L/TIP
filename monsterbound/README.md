@@ -106,6 +106,7 @@ Run these from inside `monsterbound/`. They need Node, plus Playwright for the b
 
 ```bash
 node tools/validate.cjs                # builds every map; checks connectivity, references, obtainability
+node tools/connect.cjs                 # strict connectivity: one-way ledges, story-order items, world graph
 node tools/battle_fuzz.cjs 400         # 400 randomized AI-vs-AI battles
 node tools/scripts_test.cjs            # runs every story/quest/facility script with auto-input
 node tools/bot.cjs /tmp/bot            # a bot plays from the lab to the first badge
