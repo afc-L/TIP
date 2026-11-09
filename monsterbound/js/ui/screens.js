@@ -104,11 +104,25 @@
       if (I.repeat('right') || I.repeat('down')) { cur = (cur + 1) % vis.length; this.idx = this.towns.indexOf(vis[cur]); MB.audio.sfx('move'); }
       if (I.repeat('left') || I.repeat('up')) { cur = (cur + vis.length - 1) % vis.length; this.idx = this.towns.indexOf(vis[cur]); MB.audio.sfx('move'); }
       if (I.pressed('b') || I.pressed('map')) { this.close(null); return; }
-      if (I.pressed('a') && MB.state.keyItems.wing_whistle && this.opts.canFly !== false) {
+      if (I.pressed('a') && this.opts.canFly !== false) {
         const t = this.towns[this.idx];
-        if (t.fly && MB.state.visited[t.id] && t.id !== MB.state.map) { this.close(t.id); }
+        if (this.canTravel(t)) { this.close(t.id); }
         else MB.audio.sfx('error');
       }
+    }
+    // The town (red square) the player is standing in, counting buildings inside it.
+    currentTown() {
+      let sp = MB.WORLD_SPECS[MB.state.map];
+      while (sp && sp.parent) sp = MB.WORLD_SPECS[sp.parent];
+      return sp && sp.type === 'town' ? sp : null;
+    }
+    // From any town you can teleport to any other visited town; the Wing Whistle lets you fly from anywhere.
+    canTravel(t) {
+      if (!t || !MB.state.visited[t.id]) return false;
+      const here = this.currentTown();
+      if (here && here.id === t.id) return false;
+      if (t.type === 'town' && here) return true;
+      return !!(MB.state.keyItems.wing_whistle && t.fly) && t.id !== MB.state.map;
     }
     draw(ctx) {
       const S = MB.state;
@@ -137,7 +151,8 @@
       if (t && S.visited[t.id]) {
         UI.text(ctx, t.name, 12, 214, { size: 8, bold: true });
         UI.text(ctx, t.subtitle || (t.wild ? `Wild creatures Lv. ${t.wild.lvl[0]}-${t.wild.lvl[1]}` : ''), 12, 228, { size: 6 });
-        if (S.keyItems.wing_whistle && t.fly) UI.text(ctx, 'Z: Fly here', MB.W - 12, 214, { size: 7, align: 'right', color: '#3060a0' });
+        if (this.canTravel(t)) UI.text(ctx, this.currentTown() && t.type === 'town' ? 'Z: Teleport here' : 'Z: Fly here', MB.W - 12, 214, { size: 7, align: 'right', color: '#3060a0' });
+        else if (this.currentTown() && this.currentTown().id === t.id) UI.text(ctx, 'You are here', MB.W - 12, 214, { size: 7, align: 'right', color: '#806020' });
       } else UI.text(ctx, 'Explore to reveal more of the map.', 12, 220, { size: 7 });
       UI.text(ctx, (this.region === 'A' ? 'AETHERIA' : 'VELORIA') + `  ${MB.World.DAY_NAMES[MB.World.dayOfWeek()]}  ${MB.cap(MB.World.season())}`, 8, 14, { size: 8, bold: true, color: '#fff' });
     }

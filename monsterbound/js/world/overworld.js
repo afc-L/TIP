@@ -90,7 +90,7 @@ class Overworld {
       if (b) { x = b.door.x; y = b.door.y + 1; }
     }
     if (x === null || x === undefined) {
-      const c = m.buildings.find((b) => b.kind === 'center');
+      const c = m.buildings.find((b) => b.kind === 'center') || (m.kind === 'town' ? m.buildings.find((b) => b.id === 'wb_home') || m.buildings[0] : null);
       if (c) { x = c.door.x; y = c.door.y + 1; }
       else if (m.entry) { [x, y] = m.entry; }
       else if (m.exits[0]) { [x, y] = m.exits[0].inner; }
@@ -110,13 +110,15 @@ class Overworld {
   }
   isFree(x, y) { const c = MB.World.tileAt(this.map, x, y); return c && (MB.MapGen.PASS.has(c) && c !== 'L' && c !== 'R' && c !== 'r') && !this.npcAt(x, y); }
   async flyTo(mapId) {
-    await this.runScript(async () => {
-      MB.audio.sfx('throw');
+    const go = async () => {
+      MB.audio.sfx('rift');
       await MB.fadeOut(0.5, '#fff');
-      this.S.surfing = false;
+      this.S.surfing = false; this.bike = false;
       await this.warpTo(mapId, null, null, 'down');
       await MB.fadeIn(0.5, '#fff');
-    });
+    };
+    // usually called from the map menu, which already runs inside a script
+    if (this.busy) await go(); else await this.runScript(go);
   }
   async escapeRope() {
     const S = this.S;
