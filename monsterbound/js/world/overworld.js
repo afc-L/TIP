@@ -301,7 +301,6 @@ class Overworld {
       if (back) { x = back.x; y = back.y + 1; if (!this.isFreeIn(dest, x, y)) { const alt = [[0, -1], [1, 0], [-1, 0]].map(([a, b]) => [back.x + a, back.y + b]).find(([a, b]) => this.isFreeIn(dest, a, b)); if (alt) [x, y] = alt; } }
       S.surfing = false; this.bike = false;
       await this.warpTo(p.to, x, y, 'down');
-      this.justPortaled = true;
       await MB.fadeIn(0.25);
     });
   }
@@ -328,8 +327,7 @@ class Overworld {
       });
       return;
     }
-    if (c === '>' && !this.justPortaled) { const p = m.portals.find((q) => q.x === S.px && q.y === S.py); if (p) { this.usePortal(p); return; } }
-    this.justPortaled = false;
+    if (c === '>') { const p = m.portals.find((q) => q.x === S.px && q.y === S.py); if (p) { this.usePortal(p); return; } }
     if (c === 't' && m.teleports) {
       const tp = m.teleports.find(([x, y]) => x === S.px && y === S.py);
       if (tp) { this.runScript(async () => { MB.audio.sfx('rift'); await MB.fadeOut(0.15, '#c0a0ff'); S.px = tp[2]; S.py = tp[3]; await MB.fadeIn(0.15, '#c0a0ff'); }); return; }

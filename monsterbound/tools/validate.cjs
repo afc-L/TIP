@@ -86,3 +86,13 @@ for(const id of Object.keys(MB.World.maps)){ const m=MB.World.maps[id]; if(m.gym
   for(const [x,y] of pts.slice(1)) if(!reach[y*m.w+x]){ console.log('NPC-BLOCKED',id,x,y); blockedMaps++; break; }
 }
 console.log('npc block check done',blockedMaps);
+// ---- every portal/ladder leads to a matching portal with a free landing tile ----
+let portalProblems=0, portalCount=0;
+for(const id of Object.keys(MB.WORLD_SPECS)){ const sp=MB.WORLD_SPECS[id]; if(!(sp.portals||[]).length) continue; const m=MB.World.get(id);
+  if(m.portals.length!==sp.portals.length){ console.log('PORTAL MISSING on map',id,m.portals.length,'/',sp.portals.length); portalProblems++; }
+  for(const p of m.portals){ portalCount++; const d=MB.World.get(p.to); const back=d.portals.find(q=>q.id===p.toPortal);
+    if(!back){ console.log('NO RETURN PORTAL',id,'->',p.to); portalProblems++; continue; }
+    const t=m.tiles[p.y][p.x]; if(!['>','E','D'].includes(t)){ console.log('PORTAL TILE WRONG',id,t); portalProblems++; }
+    const land=[[back.x,back.y+1],[back.x,back.y-1],[back.x+1,back.y],[back.x-1,back.y]].some(([x,y])=>{const c=d.tiles[y]&&d.tiles[y][x]; return c&&PASS.has(c)&&c!=='>';});
+    if(!land){ console.log('NO LANDING',p.to,'from',id); portalProblems++; } } }
+console.log('portals checked',portalCount,'problems',portalProblems);

@@ -141,7 +141,7 @@ MB.World = (function () {
     let m;
     if (spec.type === 'town') m = MB.MapGen.town(s);
     else if (spec.type === 'route' || spec.type === 'forest') m = MB.MapGen.route(Object.assign({ trees: spec.type === 'forest' ? 1.6 : undefined, grass: spec.type === 'forest' ? 0.9 : undefined }, s));
-    else if (spec.type === 'cave') m = MB.MapGen.cave(Object.assign({ ladders: (spec.portals || []).map((p) => Object.assign({}, p)) }, s));
+    else if (spec.type === 'cave') { const ladders = (spec.portals || []).map((p) => Object.assign({}, p)); m = MB.MapGen.cave(Object.assign({ ladders }, s)); m.ladders = ladders; }
     else if (spec.type === 'interior') m = MB.MapGen.interior(s);
     else if (spec.type === 'gym') m = MB.MapGen.gym(s);
     else if (spec.type === 'custom') m = spec.build(s);
