@@ -64,7 +64,7 @@ export class World {
     this.trunks = new ChunkedInstances(this.scene, trunk, lam, { name: 'trunks' });
     const pine = new THREE.ConeGeometry(0.5, 1, 7); pine.translate(0, 0.5, 0);
     this.pines = new ChunkedInstances(this.scene, pine, lam, { name: 'pines' });
-    const round = new THREE.IcosahedronGeometry(0.5, 1);
+    const round = new THREE.IcosahedronGeometry(0.55, 0);
     this.rounds = new ChunkedInstances(this.scene, round, new THREE.MeshLambertMaterial({ color: 0xffffff, flatShading: true }), { name: 'rounds' });
     const rock = new THREE.DodecahedronGeometry(0.5, 0);
     this.rocks = new ChunkedInstances(this.scene, rock, new THREE.MeshLambertMaterial({ color: 0xffffff, flatShading: true }), { name: 'rocks' });

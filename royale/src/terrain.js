@@ -149,7 +149,7 @@ export class Terrain {
   }
 
   buildMesh(scene) {
-    const CH = 16;               // quads per chunk side
+    const CH = 32;               // quads per chunk side
     const chunks = (TN - 1) / CH;
     const mat = new THREE.MeshLambertMaterial({ vertexColors: true });
     const col = new THREE.Color();
@@ -206,7 +206,7 @@ export class Terrain {
   }
 
   updateVisibility(cx, cz, dist) {
-    const lim = dist + 120;
+    const lim = dist + 230;
     for (const m of this.meshes) {
       const dx = m.userData.cx - cx, dz = m.userData.cz - cz;
       m.visible = dx * dx + dz * dz < lim * lim;

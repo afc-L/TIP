@@ -173,8 +173,12 @@ export class PlayerController {
   toggleEdit() {
     const g = this.game, a = g.player;
     if (this.editing) { this.confirmEdit(); return; }
-    const hit = this.aimHit;
-    if (!hit || !hit.c || hit.t > 7) return;
+    // cast from the camera itself so walls right next to the player are found too
+    const cam = g.camera;
+    cam.getWorldDirection(_d);
+    const hit = g.phys.raycast(cam.position.x, cam.position.y, cam.position.z, _d.x, _d.y, _d.z, 12, null, _hit);
+    if (!hit || !hit.c) return;
+    if (Math.hypot(hit.x - a.pos.x, hit.y - a.eyeY, hit.z - a.pos.z) > 6) return;
     const p = g.build.pieceFromCollider(hit.c);
     if (!p || p.owner !== a || (p.type !== 'wall' && p.type !== 'floor')) return;
     const full = p.type === 'wall' ? FULL_WALL : FULL_FLOOR;

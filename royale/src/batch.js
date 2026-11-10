@@ -7,7 +7,7 @@ const _c = new THREE.Color();
 const ZERO = new THREE.Matrix4().makeScale(0, 0, 0);
 
 export class ChunkedInstances {
-  constructor(scene, geometry, material, { chunk = 225, half = 1000, castShadow = true, receiveShadow = true, name = '' } = {}) {
+  constructor(scene, geometry, material, { chunk = 300, half = 1000, castShadow = true, receiveShadow = true, name = '' } = {}) {
     this.scene = scene;
     this.geo = geometry;
     this.mat = material;
