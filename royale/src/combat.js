@@ -6,7 +6,7 @@ import { CONSUMABLES } from './items.js';
 const _d = new THREE.Vector3();
 const _o = new THREE.Vector3();
 const _hit = {};
-const SOUND_RADIUS = { ar: 160, burst: 160, heavy: 170, pump: 120, tac: 110, smg: 110, sniper: 300, dmr: 220, pistol: 100, revolver: 150, rocket: 220, gl: 160, minigun: 170, rail: 200 };
+const SOUND_RADIUS = { ar: 125, burst: 125, heavy: 135, pump: 95, tac: 90, smg: 90, sniper: 240, dmr: 170, pistol: 80, revolver: 120, rocket: 180, gl: 130, minigun: 140, rail: 160 };
 const HARVEST = { tree: ['wood', 9], crate: ['wood', 6], fence: ['wood', 4], rock: ['stone', 11], car: ['metal', 13], barrel: ['metal', 4], prop: ['metal', 6] };
 
 export class Combat {

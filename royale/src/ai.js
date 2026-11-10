@@ -96,7 +96,12 @@ export class AIBrain {
       w *= lerp(1, 0.4 + c.hot * 3, p.hotDrop);
       w *= Math.max(0.03, 1 - perp / 520);
       const crowd = g.dropCounts[c.id] || 0;
-      w *= p.hotDrop > 0.6 ? 1 + crowd * 0.06 : 1 / (1 + crowd * (0.25 + p.caution * 0.6));
+      // how many players this place can realistically feed
+      if (!g.dropCapacity) g.dropCapacity = {};
+      if (g.dropCapacity[c.id] === undefined) g.dropCapacity[c.id] = Math.max(2, g.world.chestSpots.filter((s) => s.poi === c.id).length * 0.9);
+      if (crowd >= g.dropCapacity[c.id]) w *= 0.08;
+      w *= p.hotDrop > 0.6 ? 1 + Math.min(crowd, 10) * 0.03 : 1 / (1 + crowd * (0.35 + p.caution * 0.7));
+      if (crowd > 16) w *= 0.3;
       if (!storm.inNext(c.x, c.z, -200)) w *= 0.4;
       w *= rand(0.4, 1.6);
       if (w > bestW) { bestW = w; best = { ...c, s, perp }; }
@@ -154,7 +159,15 @@ export class AIBrain {
     const eyeY = a.eyeY;
     const range = 100 * this.p.awareness;
     const fovCos = Math.cos((150 * Math.PI / 180) / 2);
-    const fx = -Math.sin(a.yaw), fz = -Math.cos(a.yaw);
+    // occasional shoulder checks: perception looks around even while the body faces its path
+    this.glanceT = (this.glanceT ?? rand(1, 4)) - dtp;
+    if (this.glanceT <= 0) {
+      this.glanceT = rand(2.5, 6) / this.p.awareness;
+      this.glanceOff = (chance(0.5) ? 1 : -1) * rand(1.6, 3.14);
+      this.glanceUntil = now + rand(0.5, 1.0);
+    }
+    const lookYaw = a.yaw + (now < (this.glanceUntil || 0) ? this.glanceOff : 0);
+    const fx = -Math.sin(lookYaw), fz = -Math.cos(lookYaw);
     // candidate list sorted by distance (cap LOS checks)
     const cands = this._cands || (this._cands = []);
     cands.length = 0;
@@ -178,7 +191,7 @@ export class AIBrain {
       const ty = t.pos.y + (t.crouching ? 0.8 : 1.2);
       if (!g.phys.lineOfSight(a.pos.x, eyeY, a.pos.z, t.pos.x, ty, t.pos.z)) continue;
       const k = this.know(t);
-      let rate = (1.6 / (1 + d / 35)) * this.p.awareness;
+      let rate = (1.3 / (1 + d / 35)) * this.p.awareness;
       if (t.speed > 1) rate *= 1.5;
       if (t.crouching && t.speed < 1) rate *= 0.45;
       if (now - (t.lastShotT || -9) < 1) rate *= 3;
@@ -186,7 +199,7 @@ export class AIBrain {
       if (dot < fovCos) rate *= 0.5;
       k.aw = Math.min(1.5, k.aw + rate * dtp * 2.2);
       if (k.aw >= 1) {
-        if (!k.visible && now - k.seenT > 3) k.firstSeenT = now;
+        if (!k.visible && now - k.seenT > 3) { k.firstSeenT = now; this.thinkT = Math.min(this.thinkT, 0.05); }
         if (now - k.seenT > 0.05 && k.seenT > 0) k.vel.subVectors(t.pos, k.pos).divideScalar(Math.max(0.05, now - k.seenT));
         k.visible = true;
         k.pos.copy(t.pos);
@@ -360,12 +373,20 @@ export class AIBrain {
       const d = tk.pos.distanceTo(a.pos);
       const enemyPow = tk.estHp / 200 * 0.55 + 0.25;
       const adv = this.power() - enemyPow;
-      let f = p.aggression * 0.6 + 0.25 + adv * 0.6;
+      const seenRecently = tk.visible || now - tk.seenT < 2.5;
+      let f = p.aggression * 0.5 + 0.36 + adv * 0.5;
       if (underFire && a.lastHitBy === tk.actor) f += 0.35;
       if (tk.estHp < 80) f += 0.3 * (this.profileName === 'skilled' ? 1.4 : 0.8);
       if (!lo.armed) f = d < 4 ? 0.6 : 0.05;
-      if (!tk.visible) f *= p.aggression > 0.7 ? 0.9 : 0.6;
-      if (tk.visible && d < 12 && lo.armed) f = Math.max(f, 0.75);
+      if (!seenRecently) f *= p.aggression > 0.7 ? 0.9 : 0.6;
+      if (seenRecently && d < 12 && lo.armed) f = Math.max(f, 0.75);
+      if (d > 90 && p.aggression < 0.5) f *= 0.75;
+      if (d > 55 && p.aggression < 0.7 && !(underFire && a.lastHitBy === tk.actor)) f *= 0.75;
+      // just landed: most players loot up before taking optional fights
+      const attackedByIt = underFire && a.lastHitBy === tk.actor;
+      if (now - (this.landT ?? now) < 35 && !attackedByIt && d > 6) f *= p.aggression > 0.8 ? 0.85 : 0.5;
+      // under-geared: gear up first unless we're attacked or it's point-blank
+      if (lo.score < 0.35 && d > 15 && !(underFire && a.lastHitBy === tk.actor)) f *= 0.65;
       if (d > 150 && lo.long < 50) f *= 0.4;
       if (this.outnumbered() && p.aggression < 0.8) f -= 0.25;
       // third-party bonus: enemy is busy fighting someone else
@@ -374,6 +395,8 @@ export class AIBrain {
       // retreat
       if (lo.armed && hpFrac < p.retreatAt && tk.estHp > a.totalHp + 20 && !(d < 6)) scores.retreat = 0.65 + p.caution * 0.5;
       if (this.outnumbered() && p.caution > 0.6 && hpFrac < 0.6) scores.retreat = Math.max(scores.retreat || 0, 0.8);
+      // unarmed vs an armed enemy we can see: get away and find a weapon
+      if (!lo.armed && seenRecently && d > 4 && d < 35 && tk.actor.held && tk.actor.held.kind === 'weapon') scores.retreat = Math.max(scores.retreat || 0, 0.7);
     }
     // heal
     const heal = a.bestHealItem();
@@ -399,9 +422,9 @@ export class AIBrain {
     if (mats < 250 && !(tk && tk.visible)) scores.harvest = (1 - mats / 300) * p.harvest * 0.55 * (lo.armed ? 1 : 0.3);
     // third party: go to a heard fight
     const fight = this.heardFight();
-    if (fight && lo.armed) scores.thirdparty = p.thirdParty * 0.55 * this.power() + p.aggression * 0.15;
+    if (fight && lo.armed && lo.score > 0.3) scores.thirdparty = p.thirdParty * 0.45 * this.power() + p.aggression * 0.12;
     // investigate a heard enemy
-    if (tk && !tk.visible && lo.armed) scores.investigate = p.aggression * 0.5;
+    if (tk && !tk.visible && lo.armed) scores.investigate = p.aggression * 0.42;
     // hold position late game
     if (g.storm.phase >= 2 && g.storm.inNext(a.pos.x, a.pos.z, 20)) scores.hold = p.patience * 0.55;
     scores.wander = 0.12;
@@ -523,7 +546,8 @@ export class AIBrain {
     const a = this.a;
     if (!a.alive) return;
     if (a.mode === 'bus') { this.updateBus(); return; }
-    if (a.mode === 'skydive' || a.mode === 'glide') { this.updateAir(dt); return; }
+    if (a.mode === 'skydive' || a.mode === 'glide') { this.updateAir(dt); this.landT = undefined; return; }
+    if (this.landT === undefined) this.landT = this.game.time;
     const inp = a.input;
     inp.fire = false; inp.jump = false; inp.reload = false; inp.ads = false; inp.sprint = false; inp.deploy = false;
     inp.crouch = false;
@@ -1101,7 +1125,7 @@ export class AIBrain {
     const t = k.actor;
     const now = g.time;
     // reaction time before first shot
-    const react = 0.22 + 0.45 * p.react;
+    const react = 0.3 + 0.5 * p.react;
     // perceived position + prediction (lead)
     const since = now - k.seenT;
     const lead = this.profileName === 'skilled' || p.aim > 0.95 ? 1 : 0.4;
@@ -1117,7 +1141,7 @@ export class AIBrain {
     this.aimErrT -= dt;
     if (this.aimErrT <= 0) {
       this.aimErrT = rand(0.25, 0.6);
-      const r = (1.35 - p.aim) * 1.05 * (0.6 + d * 0.022) + t.speed * 0.12 * (1.3 - p.aim);
+      const r = (1.35 - p.aim) * 1.1 * (0.6 + d * 0.026) + t.speed * 0.14 * (1.3 - p.aim);
       this.aimErrTarget.set(rand(-r, r), rand(-r, r) * 0.7, rand(-r, r));
     }
     this.aimErr.lerp(this.aimErrTarget, Math.min(1, dt * 6));

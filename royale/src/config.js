@@ -61,7 +61,7 @@ export const DIFFICULTY = {
 export const PROFILES = {
   aggressive: {
     label: 'Aggressive', aggression: 0.95, caution: 0.25, aim: 0.85, react: 1.0, build: 0.6, edit: 0.4,
-    awareness: 0.85, greed: 0.5, thirdParty: 0.7, range: 'close', hotDrop: 0.85, harvest: 0.3, patience: 0.2, retreatAt: 0.15,
+    awareness: 0.85, greed: 0.5, thirdParty: 0.7, range: 'close', hotDrop: 0.75, harvest: 0.3, patience: 0.2, retreatAt: 0.15,
   },
   balanced: {
     label: 'Balanced', aggression: 0.55, caution: 0.55, aim: 0.8, react: 1.0, build: 0.6, edit: 0.35,
@@ -86,13 +86,13 @@ export const PROFILE_MIX = [
 
 // Storm phases: wait (s), shrink (s), radius at the end, damage per tick (1 tick/s)
 export const STORM_PHASES = [
-  { wait: 65, shrink: 55, radius: 560, dmg: 1 },
-  { wait: 45, shrink: 45, radius: 330, dmg: 1 },
-  { wait: 40, shrink: 40, radius: 180, dmg: 2 },
-  { wait: 35, shrink: 35, radius: 95, dmg: 5 },
-  { wait: 30, shrink: 30, radius: 45, dmg: 8 },
+  { wait: 60, shrink: 50, radius: 560, dmg: 1 },
+  { wait: 40, shrink: 40, radius: 330, dmg: 1 },
+  { wait: 35, shrink: 35, radius: 180, dmg: 2 },
+  { wait: 30, shrink: 30, radius: 95, dmg: 5 },
+  { wait: 25, shrink: 25, radius: 45, dmg: 8 },
   { wait: 20, shrink: 25, radius: 18, dmg: 10 },
-  { wait: 10, shrink: 40, radius: 0, dmg: 10, moving: true },
+  { wait: 10, shrink: 35, radius: 0, dmg: 10, moving: true },
 ];
 
 export const AI_NAMES = [

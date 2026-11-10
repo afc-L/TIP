@@ -204,6 +204,7 @@ export class Game {
     this.mapMarker = null;
     this.soundEvents = [];
     this.dropCounts = {};
+    this.dropCapacity = null;
     this.supplyPlan = [];
     this.results = null;
     this.ended = false;
@@ -239,7 +240,7 @@ export class Game {
     this.aliveCount = this.actors.length;
     this.playerCtl.reset();
     this.playerCtl.yaw = Math.atan2(-this.bus.dir.x, -this.bus.dir.z) + Math.PI * 0.75;
-    this.playerCtl.pitch = -0.25;
+    this.playerCtl.pitch = -0.55;
     this.hud.show(true);
     this.hud.notify('Welcome aboard the Sky Barge', 'Press SPACE to jump when the doors open · M for map');
     this.audio.stopMusic();
@@ -473,6 +474,10 @@ export class Game {
     this.sun.position.set(sx + so.x, Math.max(0, focus.y - 20) + so.y, sz + so.z);
     this.sun.target.position.set(sx, Math.max(0, focus.y - 20), sz);
     this.skyDome.position.copy(focus);
+    // see further when high up (bus / skydive) so the island is visible below
+    const extra = Math.max(0, focus.y - 30) * 2.2;
+    this.scene.fog.far = this.renderDist + extra;
+    this.scene.fog.near = (this.renderDist + extra) * 0.35;
     // visibility culling by render distance
     this.visT = (this.visT || 0) - 1;
     if (this.visT <= 0) {
