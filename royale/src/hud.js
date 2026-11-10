@@ -48,6 +48,11 @@ export class HUD {
 
   show(on) { this.root.classList.toggle('hidden', !on); }
 
+  // DOM writes only when the value changed (avoids per-frame layout work)
+  html(id, v) { const c = this._c || (this._c = {}); if (c[id] === v) return; c[id] = v; $(id).innerHTML = v; }
+  text(id, v) { const c = this._c || (this._c = {}); if (c['t' + id] === v) return; c['t' + id] = v; $(id).textContent = v; }
+  css(id, prop, v) { const c = this._c || (this._c = {}); const k = id + '.' + prop; if (c[k] === v) return; c[k] = v; $(id).style[prop] = v; }
+
   hitmarker(head, harvest) {
     const el = $('hitmarker');
     el.className = head ? 'head show' : harvest ? 'harvest show' : 'show';
@@ -97,27 +102,40 @@ export class HUD {
     // FPS
     this.fpsN++; this.fpsT += g.realDt;
     if (this.fpsT > 0.5) {
-      $('fps').textContent = g.settings.showFps ? `${Math.round(this.fpsN / this.fpsT)} FPS` : '';
+      const fps = this.fpsN / this.fpsT;
+      this.text('fps', g.settings.showFps ? `${Math.round(fps)} FPS` : '');
+      // one-time performance hint on slow machines
+      if (!this.perfHinted && g.time > 15 && fps < 26 && g.settings.quality !== 'low') {
+        this.lowFps = (this.lowFps || 0) + 1;
+        if (this.lowFps > 8) { this.perfHinted = true; this.notify('Low frame rate detected', 'Press Esc → Settings → Quality preset: Low for smoother play', 'small'); }
+      }
       this.fpsN = 0; this.fpsT = 0;
     }
     // bars
-    $('hp-fill').style.width = a.health + '%';
-    $('hp-num').textContent = Math.ceil(a.health);
-    $('sh-fill').style.width = a.shield + '%';
-    $('sh-num').textContent = Math.ceil(a.shield);
+    this.css('hp-fill', 'width', Math.ceil(a.health) + '%');
+    this.text('hp-num', Math.ceil(a.health));
+    this.css('sh-fill', 'width', Math.ceil(a.shield) + '%');
+    this.text('sh-num', Math.ceil(a.shield));
     // mats
-    for (const m of ['wood', 'stone', 'metal']) {
-      const el = $('mat-' + m);
-      el.querySelector('b').textContent = a.mats[m];
-      el.classList.toggle('sel', a.buildMode && a.buildMat === m);
+    const mk = `${a.mats.wood},${a.mats.stone},${a.mats.metal},${a.buildMode},${a.buildMat}`;
+    if (this._mk !== mk) {
+      this._mk = mk;
+      for (const m of ['wood', 'stone', 'metal']) {
+        const el = $('mat-' + m);
+        el.querySelector('b').textContent = a.mats[m];
+        el.classList.toggle('sel', a.buildMode && a.buildMat === m);
+      }
     }
     // ammo reserves
-    $('ammo-res').innerHTML = Object.keys(AMMO).map((k) => `<span style="color:#${AMMO[k].color.toString(16).padStart(6, '0')}">${k[0].toUpperCase()}${k.slice(1, 3)} <b>${a.ammo[k]}</b></span>`).join('');
+    this.html('ammo-res', Object.keys(AMMO).map((k) => `<span style="color:#${AMMO[k].color.toString(16).padStart(6, '0')}">${k[0].toUpperCase()}${k.slice(1, 3)} <b>${a.ammo[k]}</b></span>`).join(''));
     // hotbar
     for (let i = -1; i < 5; i++) {
       const el = this.slotEls[i + 1];
       const it = i < 0 ? null : a.slots[i];
-      el.classList.toggle('sel', a.sel === i && !a.buildMode);
+      const isSel = a.sel === i && !a.buildMode;
+      if (el._sel !== isSel) { el._sel = isSel; el.classList.toggle('sel', isSel); }
+      if (i < 0 && el._init) continue;
+      el._init = true;
       if (i < 0) { el.querySelector('.ico').textContent = '⛏'; continue; }
       const key = it ? `${it.id}:${it.count || 0}:${it.ammoIn || 0}` : '';
       if (el.dataset.k === key) continue;
@@ -132,28 +150,30 @@ export class HUD {
     }
     // held item info / ammo
     const held = a.held;
-    const wi = $('weapon-info');
-    if (a.buildMode) wi.innerHTML = `<b>BUILD</b> ${a.buildMat.toUpperCase()} <small>(R to switch)</small>`;
+    let wi;
+    if (a.buildMode) wi = `<b>BUILD</b> ${a.buildMat.toUpperCase()} <small>(R to switch)</small>`;
     else if (held && held.kind === 'weapon') {
       const r = RARITY[held.rarity];
-      wi.innerHTML = `<span style="color:${r.color}">${held.name}</span> <b class="mag">${held.def.mag >= 999 ? a.ammo[held.def.ammo] : held.ammoIn}</b><small>/${held.def.mag >= 999 ? '∞' : a.ammo[held.def.ammo]}</small>`;
-    } else if (held) wi.innerHTML = `<span style="color:${RARITY[held.rarity].color}">${held.name}</span> x${held.count}`;
-    else wi.innerHTML = '<span>Harvesting Tool</span>';
+      wi = `<span style="color:${r.color}">${held.name}</span> <b class="mag">${held.def.mag >= 999 ? a.ammo[held.def.ammo] : held.ammoIn}</b><small>/${held.def.mag >= 999 ? '∞' : a.ammo[held.def.ammo]}</small>`;
+    } else if (held) wi = `<span style="color:${RARITY[held.rarity].color}">${held.name}</span> x${held.count}`;
+    else wi = '<span>Harvesting Tool</span>';
+    this.html('weapon-info', wi);
     // progress bars (reload / use / chest)
-    const pb = $('progress');
     let prog = 0, label = '';
     if (a.reloadT > 0 && held && held.kind === 'weapon') { prog = 1 - a.reloadT / held.reload; label = 'Reloading'; }
     else if (a.useItem) { prog = 1 - a.useT / a.useItem.def.use; label = 'Using ' + a.useItem.name; }
     else if (g.playerCtl.chestHold > 0) { prog = g.playerCtl.chestHold / 0.4; label = 'Opening'; }
-    pb.style.display = prog > 0 ? 'block' : 'none';
-    if (prog > 0) { $('progress-fill').style.width = clamp(prog, 0, 1) * 100 + '%'; $('progress-label').textContent = label; }
+    this.css('progress', 'display', prog > 0 ? 'block' : 'none');
+    if (prog > 0) { this.css('progress-fill', 'width', Math.round(clamp(prog, 0, 1) * 100) + '%'); this.text('progress-label', label); }
     // crosshair spread
     const ch = $('crosshair');
     let spread = 6;
     if (held && held.kind === 'weapon') spread = 4 + g.combat.spreadFor(a, held) * 380;
-    ch.style.setProperty('--s', Math.min(60, spread) + 'px');
-    ch.className = a.buildMode ? 'build' : held && held.def && held.def.cat === 'shotgun' ? 'shotgun' : '';
-    $('scope').style.display = a.ads && held && held.def && held.def.scope && a.alive ? 'block' : 'none';
+    const sv = Math.round(Math.min(60, spread)) + 'px';
+    if (this._sv !== sv) { this._sv = sv; ch.style.setProperty('--s', sv); }
+    const cc = a.buildMode ? 'build' : held && held.def && held.def.cat === 'shotgun' ? 'shotgun' : '';
+    if (ch.className !== cc) ch.className = cc;
+    this.css('scope', 'display', a.ads && held && held.def && held.def.scope && a.alive ? 'block' : 'none');
     // hitmarker
     if (this.hitT > 0) { this.hitT -= dt; if (this.hitT <= 0) $('hitmarker').className = ''; }
     // interaction prompt
@@ -170,30 +190,30 @@ export class HUD {
       } else if (it.kind === 'chest') txt = `<kbd>E</kbd> Hold to open <b style="color:#ffd23f">${it.obj.mythic ? 'Vault Chest' : it.obj.rare ? 'Rare Chest' : 'Chest'}</b>`;
       else if (it.kind === 'drop') txt = `<kbd>E</kbd> Hold to open <b style="color:#5ac8ff">Supply Drop</b>`;
       else if (it.kind === 'repair') txt = `<kbd>E</kbd> Hold to repair (${Math.round(it.obj.hp)}/${it.obj.maxHp})`;
-      ip.innerHTML = txt; ip.style.display = 'block';
-    } else ip.style.display = 'none';
+      this.html('interact', txt); this.css('interact', 'display', 'block');
+    } else this.css('interact', 'display', 'none');
     // build bar
     const bb = $('buildbar');
-    bb.style.display = a.buildMode || g.playerCtl.editing ? 'flex' : 'none';
-    if (a.buildMode) {
+    this.css('buildbar', 'display', a.buildMode || g.playerCtl.editing ? 'flex' : 'none');
+    if (a.buildMode && this._bt !== g.playerCtl.buildType) {
+      this._bt = g.playerCtl.buildType;
       for (const el of bb.children) el.classList.toggle('sel', el.dataset.p === g.playerCtl.buildType);
     }
-    $('edithint').style.display = g.playerCtl.editing ? 'block' : 'none';
+    this.css('edithint', 'display', g.playerCtl.editing ? 'block' : 'none');
     // top-right info
     const s = g.storm;
     const lab = s.phaseLabel();
-    $('storm-info').innerHTML = `<span class="ico">◷</span> ${lab.text} <b>${lab.t > 0 ? fmtTime(lab.t) : ''}</b>`;
-    $('alive').innerHTML = `<span class="ico">👤</span> ${g.aliveCount}`;
-    $('kills').innerHTML = `<span class="ico">✖</span> ${a.kills}`;
+    this.html('storm-info', `<span class="ico">◷</span> ${lab.text} <b>${lab.t > 0 ? fmtTime(lab.t) : ''}</b>`);
+    this.html('alive', `<span class="ico">👤</span> ${g.aliveCount}`);
+    this.html('kills', `<span class="ico">✖</span> ${a.kills}`);
     // in-storm warning
     const inStorm = a.alive && a.mode !== 'bus' && s.started && s.inStorm(a.pos.x, a.pos.z);
-    $('stormfx').style.opacity = inStorm ? 0.55 : 0;
-    $('storm-warn').style.display = inStorm ? 'block' : 'none';
+    this.css('stormfx', 'opacity', inStorm ? '0.55' : '0');
+    this.css('storm-warn', 'display', inStorm ? 'block' : 'none');
     // jump prompt / phase prompts
-    const jp = $('jumpprompt');
-    if (a.mode === 'bus') { jp.style.display = 'block'; jp.innerHTML = g.bus.doorsOpen ? '<kbd>SPACE</kbd> Jump from the Sky Barge' : 'Doors opening...'; }
-    else if (a.mode === 'skydive') { jp.style.display = 'block'; jp.innerHTML = '<kbd>W</kbd> + look down to dive · <kbd>SPACE</kbd> deploy glider'; }
-    else jp.style.display = 'none';
+    if (a.mode === 'bus') { this.css('jumpprompt', 'display', 'block'); this.html('jumpprompt', g.bus.doorsOpen ? '<kbd>SPACE</kbd> Jump from the Sky Barge' : 'Doors opening...'); }
+    else if (a.mode === 'skydive') { this.css('jumpprompt', 'display', 'block'); this.html('jumpprompt', '<kbd>W</kbd> + look down to dive · <kbd>SPACE</kbd> deploy glider'); }
+    else this.css('jumpprompt', 'display', 'none');
     // hurt flash fade
     const hf = $('hurtflash');
     const op = parseFloat(hf.style.opacity || 0);
@@ -209,7 +229,8 @@ export class HUD {
       html += `<div class="arc" style="transform: rotate(${rel}rad); opacity:${Math.min(1, d.t)}"></div>`;
     }
     this.dmgDirs = this.dmgDirs.filter((d) => d.t > 0);
-    dd.innerHTML = html;
+    if (html || this._ddh) dd.innerHTML = html;
+    this._ddh = !!html;
     // notifications
     this.noteT -= dt;
     const nb = $('notice');
@@ -234,10 +255,10 @@ export class HUD {
       d.el.style.opacity = Math.min(1, d.life * 2);
     }
     // spectating banner
-    const sp = $('spectate');
-    if (!a.alive && g.playerCtl.spectate) { sp.style.display = 'block'; sp.innerHTML = `Spectating <b>${g.playerCtl.spectate.name}</b> · ${g.aliveCount} left · <kbd>ESC</kbd> menu`; }
-    else sp.style.display = 'none';
-    this.drawMinimap();
+    if (!a.alive && g.playerCtl.spectate) { this.css('spectate', 'display', 'block'); this.html('spectate', `Spectating <b>${g.playerCtl.spectate.name}</b> · ${g.aliveCount} left · <kbd>ESC</kbd> menu`); }
+    else this.css('spectate', 'display', 'none');
+    this.miniT = (this.miniT || 0) - dt;
+    if (this.miniT <= 0) { this.miniT = 1 / 30; this.drawMinimap(); }
     if (g.mapOpen) this.drawBigMap();
   }
 
