@@ -213,7 +213,9 @@ export class LootSystem {
     const fx = -Math.sin(actor.yaw), fz = -Math.cos(actor.yaw);
     const x = actor.pos.x + fx * 1.2, z = actor.pos.z + fz * 1.2;
     const gy = this.game.phys.groundAt(x, z, actor.pos.y + 1, 0.1);
-    this.addPickup('item', item, x, Math.max(gy, actor.pos.y - 1) + 0.25, z);
+    const p = this.addPickup('item', item, x, Math.max(gy, actor.pos.y - 1) + 0.25, z);
+    p.droppedBy = actor;      // auto-pickup ignores it until the dropper walks away
+    return p;
   }
 
   // Apply a pickup to an actor. Returns true if consumed.

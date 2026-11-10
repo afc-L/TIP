@@ -108,9 +108,11 @@ export class PlayerController {
       g.audio.ui('click');
     }
     // drop held item
-    if (h('drop') && a.sel >= 0) {
-      const it = a.dropSlot(a.sel);
-      if (it) g.loot.dropItem(a, it);
+    if (h('drop')) {
+      if (a.sel >= 0 && a.slots[a.sel]) {
+        const it = a.dropSlot(a.sel);
+        if (it) { g.loot.dropItem(a, it); g.audio.ui('click'); }
+      } else g.hud.notify('Nothing to drop', 'Select an item in slots 1–5 first — the harvesting tool can\'t be dropped', 'small');
     }
     // edit
     if (h('edit')) this.toggleEdit();
@@ -268,8 +270,13 @@ export class PlayerController {
   autoPickup() {
     const g = this.game, a = g.player;
     const near = g.loot.nearby(a.pos.x, a.pos.z, 1.4, []);
+    // items you dropped become auto-pickable again once you've moved away from them
+    for (const p of g.loot.nearby(a.pos.x, a.pos.z, 6, this._dropNear || (this._dropNear = []))) {
+      if (p.droppedBy === a && Math.hypot(p.x - a.pos.x, p.z - a.pos.z) > 3) p.droppedBy = null;
+    }
     for (const p of near) {
       if (Math.abs(p.y - a.pos.y) > 1.5) continue;
+      if (p.droppedBy === a) continue;
       if (p.kind === 'ammo' || p.kind === 'mats') g.loot.take(a, p);
       else if (p.kind === 'item' && p.data.kind === 'consumable' && (a.freeSlot() >= 0 || a.slots.some((s) => s && s.kind === 'consumable' && s.type === p.data.type && s.count < s.def.stack))) g.loot.take(a, p);
       else if (p.kind === 'item' && p.data.kind === 'weapon' && a.freeSlot() >= 0 && !a.slots.some((s) => s && s.kind === 'weapon' && s.type === p.data.type)) g.loot.take(a, p);
