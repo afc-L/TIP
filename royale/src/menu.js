@@ -5,6 +5,7 @@ import { COSMETIC_SETS, appearanceFromLoadout } from './cosmetics.js';
 import { DIFFICULTY, GAME_NAME } from './config.js';
 import { Progression, DEFAULT_SETTINGS } from './progression.js';
 import { fmtTime } from './util.js';
+import { ACTIONS, codeName, actionLabel, defaultBinds, canShare } from './keybinds.js';
 
 const $ = (id) => document.getElementById(id);
 const hex = (n) => '#' + n.toString(16).padStart(6, '0');
@@ -123,7 +124,7 @@ export class Menu {
       }
       delete b.dataset.armed;
       b.textContent = 'Progress reset';
-      this.prog.reset(); g.settings = this.prog.data.settings; g.applySettings(); this.renderAll();
+      this.prog.reset(); g.settings = this.prog.data.settings; g.binds = this.prog.data.keybinds; g.applySettings(); this.renderAll();
     });
     // click-to-play overlay for pointer lock
     $('clicktoplay').addEventListener('click', () => { g.audio.init(); g.input.lock(); });
@@ -136,18 +137,18 @@ export class Menu {
     // map toggle & escape
     window.addEventListener('keydown', (e) => {
       if (g.state !== 'match') return;
-      if (e.code === 'KeyM' || e.code === 'Tab') {
+      if (g.binds.map.includes(e.code) && !g.input.onCapture) {
         e.preventDefault();
-        if (g.paused && !g.mapOpen) return;
-        g.mapOpen = !g.mapOpen;
-        $('bigmap').classList.toggle('hidden', !g.mapOpen);
-        if (g.mapOpen) g.input.unlock();
-        else if (!g.ended || g.spectating) g.input.lock();
+        this.toggleMap();
       }
       if (e.code === 'Escape' && g.ended && $('results').classList.contains('hidden')) {
         g.spectating = false;
         this.showResults(g.results);
       }
+    });
+    // map bound to a mouse button
+    window.addEventListener('mousedown', (e) => {
+      if (g.state === 'match' && !g.input.onCapture && g.binds.map.includes('Mouse' + e.button) && (g.input.locked || g.mapOpen)) { e.preventDefault(); this.toggleMap(); }
     });
     $('bigmap-canvas').addEventListener('click', (e) => {
       const r = e.target.getBoundingClientRect();
@@ -158,10 +159,23 @@ export class Menu {
     // settings form
     this.buildSettings($('settings-form'));
     this.buildSettings($('pause-settings-panel'));
+    this.buildKeybinds($('settings-form'));
+    this.buildKeybinds($('pause-settings-panel'));
     g.events.on('matchEnd', (r) => setTimeout(() => this.showResults(r), r.victory ? 600 : 300));
   }
 
+  toggleMap() {
+    const g = this.game;
+    if (g.paused && !g.mapOpen) return;
+    g.mapOpen = !g.mapOpen;
+    $('bigmap').classList.toggle('hidden', !g.mapOpen);
+    $('bigmap-close').textContent = `Close (${actionLabel(g.binds, 'map')})`;
+    if (g.mapOpen) g.input.unlock();
+    else if (!g.ended || g.spectating) g.input.lock();
+  }
+
   showTab(t) {
+    this.cancelCapture();
     this.tab = t;
     document.querySelectorAll('#menu nav button').forEach((b) => b.classList.toggle('active', b.dataset.tab === t));
     document.querySelectorAll('#menu .tab').forEach((s) => s.classList.toggle('hidden', s.id !== 'tab-' + t));
@@ -172,7 +186,104 @@ export class Menu {
     if (t === 'career') this.renderCareer();
   }
 
+  renderControls() {
+    const L = (id) => `<kbd>${actionLabel(this.game.binds, id)}</kbd>`;
+    const rows = [
+      `${L('forward')}${L('left')}${L('back')}${L('right')} Move ${L('sprint')} Sprint ${L('jump')} Jump / mantle / glider`,
+      `${L('crouch')} Crouch (slide while sprinting) ${L('emote')} Emote`,
+      `${L('fire')} Fire / place ${L('aim')} Aim ${L('reload')} Reload ${L('slot1')}–${L('slot5')}/wheel Slots ${L('pickaxe')} Harvest tool`,
+      `${L('wall')} Wall ${L('floor')} Floor ${L('ramp')} Ramp ${L('roof')} Roof ${L('buildMode')} Build mode ${L('material')} Material`,
+      `${L('edit')} Edit (${L('fire')} tiles, ${L('edit')} confirm, ${L('aim')} reset) ${L('interact')} Pick up / open / repair`,
+      `${L('map')} Map ${L('drop')} Drop item <kbd>Esc</kbd> Pause`,
+    ];
+    $('controls-list').innerHTML = rows.map((r) => `<div class="ctl">${r}</div>`).join('');
+  }
+
+  // ---------- key bindings ----------
+  buildKeybinds(root) {
+    const wrap = document.createElement('div');
+    wrap.className = 'kb-wrap';
+    let html = '<h4>Key bindings</h4><p class="kb-help">Click a binding, then press a key or mouse button. <kbd>Esc</kbd> cancels, <kbd>Backspace</kbd> clears.</p>';
+    let group = '';
+    for (const a of ACTIONS) {
+      if (a.group !== group) { group = a.group; html += `<div class="kb-group">${group}</div>`; }
+      html += `<div class="kb-row"><span class="lbl">${a.label}</span>` +
+        `<button type="button" class="kb-btn" data-action="${a.id}" data-slot="0"></button>` +
+        `<button type="button" class="kb-btn" data-action="${a.id}" data-slot="1"></button></div>`;
+    }
+    html += '<div class="kb-note" aria-live="polite"></div><button type="button" class="small-btn kb-reset">Reset key bindings</button>';
+    wrap.innerHTML = html;
+    root.appendChild(wrap);
+    wrap.querySelectorAll('.kb-btn').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); this.startCapture(b); }));
+    wrap.querySelector('.kb-reset').addEventListener('click', () => {
+      this.cancelCapture();
+      Object.assign(this.game.binds, defaultBinds());
+      this.saveBinds('Key bindings reset to defaults.');
+    });
+  }
+
+  startCapture(btn) {
+    const g = this.game;
+    this.cancelCapture();
+    this.capBtn = btn;
+    btn.classList.add('listening');
+    btn.textContent = 'Press a key…';
+    // the click that started listening has already finished its mousedown, so arm now
+    g.input.onCapture = (code) => this.finishCapture(code);
+  }
+  cancelCapture() {
+    this.game.input.onCapture = null;
+    if (this.capBtn) this.capBtn.classList.remove('listening');
+    this.capBtn = null;
+    this.renderBinds();
+  }
+  finishCapture(code) {
+    const g = this.game, btn = this.capBtn;
+    if (!btn) return;
+    const id = btn.dataset.action, slot = +btn.dataset.slot;
+    let note = '';
+    if (code === 'Escape') { this.cancelCapture(); return; }
+    if (code === 'Backspace' || code === 'Delete') code = '';
+    if (code) {
+      // a key can only do one thing (except pairs that never clash)
+      for (const a of ACTIONS) {
+        if (a.id === id || canShare(a.id, id)) continue;
+        const b = g.binds[a.id];
+        for (let i = 0; i < 2; i++) if (b[i] === code) { b[i] = ''; note = `${codeName(code)} was removed from "${a.label}".`; }
+      }
+      const other = g.binds[id][1 - slot];
+      if (other === code) g.binds[id][1 - slot] = '';
+    }
+    g.binds[id][slot] = code;
+    if (!g.binds[id][0] && g.binds[id][1]) g.binds[id] = [g.binds[id][1], ''];
+    g.input.onCapture = null;
+    btn.classList.remove('listening');
+    this.capBtn = null;
+    const label = ACTIONS.find((a) => a.id === id).label;
+    if (!g.binds[id][0]) note = `"${label}" has no key now. ${note}`;
+    this.saveBinds(note || `"${label}" set to ${actionLabel(g.binds, id, true)}.`);
+  }
+  saveBinds(note) {
+    this.prog.data.keybinds = this.game.binds;
+    this.prog.save();
+    this.renderBinds();
+    document.querySelectorAll('.kb-note').forEach((n) => { n.textContent = note || ''; });
+    this.renderControls();
+    if (this.game.hud) this.game.hud.refreshKeyLabels();
+  }
+  renderBinds() {
+    const B = this.game.binds;
+    document.querySelectorAll('.kb-btn').forEach((b) => {
+      if (b === this.capBtn) return;
+      const code = B[b.dataset.action][+b.dataset.slot];
+      b.textContent = code ? codeName(code) : '—';
+      b.classList.toggle('empty', !code);
+    });
+  }
+
   renderAll() {
+    this.renderControls();
+    this.renderBinds();
     this.renderHeader();
     this.renderPlay();
     this.renderLocker();
@@ -358,7 +469,7 @@ export class Menu {
     $('pause-settings-panel').classList.add('hidden');
     this.syncSettings();
   }
-  hidePause() { $('pause').classList.add('hidden'); }
+  hidePause() { this.cancelCapture(); $('pause').classList.add('hidden'); }
   resume() { this.hidePause(); this.game.paused = false; this.game.input.lock(); }
 
   showResults(r) {

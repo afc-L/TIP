@@ -4,6 +4,7 @@ import { RARITY, MAP_HALF } from './config.js';
 import { AMMO } from './items.js';
 import { fmtTime, clamp } from './util.js';
 import { BUS_ROUTE_COLOR } from './mapdraw.js';
+import { actionLabel } from './keybinds.js';
 
 const $ = (id) => document.getElementById(id);
 const _v = new THREE.Vector3();
@@ -46,7 +47,18 @@ export class HUD {
     }
   }
 
-  show(on) { this.root.classList.toggle('hidden', !on); }
+  show(on) { this.root.classList.toggle('hidden', !on); if (on) this.refreshKeyLabels(); }
+
+  kb(id) { return `<kbd>${actionLabel(this.game.binds, id)}</kbd>`; }
+  // static HUD hints that show key names
+  refreshKeyLabels() {
+    const map = { wall: 'Wall', floor: 'Floor', ramp: 'Ramp', cone: 'Roof' };
+    const act = { wall: 'wall', floor: 'floor', ramp: 'ramp', cone: 'roof' };
+    for (const el of $('buildbar').children) el.innerHTML = `${this.kb(act[el.dataset.p])}${map[el.dataset.p]}`;
+    $('edithint').innerHTML = `EDIT — click/drag tiles with ${this.kb('fire')} · ${this.kb('edit')} confirm · ${this.kb('aim')} reset`;
+    this.slotEls.forEach((el, i) => { el.querySelector('.key').textContent = actionLabel(this.game.binds, i === 0 ? 'pickaxe' : 'slot' + i); });
+    this._c = {};
+  }
 
   // DOM writes only when the value changed (avoids per-frame layout work)
   html(id, v) { const c = this._c || (this._c = {}); if (c[id] === v) return; c[id] = v; $(id).innerHTML = v; }
@@ -151,7 +163,7 @@ export class HUD {
     // held item info / ammo
     const held = a.held;
     let wi;
-    if (a.buildMode) wi = `<b>BUILD</b> ${a.buildMat.toUpperCase()} <small>(R to switch)</small>`;
+    if (a.buildMode) wi = `<b>BUILD</b> ${a.buildMat.toUpperCase()} <small>(${actionLabel(g.binds, 'material')} to switch)</small>`;
     else if (held && held.kind === 'weapon') {
       const r = RARITY[held.rarity];
       wi = `<span style="color:${r.color}">${held.name}</span> <b class="mag">${held.def.mag >= 999 ? a.ammo[held.def.ammo] : held.ammoIn}</b><small>/${held.def.mag >= 999 ? '∞' : a.ammo[held.def.ammo]}</small>`;
@@ -185,11 +197,11 @@ export class HUD {
         const p = it.obj;
         const col = p.kind === 'item' ? RARITY[p.data.rarity].color : '#fff';
         const full = p.kind === 'item' && a.freeSlot() < 0 && !(p.data.kind === 'consumable' && a.slots.some((s) => s && s.type === p.data.type && s.count < s.def.stack));
-        txt = `<kbd>E</kbd> ${full ? 'Swap for' : 'Pick up'} <b style="color:${col}">${p.label()}</b>`;
+        txt = `${this.kb('interact')} ${full ? 'Swap for' : 'Pick up'} <b style="color:${col}">${p.label()}</b>`;
         if (p.kind === 'item' && p.data.kind === 'weapon') txt += `<small>${RARITY[p.data.rarity].name} · ${Math.round(p.data.dmg * (p.data.def.pellets || 1))} dmg · ${p.data.def.mag >= 999 ? '∞' : p.data.def.mag} mag</small>`;
-      } else if (it.kind === 'chest') txt = `<kbd>E</kbd> Hold to open <b style="color:#ffd23f">${it.obj.mythic ? 'Vault Chest' : it.obj.rare ? 'Rare Chest' : 'Chest'}</b>`;
-      else if (it.kind === 'drop') txt = `<kbd>E</kbd> Hold to open <b style="color:#5ac8ff">Supply Drop</b>`;
-      else if (it.kind === 'repair') txt = `<kbd>E</kbd> Hold to repair (${Math.round(it.obj.hp)}/${it.obj.maxHp})`;
+      } else if (it.kind === 'chest') txt = `${this.kb('interact')} Hold to open <b style="color:#ffd23f">${it.obj.mythic ? 'Vault Chest' : it.obj.rare ? 'Rare Chest' : 'Chest'}</b>`;
+      else if (it.kind === 'drop') txt = `${this.kb('interact')} Hold to open <b style="color:#5ac8ff">Supply Drop</b>`;
+      else if (it.kind === 'repair') txt = `${this.kb('interact')} Hold to repair (${Math.round(it.obj.hp)}/${it.obj.maxHp})`;
       this.html('interact', txt); this.css('interact', 'display', 'block');
     } else this.css('interact', 'display', 'none');
     // build bar
@@ -211,8 +223,8 @@ export class HUD {
     this.css('stormfx', 'opacity', inStorm ? '0.55' : '0');
     this.css('storm-warn', 'display', inStorm ? 'block' : 'none');
     // jump prompt / phase prompts
-    if (a.mode === 'bus') { this.css('jumpprompt', 'display', 'block'); this.html('jumpprompt', g.bus.doorsOpen ? '<kbd>SPACE</kbd> Jump from the Sky Barge' : 'Doors opening...'); }
-    else if (a.mode === 'skydive') { this.css('jumpprompt', 'display', 'block'); this.html('jumpprompt', '<kbd>W</kbd> + look down to dive · <kbd>SPACE</kbd> deploy glider'); }
+    if (a.mode === 'bus') { this.css('jumpprompt', 'display', 'block'); this.html('jumpprompt', g.bus.doorsOpen ? `${this.kb('jump')} Jump from the Sky Barge` : 'Doors opening...'); }
+    else if (a.mode === 'skydive') { this.css('jumpprompt', 'display', 'block'); this.html('jumpprompt', `${this.kb('forward')} + look down to dive · ${this.kb('jump')} deploy glider`); }
     else this.css('jumpprompt', 'display', 'none');
     // hurt flash fade
     const hf = $('hurtflash');

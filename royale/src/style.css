@@ -208,3 +208,15 @@ button { font-family: var(--font); cursor: pointer; }
 @media (max-width: 1000px) { .col-right { width: 300px; } .col-left { width: 340px; } #menu nav button { font-size: 14px; padding: 6px 8px; } }
 
 #touch-note { margin-top: 18px; max-width: 320px; text-align: center; color: var(--yellow); font-weight: 700; font-size: 14px; padding: 0 16px; }
+
+/* key bindings */
+.kb-help { font-size: 13px; opacity: 0.8; margin: 0 0 8px; }
+.kb-group { margin: 12px 0 4px; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; opacity: 0.65; }
+.kb-row { display: grid; grid-template-columns: 1fr 96px 96px; gap: 8px; align-items: center; padding: 3px 0; font-size: 14px; }
+.kb-btn { padding: 5px 6px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.28); background: rgba(255,255,255,0.08); color: #fff; font: 700 13px var(--font); min-height: 30px; }
+.kb-btn:hover { background: rgba(255,255,255,0.18); }
+.kb-btn:focus-visible { outline: 2px solid var(--yellow); outline-offset: 1px; }
+.kb-btn.empty { color: rgba(255,255,255,0.4); }
+.kb-btn.listening { border-color: var(--yellow); color: var(--yellow); background: rgba(255,210,63,0.15); animation: pulse 0.8s infinite alternate; }
+.kb-note { min-height: 20px; margin: 10px 0 6px; font-size: 13px; color: var(--yellow); }
+.ctl.hint { opacity: 0.6; font-size: 12px; }

@@ -50,14 +50,15 @@ export class PlayerController {
     this.pitch = clamp(this.pitch, -1.45, 1.4);
     if (!a.alive) { this.updateSpectate(dt); return; }
     if (g.mapOpen || g.paused) { a.input.mx = a.input.mz = 0; a.input.fire = false; return; }
-    const k = (c) => inp.down(c);
-    const h = (c) => inp.hit(c);
+    const B = g.binds;
+    const k = (id) => inp.actDown(B, id);
+    const h = (id) => inp.actHit(B, id);
     // movement keys relative to camera yaw
     let f = 0, r = 0;
-    if (k('KeyW') || k('ArrowUp')) f += 1;
-    if (k('KeyS') || k('ArrowDown')) f -= 1;
-    if (k('KeyD') || k('ArrowRight')) r += 1;
-    if (k('KeyA') || k('ArrowLeft')) r -= 1;
+    if (k('forward')) f += 1;
+    if (k('back')) f -= 1;
+    if (k('right')) r += 1;
+    if (k('left')) r -= 1;
     if (S.autoRun && this.autoRunOn) f = 1;
     const fx = -Math.sin(this.yaw), fz = -Math.cos(this.yaw);
     const rx = Math.cos(this.yaw), rz = -Math.sin(this.yaw);
@@ -66,26 +67,26 @@ export class PlayerController {
     if (ml > 1) { mx /= ml; mz /= ml; }
     const I = a.input;
     I.mx = mx; I.mz = mz;
-    I.sprint = S.toggleSprint ? !k('ShiftLeft') : k('ShiftLeft');
-    I.jump = k('Space');
-    I.crouch = k('KeyQ') || k('ControlLeft') || h('KeyQ') || h('ControlLeft');
-    I.deploy = h('Space');
+    I.sprint = S.toggleSprint ? !k('sprint') : k('sprint');
+    I.jump = k('jump');
+    I.crouch = k('crouch') || h('crouch');
+    I.deploy = h('jump');
     I.dive = 0;
     if (a.mode === 'skydive' && f > 0 && this.pitch < -0.3) I.dive = clamp((-this.pitch - 0.3) * 1.6, 0, 1);
     if (a.mode === 'glide' && this.pitch < -0.6 && f > 0) I.dive = 0.6;
     a.yaw = this.yaw;
     a.pitch = this.pitch;
     if (a.mode === 'bus') {
-      if (h('Space') && g.bus.doorsOpen) a.jumpFromBus();
+      if (h('jump') && g.bus.doorsOpen) a.jumpFromBus();
       return;
     }
     // emote
-    if (h('KeyT') && a.mode === 'ground') a.emote = !a.emote;
-    if (ml > 0.1 || inp.mouse.left) a.emote = false;
+    if (h('emote') && a.mode === 'ground') a.emote = !a.emote;
+    if (ml > 0.1 || k('fire')) a.emote = false;
     // slot selection
     let sel = null;
-    for (let i = 0; i < 5; i++) if (h('Digit' + (i + 1))) sel = i;
-    if (h('KeyF')) sel = -1;
+    for (let i = 0; i < 5; i++) if (h('slot' + (i + 1))) sel = i;
+    if (h('pickaxe')) sel = -1;
     if (inp.mouse.wheel && !this.editing) {
       const order = [-1, 0, 1, 2, 3, 4].filter((i) => i < 0 || a.slots[i]);
       let idx = order.indexOf(a.sel);
@@ -98,21 +99,21 @@ export class PlayerController {
       if (sel === -1 || a.slots[sel]) a.select(sel);
     }
     // building hotkeys
-    const bk = { KeyZ: 'wall', KeyX: 'floor', KeyC: 'ramp', KeyV: 'cone' };
-    for (const code in bk) if (h(code)) { this.editing = null; a.buildMode = true; this.buildType = bk[code]; this.lastPlacedKey = null; }
-    if (h('KeyB')) { a.buildMode = !a.buildMode; this.editing = null; }
-    if (a.buildMode && h('KeyR')) {
+    const bk = { wall: 'wall', floor: 'floor', ramp: 'ramp', roof: 'cone' };
+    for (const id in bk) if (h(id)) { this.editing = null; a.buildMode = true; this.buildType = bk[id]; this.lastPlacedKey = null; }
+    if (h('buildMode')) { a.buildMode = !a.buildMode; this.editing = null; }
+    if (a.buildMode && h('material')) {
       const order = ['wood', 'stone', 'metal'];
       a.buildMat = order[(order.indexOf(a.buildMat) + 1) % 3];
       g.audio.ui('click');
     }
     // drop held item
-    if (h('KeyK') && a.sel >= 0) {
+    if (h('drop') && a.sel >= 0) {
       const it = a.dropSlot(a.sel);
       if (it) g.loot.dropItem(a, it);
     }
     // edit
-    if (h('KeyG')) this.toggleEdit();
+    if (h('edit')) this.toggleEdit();
     // aim ray from camera
     this.computeAim();
     if (this.editing) this.updateEdit(dt);
@@ -121,9 +122,9 @@ export class PlayerController {
     if (!this.editing) g.build.showEditTiles(null, 0);
     // weapon input
     const busy = a.buildMode || this.editing;
-    I.fire = !busy && inp.mouse.left && inp.locked;
-    I.ads = !busy && inp.mouse.right && a.mode === 'ground';
-    I.reload = !a.buildMode && h('KeyR');
+    I.fire = !busy && k('fire') && inp.locked;
+    I.ads = !busy && k('aim') && a.mode === 'ground';
+    I.reload = !a.buildMode && h('reload');
     // interaction
     this.updateInteract(dt);
     // auto-pickup ammo / materials / healing
@@ -161,12 +162,13 @@ export class PlayerController {
     const ok = g.build.canPlace(a, spec);
     g.build.showPreview(spec, ok);
     // click to place; hold to keep placing as the target changes ("drag building")
-    if (inp.locked && (inp.mouse.leftPressed || (inp.mouse.left && spec.key !== this.lastPlacedKey))) {
+    const B = g.binds, fireDown = inp.actDown(B, 'fire');
+    if (inp.locked && (inp.actHit(B, 'fire') || (fireDown && spec.key !== this.lastPlacedKey))) {
       if (ok && a.buildCd <= 0) {
         if (g.build.place(a, spec)) { this.lastPlacedKey = spec.key; a.buildCd = 0.08; }
       }
     }
-    if (!inp.mouse.left) this.lastPlacedKey = null;
+    if (!fireDown) this.lastPlacedKey = null;
     // RMB in build mode: rotate ramp direction preview is automatic (camera); repair with E handled in interact
   }
 
@@ -196,7 +198,8 @@ export class PlayerController {
   updateEdit(dt) {
     const g = this.game, e = this.editing, inp = g.input;
     if (!e.piece.alive) { this.editing = null; return; }
-    if (inp.mouse.rightPressed) { e.sel = 0; this.confirmEdit(); return; }
+    const B = g.binds, fireDown = inp.actDown(B, 'fire');
+    if (inp.actHit(B, 'aim')) { e.sel = 0; this.confirmEdit(); return; }
     const tiles = g.build.tileBoxes(e.piece);
     // which tile is under the crosshair?
     const cam = g.camera;
@@ -206,11 +209,11 @@ export class PlayerController {
       const t = raySphere(cam.position.x, cam.position.y, cam.position.z, _d.x, _d.y, _d.z, b.x, b.y, b.z, Math.max(b.sx, b.sy, b.sz) * 0.62);
       if (t >= 0 && t < bestT) { bestT = t; best = i; }
     });
-    if (inp.mouse.left && best >= 0) {
+    if (fireDown && best >= 0) {
       if (e.painting === null) e.painting = !(e.sel & (1 << best));
       if (e.painting) e.sel |= 1 << best; else e.sel &= ~(1 << best);
     }
-    if (!inp.mouse.left && e.painting !== null) {
+    if (!fireDown && e.painting !== null) {
       e.painting = null;
       if (g.settings.editOnRelease) this.confirmEdit();
     }
@@ -245,12 +248,12 @@ export class PlayerController {
     }
     this.interact = best;
     if (!best) { this.chestHold = 0; return; }
-    if (best.kind === 'pickup' && g.input.hit('KeyE')) {
+    if (best.kind === 'pickup' && inp.actHit(g.binds, 'interact')) {
       g.loot.take(a, best.obj, a.sel);
       if (a.sel === -1 && best.obj.kind === 'item') { const i = a.slots.indexOf(best.obj.data); if (i >= 0 && !g.settings.keepSlot) a.select(i); }
     }
     if (best.kind === 'chest' || best.kind === 'drop') {
-      if (inp.down('KeyE')) {
+      if (inp.actDown(g.binds, 'interact')) {
         this.chestHold += dt;
         const need = best.kind === 'chest' ? 0.4 : 0.8;
         if (this.chestHold >= need) {
@@ -259,7 +262,7 @@ export class PlayerController {
         }
       } else this.chestHold = 0;
     }
-    if (best.kind === 'repair' && inp.down('KeyE')) g.build.repair(a, best.obj, dt);
+    if (best.kind === 'repair' && inp.actDown(g.binds, 'interact')) g.build.repair(a, best.obj, dt);
   }
 
   autoPickup() {

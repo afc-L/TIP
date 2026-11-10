@@ -25,6 +25,7 @@ import { Progression } from './progression.js';
 import { makeWeapon, makeConsumable } from './items.js';
 import { RARITY } from './config.js';
 import { Emitter } from './util.js';
+import { actionLabel } from './keybinds.js';
 
 const QUALITY = {
   low: { pixel: 0.75, shadowMap: 1024, shadows: false },
@@ -38,6 +39,7 @@ export class Game {
     this.events = new Emitter();
     this.prog = new Progression();
     this.settings = this.prog.data.settings;
+    this.binds = this.prog.data.keybinds;
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance', preserveDrawingBuffer: !!window.__TEST__ });
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
@@ -242,7 +244,7 @@ export class Game {
     this.playerCtl.yaw = Math.atan2(-this.bus.dir.x, -this.bus.dir.z) + Math.PI * 0.75;
     this.playerCtl.pitch = -0.55;
     this.hud.show(true);
-    this.hud.notify('Welcome aboard the Sky Barge', 'Press SPACE to jump when the doors open · M for map');
+    this.hud.notify('Welcome aboard the Sky Barge', `Press ${actionLabel(this.binds, 'jump')} to jump when the doors open · ${actionLabel(this.binds, 'map')} for map`);
     this.audio.stopMusic();
     this.audio.setLoop('engine', 0.08);
     this.stormTickT = 0;

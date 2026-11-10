@@ -27,6 +27,9 @@ Use a desktop browser with a mouse. Click the game to capture the mouse; `Esc` p
 
 ## Controls
 
+These are the defaults. Every action can be rebound (keyboard keys or mouse buttons, two per action) in
+**Settings → Key bindings**, in the lobby or the pause menu; bindings are saved in the browser.
+
 | Input | Action |
 | --- | --- |
 | `W A S D` · `Shift` · `Space` | Move · sprint · jump / mantle onto ledges / deploy glider |

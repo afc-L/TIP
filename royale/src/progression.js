@@ -1,4 +1,6 @@
 // Local save: XP, levels, statistics, cosmetics loadout, challenges, daily objectives and settings.
+import { normalizeBinds } from './keybinds.js';
+
 const KEY = 'dropzone100.save.v1';
 
 export const SEASON_CHALLENGES = [
@@ -56,6 +58,7 @@ export class Progression {
       settings: { ...DEFAULT_SETTINGS },
       claimed: {},
       daily: null,
+      keybinds: normalizeBinds(null),
       mode: 'solo', difficulty: 'normal',
       history: [],
     };
@@ -66,7 +69,7 @@ export class Progression {
       const raw = localStorage.getItem(KEY);
       if (raw) {
         const s = JSON.parse(raw);
-        return { ...d, ...s, stats: { ...d.stats, ...(s.stats || {}) }, loadout: { ...d.loadout, ...(s.loadout || {}) }, settings: { ...d.settings, ...(s.settings || {}) }, claimed: s.claimed || {} };
+        return { ...d, ...s, stats: { ...d.stats, ...(s.stats || {}) }, loadout: { ...d.loadout, ...(s.loadout || {}) }, settings: { ...d.settings, ...(s.settings || {}) }, claimed: s.claimed || {}, keybinds: normalizeBinds(s.keybinds) };
       }
     } catch (e) { /* storage unavailable */ }
     return d;
