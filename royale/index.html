@@ -15,7 +15,9 @@
     <div class="tag">100 players. 1 island. Last one standing.</div>
     <div class="lbar"><i id="load-fill"></i></div>
     <div id="load-msg">Loading...</div>
+    <div id="touch-note" class="hidden">DROPZONE 100 needs a keyboard and mouse. Open this page on a laptop or desktop to play.</div>
   </div>
+  <script>if (matchMedia('(pointer: coarse)').matches && !matchMedia('(pointer: fine)').matches) document.getElementById('touch-note').classList.remove('hidden');</script>
   <div id="loading-match" class="hidden"><div class="spinner"></div>Boarding the Sky Barge...</div>
 
   <!-- ===== Lobby / Menu ===== -->

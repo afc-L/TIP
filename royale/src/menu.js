@@ -112,8 +112,18 @@ export class Menu {
     $('pause-resume').addEventListener('click', () => this.resume());
     $('pause-leave').addEventListener('click', () => { this.hidePause(); g.leaveMatch(); this.toMenu(); });
     $('pause-settings').addEventListener('click', () => { $('pause-settings-panel').classList.toggle('hidden'); });
+    // two-step confirm built into the button (browser dialogs are unavailable in some hosts)
     $('reset-progress').addEventListener('click', () => {
-      if (confirm('Reset all progression, stats and settings?')) { this.prog.reset(); g.settings = this.prog.data.settings; g.applySettings(); this.renderAll(); }
+      const b = $('reset-progress');
+      if (!b.dataset.armed) {
+        b.dataset.armed = '1';
+        b.textContent = 'Click again to erase all progress';
+        setTimeout(() => { delete b.dataset.armed; b.textContent = 'Reset progress'; }, 4000);
+        return;
+      }
+      delete b.dataset.armed;
+      b.textContent = 'Progress reset';
+      this.prog.reset(); g.settings = this.prog.data.settings; g.applySettings(); this.renderAll();
     });
     // click-to-play overlay for pointer lock
     $('clicktoplay').addEventListener('click', () => { g.audio.init(); g.input.lock(); });

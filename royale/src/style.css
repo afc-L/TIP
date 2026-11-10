@@ -206,3 +206,5 @@ button { font-family: var(--font); cursor: pointer; }
 #results .btns { display: flex; gap: 10px; justify-content: center; align-items: center; margin-top: 6px; }
 #emote-btn { margin-bottom: auto; }
 @media (max-width: 1000px) { .col-right { width: 300px; } .col-left { width: 340px; } #menu nav button { font-size: 14px; padding: 6px 8px; } }
+
+#touch-note { margin-top: 18px; max-width: 320px; text-align: center; color: var(--yellow); font-weight: 700; font-size: 14px; padding: 0 16px; }
