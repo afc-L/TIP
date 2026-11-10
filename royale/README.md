@@ -7,11 +7,21 @@ which keeps 100 characters cheap enough for a school laptop).
 
 ## Running
 
+**Easiest (no install):** open [`standalone/DROPZONE100.html`](standalone/DROPZONE100.html) in Chrome, Edge,
+Firefox or Safari — download it and double-click. Everything (code, styles) is inside that one file and
+progress is saved in the browser.
+
+From source:
+
 ```bash
 npm install
-npm run dev          # then open http://localhost:5173/royale/
-npm run build        # static build in dist/ (open dist/royale/index.html through any web server)
+npm run dev            # then open http://localhost:5173/royale/
+npm run build          # static site in dist/ (serve dist/ with any web server; open /royale/)
+npm run build:single   # regenerate standalone/DROPZONE100.html
 ```
+
+On slower laptops pick **Settings → Quality preset → Low** (no shadows, shorter render distance,
+lower resolution). The game also suggests this if the frame rate stays low.
 
 Use a desktop browser with a mouse. Click the game to capture the mouse; `Esc` pauses.
 

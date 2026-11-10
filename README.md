@@ -1,7 +1,8 @@
 # Steel & Blood
 
 > **Also in this repo: [DROPZONE 100](royale/README.md)** — a full 3D battle royale against 99 AI
-> opponents. Run `npm run dev` and open <http://localhost:5173/royale/>.
+> opponents. Double-click `royale/standalone/DROPZONE100.html`, or run `npm run dev` and open
+> <http://localhost:5173/royale/>.
 
 A browser-based, physics-driven medieval sword fighting game inspired by *Half Sword*.
 Nothing in combat is a canned animation: fighters are active ragdolls, weapons are rigid
