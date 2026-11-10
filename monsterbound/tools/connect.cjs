@@ -3,7 +3,7 @@ const files=['js/core/util.js','js/data/types.js','js/data/moves.js','js/data/ab
 const MB=require('./load.cjs')(files); MB.injectQuestNpcs();
 MB.state={flags:{},party:[],keyItems:{},bag:{},dex:{},quests:{},badges:[],vBadges:[],clock:600,day:0,settings:{}};
 const PASS=MB.MapGen.PASS; const ids=Object.keys(MB.WORLD_SPECS);
-for(const id of ids) MB.World.get(id);
+for(let pass=0;pass<3;pass++) for(const id of Object.keys(MB.WORLD_SPECS)) MB.World.get(id);
 const all=()=>Object.keys(MB.World.maps);
 // directional flood
 function reach(m,sx,sy,items){ const W=m.w,H=m.h,seen=new Uint8Array(W*H),q=[[sx,sy]]; seen[sy*W+sx]=1;
@@ -35,3 +35,6 @@ const seen=new Set(['willowbrook']), q=['willowbrook']; while(q.length){ const a
 const unreached=all().filter(id=>!seen.has(id));
 console.log('places in world:',all().length,'reachable from home:',seen.size, unreached.length?'UNREACHABLE: '+unreached.join(', '):'');
 console.log('TOTAL PROBLEMS',problems+unreached.length);
+// gyms: you must be able to get from the leader back to the exit mat
+for(const id of Object.keys(MB.World.maps)){ const m=MB.World.maps[id]; if(!m.gym) continue; const mat=m.warps.find(w=>w.exitTo); const [lx,ly]=m.leaderSpot; const r=reach(m,lx,ly+1,FULL); if(!r[mat.y*m.w+mat.x]) console.log('CANNOT LEAVE GYM',id); }
+console.log('gym exit check done');

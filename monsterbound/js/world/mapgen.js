@@ -359,7 +359,11 @@ MB.MapGen = (function () {
     } else if (puzzle === 'teleport') { // Psychic: teleport pads
       for (const y of [14, 9, 5]) { blockRow(y, 'W'); }
       g[16][3] = 't'; g[16][11] = 't'; g[12][4] = 't'; g[12][10] = 't'; g[7][3] = 't'; g[7][11] = 't'; g[3][7] = 'G';
-      spec.teleports = [[3, 16, 10, 12], [11, 16, 3, 17], [4, 12, 11, 7], [10, 12, 3, 13], [3, 7, 7, 3], [11, 7, 4, 10]];
+      // return pads on every upper floor lead back to the entrance, so you can always leave
+      g[3][12] = 't'; g[6][12] = 't'; g[10][12] = 't';
+      spec.teleports = [[3, 16, 9, 12], [11, 16, 3, 17], [4, 12, 10, 7], [10, 12, 2, 13], [3, 7, 7, 3], [11, 7, 5, 11],
+        [12, 3, 7, 17], [12, 6, 7, 17], [12, 10, 7, 17]];
+      spec.returnPads = [[12, 3], [12, 6], [12, 10]];
       trainerSpots.push([7, 16], [7, 11], [7, 6]);
     } else if (puzzle === 'dark') { // Shadow: invisible maze in darkness
       for (let y = 4; y < h - 3; y += 3) { const gap = r.int(2, w - 3); for (let x = 1; x < w - 1; x++) if (Math.abs(x - gap) > 0) g[y][x] = 'X'; }
