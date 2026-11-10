@@ -68,7 +68,7 @@ export class PlayerController {
     I.mx = mx; I.mz = mz;
     I.sprint = S.toggleSprint ? !k('ShiftLeft') : k('ShiftLeft');
     I.jump = k('Space');
-    I.crouch = k('KeyQ') || k('ControlLeft');
+    I.crouch = k('KeyQ') || k('ControlLeft') || h('KeyQ') || h('ControlLeft');
     I.deploy = h('Space');
     I.dive = 0;
     if (a.mode === 'skydive' && f > 0 && this.pitch < -0.3) I.dive = clamp((-this.pitch - 0.3) * 1.6, 0, 1);
@@ -273,7 +273,18 @@ export class PlayerController {
     const g = this.game;
     if (this.spectate && !this.spectate.alive) {
       const k = this.spectate.lastKiller;
-      this.spectate = k && k.alive ? k : g.actors.find((x) => x.alive) || null;
+      this.spectate = k && k.alive ? k : null;
+    }
+    if (!this.spectate) {
+      // nearest surviving player
+      const me = g.player;
+      let best = null, bd = 1e9;
+      for (const x of g.actors) {
+        if (!x.alive || x === me) continue;
+        const d = x.pos.distanceTo(me.pos);
+        if (d < bd) { bd = d; best = x; }
+      }
+      this.spectate = best;
     }
   }
 
@@ -323,7 +334,7 @@ export class PlayerController {
     }
     const th = g.terrain.heightAt(cx, cz);
     if (cy < th + 0.3 && !g.phys.ignoresTerrain(cx, cy, cz)) cy = th + 0.3;
-    if (cy < 0.2 && th < 0) cy = Math.max(cy, -0.5);
+    if (th < 0.4 && !g.phys.ignoresTerrain(cx, cy, cz)) cy = Math.max(cy, 0.45);
     cam.position.set(cx, cy, cz);
     cam.rotation.set(pitch, yaw, 0);
     if (this.shakeAmt > 0.001) {

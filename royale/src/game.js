@@ -514,7 +514,7 @@ export class Game {
     const it = a.held;
     if (a.buildMode) P.held = null;
     else if (!it) { P.held = P._pick || (P._pick = { kind: 'pickaxe' }); }
-    else if (it.kind === 'weapon') { P._gun = P._gun || { kind: 'gun' }; P._gun.len = it.def.len; P._gun.color = it.def.color; P._gun.rarityColor = RARITY[it.rarity].hex; P.held = P._gun; }
+    else if (it.kind === 'weapon') { P._gun = P._gun || { kind: 'gun' }; P._gun.len = it.def.len; P._gun.color = it.def.color; P._gun.cat = it.def.cat; P._gun.rarityColor = RARITY[it.rarity].hex; P.held = P._gun; }
     else { P._item = P._item || { kind: 'item' }; P._item.color = it.def.color; P.held = P._item; }
     return P;
   }

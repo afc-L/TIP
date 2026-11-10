@@ -61,9 +61,11 @@ export class Lobby3D {
     window.addEventListener('mousemove', (e) => { if (this.drag !== null) { this.rot += (e.clientX - this.drag) * 0.01; this.drag = e.clientX; } });
     window.addEventListener('mouseup', () => { this.drag = null; });
   }
-  resize(w, h) { this.camera.aspect = w / h; this.camera.updateProjectionMatrix(); this.camera.position.x = 0; }
+  resize(w, h) { this.camera.aspect = w / h; this.camera.updateProjectionMatrix(); this.wide = w > 900; }
   render(dt) {
     this.t += dt;
+    const tx = this.wide && this.offsetChar ? -1.35 : 0;
+    this.camera.position.x += (tx - this.camera.position.x) * Math.min(1, dt * 5);
     if (this.drag === null) this.rot += dt * 0.3;
     this.emoteT -= dt;
     const ap = appearanceFromLoadout(this.game.prog.data.loadout);
@@ -154,6 +156,7 @@ export class Menu {
     document.querySelectorAll('#menu nav button').forEach((b) => b.classList.toggle('active', b.dataset.tab === t));
     document.querySelectorAll('#menu .tab').forEach((s) => s.classList.toggle('hidden', s.id !== 'tab-' + t));
     this.lobby.showGlider = false;
+    this.lobby.offsetChar = t !== 'play';
     if (t === 'locker') this.renderLocker();
     if (t === 'challenges') this.renderChallenges();
     if (t === 'career') this.renderCareer();

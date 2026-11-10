@@ -449,7 +449,6 @@ class MapGen {
   poi_suburb(p) {
     const y = this.T.poiHeight(p.id);
     // two streets east-west, houses on both sides
-    this.T.addPaint(p.x, p.z, p.r + 10, 0x6aa24a, 0.4);
     for (const sz of [-30, 30]) {
       for (let xi = -4; xi <= 4; xi++) {
         const hx = p.x + xi * 24;

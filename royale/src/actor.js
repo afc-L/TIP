@@ -260,11 +260,10 @@ export class Actor {
         g.audio.playAt('slide', this.pos, 0.5);
       }
       if (!this.sliding) this.crouching = true;
-    } else {
-      if (this.crouching || this.sliding) {
+    } else if (!this.sliding) {
+      if (this.crouching) {
         // stand up only if there's head room
-        if (phys.fits(this.pos.x, this.pos.y + 0.05, this.pos.z, this.radius * 0.9, CHAR_H)) { this.crouching = false; this.sliding = false; }
-        else { this.sliding = false; this.crouching = true; }
+        if (phys.fits(this.pos.x, this.pos.y + 0.05, this.pos.z, this.radius * 0.9, CHAR_H)) this.crouching = false;
       }
     }
     this.height = this.crouching || this.sliding ? CROUCH_H : CHAR_H;
@@ -287,7 +286,10 @@ export class Actor {
       this.vel.x += tx * dt * 0.6; this.vel.z += tz * dt * 0.6;
       const nhs = Math.hypot(this.vel.x, this.vel.z);
       if (nhs > 13) { this.vel.x *= 13 / nhs; this.vel.z *= 13 / nhs; }
-      if (nhs < 3.2 || !this.grounded && this.vel.y < -6) { this.sliding = false; this.crouching = inp.crouch; }
+      if (nhs < 3.2 || (!this.grounded && this.vel.y < -6) || this.swimming) {
+        this.sliding = false;
+        this.crouching = inp.crouch || !phys.fits(this.pos.x, this.pos.y + 0.05, this.pos.z, this.radius * 0.9, CHAR_H);
+      }
     } else {
       const acc = this.grounded || this.swimming ? 42 : 9;
       let dx = tx - this.vel.x, dz = tz - this.vel.z;

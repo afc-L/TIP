@@ -149,7 +149,7 @@ export class Effects {
     for (let i = 0; i < 40; i++) this.spawn(x + rs(0.4), y + Math.random() * 1.8, z + rs(0.4), rs(1.5), 2 + Math.random() * 3, rs(1.5), i % 2 ? color : 0x88eaff, 0.16, 1.2, -1);
   }
   trail(x, y, z, color) {
-    this.spawn(x, y, z, 0, 0, 0, color, 0.35, 1.0, 0, 0.6);
+    this.spawn(x, y, z, 0, 0, 0, color, 0.12, 0.8, 0, 0.12);
   }
 
   setRain(on) { this.rainOn = on; this.rain.visible = on; }

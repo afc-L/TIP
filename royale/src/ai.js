@@ -104,7 +104,7 @@ export class AIBrain {
     if (!best) best = { id: 'any', x: g.bus.pos.x, z: g.bus.pos.z, s: g.bus.length * 0.5, perp: 0, r: 50 };
     g.dropCounts[best.id] = (g.dropCounts[best.id] || 0) + 1;
     // choose a specific chest spot / building in that area
-    const spots = g.world.chestSpots.filter((c) => Math.hypot(c.x - best.x, c.z - best.z) < (best.r || 30) + 10);
+    const spots = g.world.chestSpots.filter((c) => Math.hypot(c.x - best.x, c.z - best.z) < (best.r || 30) + 10 && c.y - g.terrain.heightAt(c.x, c.z) < 12);
     const spot = spots.length ? pick(spots) : { x: best.x + rand(-20, 20), y: 0, z: best.z + rand(-20, 20) };
     const jitter = (best.r || 20) > 20 ? 4 : 1;
     this.drop = { x: spot.x + rand(-jitter, jitter), z: spot.z + rand(-jitter, jitter), y: spot.y, poi: best.id, s: best.s, perp: best.perp };
@@ -565,9 +565,14 @@ export class AIBrain {
     // housekeeping reload when safe
     const it = a.held;
     if (it && it.kind === 'weapon' && it.ammoIn < it.mag * 0.5 && g.time - this.lastSeenEnemyT > 1.5 && !a.input.fire) a.input.reload = true;
-    // apply movement intent
+    // apply movement intent (with a final ledge guard so strafing never walks us off a roof)
     const inp = a.input;
-    const ml = Math.hypot(this.moveX, this.moveZ);
+    let ml = Math.hypot(this.moveX, this.moveZ);
+    if (ml > 0.01 && a.grounded && !a.swimming && a.mode === 'ground') {
+      const ux = this.moveX / ml, uz = this.moveZ / ml;
+      const ahead = g.phys.groundAt(a.pos.x + ux * 1.0, a.pos.z + uz * 1.0, a.pos.y + 0.6, 0.2);
+      if (a.pos.y - Math.max(ahead, -1.2) > 7.5) { this.moveX = 0; this.moveZ = 0; ml = 0; }
+    }
     if (ml > 0.01) { inp.mx = this.moveX / ml * Math.min(1, ml); inp.mz = this.moveZ / ml * Math.min(1, ml); }
     else { inp.mx = 0; inp.mz = 0; }
     inp.sprint = this.wantSprint;
@@ -601,11 +606,37 @@ export class AIBrain {
       const dir = this.clearDir(dx, dz);
       dx = dir[0]; dz = dir[1];
     }
+    // ledge awareness: never walk off a big drop — build a ramp down instead, or turn away
+    if (a.grounded && !a.swimming) {
+      const phys = this.game.phys;
+      const ahead = phys.groundAt(a.pos.x + dx * 1.1, a.pos.z + dz * 1.1, a.pos.y + 0.6, 0.2);
+      const drop = a.pos.y - Math.max(ahead, -1.2);
+      if (drop > 7.5) {
+        if (this.canBuild() && a.buildCd <= 0) this.buildDown(dx, dz);
+        else if (!this.canBuild()) {
+          // no materials: look for another way down (or harvest something to get materials)
+          if (!this.harvestAdjacent()) { const s2 = this.strafeDir, ndx = -dz * s2, ndz = dx * s2; dx = ndx; dz = ndz; }
+          else { this.moveX = 0; this.moveZ = 0; return false; }
+        }
+      }
+    }
     const slow = opts.slow ?? 1;
     this.moveX = dx * slow; this.moveZ = dz * slow;
     this.wantSprint = opts.sprint ?? d > 12;
     this.navTarget = { x, z, y: opts.y };
     return false;
+  }
+
+  buildDown(dx, dz) {
+    const a = this.a, B = this.game.build;
+    const dir = dirFromYaw(yawTo(dx, dz));
+    const opp = [1, 0, 3, 2][dir];
+    const cx = Math.floor((a.pos.x + DIRS[dir][0] * BW * 0.75) / BW), cz = Math.floor((a.pos.z + DIRS[dir][1] * BW * 0.75) / BW);
+    const lvl = B.levelFor(a.pos.y) - 1;
+    this.chooseMat();
+    const spec = B.rampSpec(cx, lvl, cz, opp);
+    if (!B.pieces.has(spec.key)) B.place(a, spec);
+    a.buildCd = this.buildInterval();
   }
 
   clearDir(dx, dz) {
@@ -936,8 +967,24 @@ export class AIBrain {
       this.moveX = -(tp.x - a.pos.x) * 0.02; this.moveZ = -(tp.z - a.pos.z) * 0.02;
     }
     if (this.buildSeq) return;
+    if (threat && this.boxed && !a.useItem) this.patchBox();
     if (a.sel !== i) { a.select(i); return; }
     a.input.fire = true;
+  }
+
+  // rebuild missing walls of our box
+  patchBox() {
+    const a = this.a, B = this.game.build;
+    if (a.buildCd > 0 || !this.canBuild()) return;
+    const cx = Math.floor(a.pos.x / BW), cz = Math.floor(a.pos.z / BW);
+    if (!this.boxed || this.boxed.cx !== cx || this.boxed.cz !== cz) return;
+    for (let dIdx = 0; dIdx < 4; dIdx++) {
+      const spec = B.computeTarget(a, 'wall', DIR_YAW[dIdx], 0);
+      if (!B.pieces.has(spec.key)) {
+        this.chooseMat();
+        if (B.place(a, spec)) { a.buildCd = this.buildInterval(); return; }
+      }
+    }
   }
 
   doRetreat(dt) {
@@ -1005,6 +1052,12 @@ export class AIBrain {
       }
       // crouch-peeking for strategic players
       if (this.profileName === 'strategic' && cat !== 'shotgun' && d > 25) { if (chance(dt * 0.8)) this.crouchPeek = !this.crouchPeek; a.input.crouch = !!this.crouchPeek; }
+    }
+    // lull in the fight: repair our walls (defensive minds) / advanced movement while closing in
+    if (!visible && now - this.underFireT > 1.5 && (this.profileName === 'defensive' || this.profileName === 'strategic' || this.profileName === 'skilled')) this.repairNearby(dt);
+    if (this.profileName === 'skilled' || p.aggression > 0.85) {
+      this.slideT = (this.slideT || 0) - dt;
+      if (this.slideT <= 0 && a.sprinting && a.speed > 6 && d > 12 && chance(0.5)) { a.input.crouch = true; this.slideT = rand(2, 4); }
     }
     // react to incoming fire: cover or building
     const hurt = now - this.underFireT < 0.7;

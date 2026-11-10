@@ -1,7 +1,7 @@
 // Blocky stylised characters, all drawn through one InstancedMesh with procedural animation.
 import * as THREE from 'three';
 
-const PARTS_PER = 16;
+const PARTS_PER = 20;
 const _root = new THREE.Matrix4();
 const _a = new THREE.Matrix4();
 const _b = new THREE.Matrix4();
@@ -165,10 +165,7 @@ export class CharacterRenderer {
     // held item in right hand: local arm space points down -Y
     if (held && st !== 'skydive' && st !== 'glide' && st !== 'swim') {
       if (held.kind === 'gun') {
-        const len = held.len;
-        // gun along -Y of the arm (which points forward when aiming)
-        this._emit(armRM, -0.05, -0.62 - len * 0.35, -0.04, 0.09, len, 0.15, held.color);
-        this._emit(armRM, -0.05, -0.62 - len * 0.2, -0.13, 0.05, len * 0.25, 0.09, held.rarityColor);
+        this._gun(armRM, held);
       } else if (held.kind === 'pickaxe') {
         this._emit(armRM, 0, -0.66, -0.3, 0.06, 0.06, 0.8, 0x6b4a2e);
         this._emit(armRM, 0, -0.66, -0.68, 0.5, 0.1, 0.12, held.color || 0x9aa4b0);
@@ -187,6 +184,52 @@ export class CharacterRenderer {
       this._emit(_a, 0, 0.05, 0.1, 2.0, 0.06, 0.4, ap.glider.color2);
       this._emit(_a, 0, -0.45, 0, 0.05, 0.9, 0.05, 0x333333);
     }
+  }
+
+  // Gun in the right hand. Arm-local: -Y points along the barrel, +Z is "down", -Z is "up".
+  _gun(m, g) {
+    const L = g.len, c = g.color, rc = g.rarityColor, y0 = -0.62;
+    const dark = 0x1c1c1f;
+    switch (g.cat) {
+      case 'shotgun':
+        this._emit(m, -0.05, y0 - L * 0.3, -0.03, 0.09, L * 0.6, 0.13, c);
+        this._emit(m, -0.05, y0 - L * 0.62, -0.06, 0.06, L * 0.55, 0.06, dark);
+        this._emit(m, -0.05, y0 - L * 0.55, 0.04, 0.08, L * 0.25, 0.07, 0x7a4a26);
+        this._emit(m, -0.05, y0 + 0.12, 0.02, 0.08, 0.26, 0.14, 0x6b4426);
+        break;
+      case 'sniper':
+        this._emit(m, -0.05, y0 - L * 0.25, -0.02, 0.08, L * 0.55, 0.12, c);
+        this._emit(m, -0.05, y0 - L * 0.7, -0.04, 0.04, L * 0.5, 0.04, dark);
+        this._emit(m, -0.05, y0 - L * 0.25, -0.13, 0.06, L * 0.32, 0.07, dark);
+        this._emit(m, -0.05, y0 + 0.14, 0.02, 0.08, 0.28, 0.15, c);
+        break;
+      case 'explosive':
+        this._emit(m, -0.05, y0 - L * 0.3, -0.06, 0.2, L, 0.2, c);
+        this._emit(m, -0.05, y0 - L * 0.82, -0.06, 0.24, 0.1, 0.24, dark);
+        break;
+      case 'special':
+        this._emit(m, -0.05, y0 - L * 0.3, -0.02, 0.16, L * 0.7, 0.16, c);
+        this._emit(m, -0.05, y0 - L * 0.75, -0.02, 0.1, L * 0.4, 0.1, dark);
+        this._emit(m, -0.05, y0 - L * 0.2, 0.12, 0.12, 0.2, 0.12, 0x444444);
+        break;
+      case 'pistol':
+        this._emit(m, -0.05, y0 - L * 0.4, -0.03, 0.07, L, 0.1, c);
+        this._emit(m, -0.05, y0 - 0.04, 0.06, 0.06, 0.08, 0.14, dark);
+        break;
+      case 'smg':
+        this._emit(m, -0.05, y0 - L * 0.3, -0.02, 0.09, L * 0.65, 0.13, c);
+        this._emit(m, -0.05, y0 - L * 0.7, -0.03, 0.05, L * 0.3, 0.05, dark);
+        this._emit(m, -0.05, y0 - L * 0.25, 0.12, 0.06, 0.08, 0.2, dark);
+        break;
+      default: // assault rifles
+        this._emit(m, -0.05, y0 - L * 0.3, -0.02, 0.09, L * 0.6, 0.14, c);
+        this._emit(m, -0.05, y0 - L * 0.72, -0.03, 0.05, L * 0.35, 0.05, dark);
+        this._emit(m, -0.05, y0 - L * 0.28, 0.13, 0.07, 0.1, 0.2, dark);
+        this._emit(m, -0.05, y0 + 0.12, 0.01, 0.08, 0.24, 0.12, c);
+        this._emit(m, -0.05, y0 - L * 0.32, -0.11, 0.04, 0.16, 0.05, dark);
+    }
+    // rarity band
+    this._emit(m, -0.05, y0 - L * 0.12, -0.02, 0.1, 0.06, 0.15, rc);
   }
 
   _hat(headM, o) {

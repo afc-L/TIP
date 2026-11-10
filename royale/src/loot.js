@@ -53,12 +53,12 @@ export class LootSystem {
       ammo: new THREE.BoxGeometry(0.45, 0.3, 0.3),
       mats: new THREE.BoxGeometry(0.6, 0.35, 0.6),
     };
-    const beamGeo = new THREE.CylinderGeometry(0.06, 0.25, 3, 6, 1, true);
+    const beamGeo = new THREE.CylinderGeometry(0.03, 0.12, 2.6, 6, 1, true);
     beamGeo.translate(0, 1.5, 0);
     for (let i = 0; i < 110; i++) {
       const g = new THREE.Group();
       const body = new THREE.Mesh(this.geos.gun, new THREE.MeshLambertMaterial({ color: 0xffffff, emissive: 0x222222 }));
-      const beam = new THREE.Mesh(beamGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.28, depthWrite: false, side: THREE.DoubleSide }));
+      const beam = new THREE.Mesh(beamGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.22, depthWrite: false, side: THREE.DoubleSide }));
       g.add(body); g.add(beam);
       g.visible = false;
       g.userData = { body, beam, used: null };
