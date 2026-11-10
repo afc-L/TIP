@@ -508,6 +508,7 @@ export class Game {
     P.flash = a.flash; P.dive = a.input.dive || 0; P.bank = a.bank || 0;
     P.swing = a.swingT > 0 ? a.swingT / 0.5 : 0;
     P.using = !!a.useItem;
+    P.reloading = a.reloadT > 0;
     let st = 'ground';
     if (a.mode === 'skydive') st = 'skydive';
     else if (a.mode === 'glide') st = 'glide';

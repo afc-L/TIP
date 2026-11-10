@@ -297,7 +297,10 @@ export class PlayerController {
     const g = this.game, a = g.player, cam = g.camera, S = g.settings;
     let target = a;
     if (!a.alive && this.spectate) target = this.spectate;
-    const fov = S.fov / this.zoom;
+    // slight FOV kick while sprinting / sliding / diving
+    const kickT = target === a && (a.sprinting || a.sliding || (a.mode === 'skydive' && a.input.dive > 0.5)) ? 6 : 0;
+    this.fovKick = (this.fovKick || 0) + (kickT - (this.fovKick || 0)) * Math.min(1, dt * 6);
+    const fov = S.fov / this.zoom + this.fovKick;
     if (Math.abs(cam.fov - fov) > 0.05) { cam.fov = fov; cam.updateProjectionMatrix(); }
     cam.rotation.order = 'YXZ';
     if (target.mode === 'bus' || (!a.alive && target === a)) {

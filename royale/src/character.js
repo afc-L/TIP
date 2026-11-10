@@ -147,6 +147,11 @@ export class CharacterRenderer {
     if (aimPose) {
       const ap2 = Math.PI / 2 + pitch + lean;
       armRx = ap2; armLx = ap2 - 0.1; armRz = 0.05; armLz = -0.55;
+      if (p.reloading) {
+        // tilt the gun down and work the magazine with the off hand
+        armRx = 0.9 + lean; armRz = 0.35;
+        armLx = 0.6 + Math.sin(t * 9) * 0.35; armLz = -0.25;
+      }
     } else if (held && held.kind === 'pickaxe' && st === 'ground') {
       const sw = p.swing > 0 ? Math.sin((1 - p.swing) * Math.PI) * 2.2 : 0;
       armRx = 0.9 + sw + pitch * 0.5; armRz = -0.1;
