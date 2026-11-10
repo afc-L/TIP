@@ -380,11 +380,14 @@ class MapGen {
     w.phys.underground.push({ minX: x0, maxX: x1, minZ: z0, maxZ: z1, maxY: gy - 0.3 });
     // contents
     const mid = (rx0 + rx1) / 2;
-    w.chestSpots.push({ x: mid, y: floorY, z: rz1 - 2, poi: poiId, rare: true, mythic });
-    w.chestSpots.push({ x: rx0 + 2, y: floorY, z: rz1 - 3, poi: poiId, rare: true });
-    w.chestSpots.push({ x: rx1 - 2, y: floorY, z: rz0 + 3, poi: poiId, rare: false });
-    w.floorSpots.push({ x: mid - 4, y: floorY, z: rz0 + 6, poi: poiId });
-    w.floorSpots.push({ x: mid + 4, y: floorY, z: rz0 + 8, poi: poiId });
+    // waypoints: approach the hut door from the north, walk down the shaft ramp into the room
+    const cxm = (x0 + x1) / 2;
+    const via = [{ x: cxm, y: gy, z: z0 - 2.5 }, { x: cxm, y: gy, z: z0 + 0.6 }, { x: cxm, y: floorY + 0.3, z: z1 - 0.6 }, { x: cxm, y: floorY, z: z1 + 2 }];
+    w.chestSpots.push({ x: mid, y: floorY, z: rz1 - 2, poi: poiId, rare: true, mythic, via });
+    w.chestSpots.push({ x: rx0 + 2, y: floorY, z: rz1 - 3, poi: poiId, rare: true, via });
+    w.chestSpots.push({ x: rx1 - 2, y: floorY, z: rz0 + 3, poi: poiId, rare: false, via });
+    w.floorSpots.push({ x: mid - 4, y: floorY, z: rz0 + 6, poi: poiId, via });
+    w.floorSpots.push({ x: mid + 4, y: floorY, z: rz0 + 8, poi: poiId, via });
     w.ammoSpots.push({ x: mid, y: floorY, z: rz0 + 9, poi: poiId });
     for (let i = 0; i < 3; i++) w.addBoxW(rx0 + 2 + i * 5, floorY, rz0 + 12, 1.4, 1.4, 1.4, 0x5d6b52, { mat: 'metal', hp: 150, kind: 'crate' });
     w.addBoxW(mid, floorY, rz1 - 0.8, 6, 3, 0.4, 0xffd94a, { decor: true });
@@ -511,8 +514,7 @@ class MapGen {
   poi_lab(p) {
     const y = this.T.poiHeight(p.id);
     this.T.addPaint(p.x, p.z, p.r + 10, 0xb8bcc0, 0.15);
-    this.w.addBoxW(p.x, y - 1, p.z, p.r * 1.5, 1.1, p.r * 1.5, 0xc4c8cc, { destr: false });
-    const yb = y + 0.1;
+    const yb = y;
     // main lab building (two wings)
     const b = this.B(p.x, p.z - 20, 0, p, yb);
     const w = 30, d = 16, H = 4.2, t = 0.35, white = 0xeef2f5, trim = 0x2f6fae;

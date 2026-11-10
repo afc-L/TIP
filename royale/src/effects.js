@@ -197,7 +197,9 @@ export class Effects {
       if (b.life <= 0) b.m.visible = false;
     }
     // rain around camera
-    if (this.rainOn) {
+    const under = this.rainOn && this.game.phys.ignoresTerrain(this.game.camera.position.x, this.game.camera.position.y, this.game.camera.position.z);
+    this.rain.visible = this.rainOn && !under;
+    if (this.rainOn && !under) {
       const c = this.game.camera.position;
       const t = this.game.time;
       for (let i = 0; i < this.rainN; i++) {

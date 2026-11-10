@@ -774,14 +774,15 @@ export class AIBrain {
     }
     this.interactT = 0;
     // standing on a roof / upper floor right above the loot: dig down with the harvesting tool
-    if (dy < -1.8 && d < 4 && this.canDigDown()) { this.digDown(); return; }
+    if (dy < -1.8 && d < 4 && !obj.via && this.canDigDown()) { this.digDown(); return; }
     // loot on an upper floor: follow the interior stair waypoints
     const via = obj.via;
-    if (via && dy > 1.5) {
+    if (via && Math.abs(dy) > 1.5) {
       if (this.viaIdx < 0) {
+        // start from the first waypoint on our current level
         this.viaIdx = 0;
-        for (let i = 0; i < via.length - 1; i++) {
-          if (Math.abs(via[i].y - a.pos.y) < 1.2 && via[i + 1].y > via[i].y + 0.2) { this.viaIdx = i; break; }
+        for (let i = 0; i < via.length; i++) {
+          if (Math.abs(via[i].y - a.pos.y) < 1.2) { this.viaIdx = i; break; }
         }
       }
       if (this.viaIdx < via.length) {
