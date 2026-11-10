@@ -1094,6 +1094,23 @@ export class AIBrain {
     }
     // take high ground when the enemy is above us
     if (visible && t.pos.y > a.pos.y + 3 && d < 25 && this.canBuild(30) && !this.buildSeq && p.build > 0.6 && chance(dt * 1.5)) this.startRampRush(t.pos.x, t.pos.z);
+    // grenades: flush enemies out of cover / builds at mid range
+    this.nadeT = (this.nadeT ?? rand(2, 6)) - dt;
+    const gi = a.slots.findIndex((x) => x && x.kind === 'consumable' && x.def.throwable);
+    if (gi >= 0 && this.nadeT <= 0 && d > 8 && d < 28 && (this.targetInBuilds() || (!visible && now - k.seenT < 3) || chance(0.3))) {
+      this.nadeT = rand(6, 14);
+      this.nadeThrow = { slot: gi, t: 0.45 };
+    }
+    if (this.nadeThrow) {
+      const nt = this.nadeThrow;
+      nt.t -= dt;
+      if (a.sel !== nt.slot) a.select(nt.slot);
+      this.faceYaw = yawTo(k.pos.x - a.pos.x, k.pos.z - a.pos.z);
+      this.facePitch = 0.12 + d * 0.004;
+      if (nt.t <= 0 && a.equipT <= 0) { a.input.fire = true; this.nadeThrow = null; this.switchCd = 0.4; }
+      if (!a.slots[nt.slot]) this.nadeThrow = null;
+      return;
+    }
     // editing: peek through our own wall
     this.handleEdits(dt, k, d);
     // aim & fire
