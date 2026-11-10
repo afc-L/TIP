@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DROPZONE 100</title>
+  <link rel="stylesheet" href="./src/style.css" />
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <!-- ===== Loading ===== -->
+  <div id="loading">
+    <div class="logo">DROPZONE<span>100</span></div>
+    <div class="tag">100 players. 1 island. Last one standing.</div>
+    <div class="lbar"><i id="load-fill"></i></div>
+    <div id="load-msg">Loading...</div>
+  </div>
+  <div id="loading-match" class="hidden"><div class="spinner"></div>Boarding the Sky Barge...</div>
+
+  <!-- ===== Lobby / Menu ===== -->
+  <div id="menu" class="hidden">
+    <header>
+      <div class="logo small">DROPZONE<span>100</span></div>
+      <nav>
+        <button data-tab="play" class="active">Play</button>
+        <button data-tab="locker">Locker</button>
+        <button data-tab="challenges">Challenges</button>
+        <button data-tab="career">Career</button>
+        <button data-tab="settings">Settings</button>
+      </nav>
+      <div class="pcard">
+        <input id="name-input" maxlength="16" spellcheck="false" title="Your player name" />
+        <div class="lvl"><div id="lvl-badge">1</div><div class="xpbar"><i id="xp-fill"></i></div><small id="xp-text"></small></div>
+      </div>
+    </header>
+
+    <section id="tab-play" class="tab">
+      <div class="col-left">
+        <div class="panel">
+          <h3>Daily Objectives</h3>
+          <div id="play-daily"></div>
+        </div>
+        <div class="panel controls">
+          <h3>Controls</h3>
+          <div class="ctl"><kbd>WASD</kbd> Move <kbd>Shift</kbd> Sprint <kbd>Space</kbd> Jump / mantle / glider</div>
+          <div class="ctl"><kbd>Q</kbd>/<kbd>Ctrl</kbd> Crouch (slide while sprinting) <kbd>T</kbd> Emote</div>
+          <div class="ctl"><kbd>LMB</kbd> Fire / place <kbd>RMB</kbd> Aim <kbd>R</kbd> Reload <kbd>1-5</kbd>/wheel Slots <kbd>F</kbd> Harvest tool</div>
+          <div class="ctl"><kbd>Z</kbd> Wall <kbd>X</kbd> Floor <kbd>C</kbd> Ramp <kbd>V</kbd> Roof <kbd>B</kbd> Build mode <kbd>R</kbd> Material</div>
+          <div class="ctl"><kbd>G</kbd> Edit (click tiles, <kbd>G</kbd> confirm, <kbd>RMB</kbd> reset) <kbd>E</kbd> Pick up / open / repair</div>
+          <div class="ctl"><kbd>M</kbd>/<kbd>Tab</kbd> Map <kbd>K</kbd> Drop item <kbd>Esc</kbd> Pause</div>
+        </div>
+      </div>
+      <div class="col-right">
+        <button id="emote-btn" class="small-btn">Emote</button>
+        <div class="modes">
+          <div class="mode-card" data-mode="solo"><b>SOLO</b><small>You vs 99 AI opponents. Last one standing wins.</small></div>
+          <div class="mode-card" data-mode="practice"><b>PRACTICE</b><small>24 easy AIs, unlimited materials, slower storm. Learn to build.</small></div>
+        </div>
+        <div id="diff-row">
+          <div class="lbl">AI difficulty</div>
+          <div id="diff-buttons">
+            <button data-d="easy">Easy</button><button data-d="normal">Normal</button><button data-d="hard">Hard</button><button data-d="elite">Elite</button>
+          </div>
+        </div>
+        <button id="play-btn">PLAY</button>
+      </div>
+    </section>
+
+    <section id="tab-locker" class="tab hidden">
+      <div class="col-left wide">
+        <div id="locker-cats">
+          <button data-k="outfit">Outfits</button><button data-k="backpack">Backpacks</button><button data-k="glider">Gliders</button><button data-k="contrail">Contrails</button>
+        </div>
+        <div id="locker-grid"></div>
+        <div class="hint">Drag the character to rotate. Level up to unlock more cosmetics.</div>
+      </div>
+    </section>
+
+    <section id="tab-challenges" class="tab hidden">
+      <div class="col-left wide scroll">
+        <div class="panel"><h3>Daily Objectives <small>reset every day</small></h3><div id="daily-list"></div></div>
+        <div class="panel"><h3>Season Challenges</h3><div id="season-list"></div></div>
+        <div class="panel"><h3>Next unlocks</h3><div id="unlocks-list"></div></div>
+      </div>
+    </section>
+
+    <section id="tab-career" class="tab hidden">
+      <div class="col-left wide scroll">
+        <div class="panel"><h3>Career Statistics</h3><div id="career-grid"></div></div>
+        <div class="panel"><h3>Recent Matches</h3><div id="history"></div></div>
+        <button id="reset-progress" class="small-btn danger">Reset progress</button>
+      </div>
+    </section>
+
+    <section id="tab-settings" class="tab hidden">
+      <div class="col-left wide scroll"><div class="panel" id="settings-form"></div></div>
+    </section>
+  </div>
+
+  <!-- ===== HUD ===== -->
+  <div id="hud" class="hidden">
+    <div id="stormfx"></div>
+    <div id="hurtflash"></div>
+    <div id="scope"><div class="ring"></div></div>
+    <div id="crosshair"><i class="t"></i><i class="b"></i><i class="l"></i><i class="r"></i><i class="dot"></i></div>
+    <div id="hitmarker"><i></i><i></i><i></i><i></i></div>
+    <div id="dmgdir"></div>
+    <div id="dmgnums"></div>
+    <div id="fps"></div>
+
+    <div id="topright">
+      <canvas id="minimap" width="200" height="200"></canvas>
+      <div id="storm-info"></div>
+      <div class="counts"><div id="alive"></div><div id="kills"></div></div>
+    </div>
+    <div id="killfeed"></div>
+    <div id="notice"></div>
+    <div id="elimbanner"></div>
+    <div id="storm-warn">You are in the storm!</div>
+    <div id="jumpprompt"></div>
+    <div id="spectate"></div>
+    <div id="interact"></div>
+    <div id="progress"><div id="progress-label"></div><div class="pbar"><i id="progress-fill"></i></div></div>
+    <div id="edithint">EDIT — click/drag tiles to remove · <kbd>G</kbd> confirm · <kbd>RMB</kbd> reset</div>
+
+    <div id="bottomleft">
+      <div class="bar shield"><div class="fill" id="sh-fill"></div><span id="sh-num">0</span></div>
+      <div class="bar health"><div class="fill" id="hp-fill"></div><span id="hp-num">100</span></div>
+    </div>
+    <div id="mats">
+      <div id="mat-wood" class="mat wood"><i></i><b>0</b></div>
+      <div id="mat-stone" class="mat stone"><i></i><b>0</b></div>
+      <div id="mat-metal" class="mat metal"><i></i><b>0</b></div>
+    </div>
+    <div id="bottomright">
+      <div id="weapon-info"></div>
+      <div id="ammo-res"></div>
+      <div id="hotbar"></div>
+    </div>
+    <div id="buildbar">
+      <div data-p="wall"><kbd>Z</kbd>Wall</div><div data-p="floor"><kbd>X</kbd>Floor</div><div data-p="ramp"><kbd>C</kbd>Ramp</div><div data-p="cone"><kbd>V</kbd>Roof</div>
+    </div>
+  </div>
+
+  <div id="bigmap" class="hidden">
+    <canvas id="bigmap-canvas"></canvas>
+    <div id="bigmap-info"></div>
+    <button id="bigmap-close" class="small-btn">Close (M)</button>
+  </div>
+
+  <div id="clicktoplay" class="hidden"><div>Click to play</div><small>Mouse look is captured · Esc to pause</small></div>
+
+  <div id="pause" class="hidden">
+    <div class="box">
+      <h2>PAUSED</h2>
+      <button id="pause-resume">Resume</button>
+      <button id="pause-settings">Settings</button>
+      <button id="pause-leave" class="danger">Leave match</button>
+      <div id="pause-settings-panel" class="panel hidden"></div>
+    </div>
+  </div>
+
+  <div id="results" class="hidden">
+    <div class="box">
+      <h1 id="res-title">ELIMINATED</h1>
+      <div id="res-sub"></div>
+      <div id="res-stats"></div>
+      <div id="res-xp"></div>
+      <div class="btns">
+        <button id="res-again">Play again</button>
+        <button id="res-spectate" class="small-btn">Spectate</button>
+        <button id="res-lobby" class="small-btn">Return to lobby</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
