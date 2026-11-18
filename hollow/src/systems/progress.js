@@ -51,7 +51,7 @@ export class Progress {
   modeUnlocked(mode) {
     if (this.d.unlockAll) return true;
     if (mode === 'survival') return this.d.chapter >= 3;
-    if (mode === 'nightmare') return this.d.chapter >= 5 || this.d.storyComplete;
+    if (mode === 'nightmare') return this.d.storyComplete;
     return true;
   }
   skinOwned(k) { return k === 'pale' || this.d.unlockAll || this.isUnlocked('skin_' + k) || (k === 'hollow' && this.d.symbols.length >= 5); }

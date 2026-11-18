@@ -426,10 +426,12 @@ export function skyTexture({ top = '#05070c', horizon = '#1a2230', stars = 0.6, 
   }
   // clouds
   for (let i = 0; i < 40; i++) {
-    const x = r() * w, y = h * (0.25 + r() * 0.22), rw = 60 + r() * 160;
-    const cg = ctx.createRadialGradient(x, y, 0, x, y, rw);
-    cg.addColorStop(0, tint ? tint : 'rgba(40,45,55,0.35)'); cg.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = cg; ctx.fillRect(x - rw, y - rw, rw * 2, rw * 2);
+    const x0 = r() * w, y = h * (0.25 + r() * 0.22), rw = 60 + r() * 160;
+    for (const x of [x0 - w, x0, x0 + w]) { // wrap horizontally so the equirect seam is invisible
+      const cg = ctx.createRadialGradient(x, y, 0, x, y, rw);
+      cg.addColorStop(0, tint ? tint : 'rgba(40,45,55,0.35)'); cg.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = cg; ctx.fillRect(x - rw, y - rw, rw * 2, rw * 2);
+    }
   }
   if (moon) {
     const mx = w * 0.7, my = h * 0.18;
