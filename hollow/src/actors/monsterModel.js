@@ -40,6 +40,12 @@ function faceTex() {
   // veins
   x.strokeStyle = 'rgba(70,40,60,0.35)'; x.lineWidth = 1.5;
   for (let i = 0; i < 14; i++) { x.beginPath(); let px = Math.random() * 256, py = Math.random() * 60; x.moveTo(px, py); for (let k = 0; k < 5; k++) { px += (Math.random() - 0.5) * 30; py += 15; x.lineTo(px, py); } x.stroke(); }
+  // soft oval mask so the face melts into the skull instead of reading as a flat card
+  x.globalCompositeOperation = 'destination-in';
+  const mk = x.createRadialGradient(128, 120, 60, 128, 128, 128);
+  mk.addColorStop(0, 'rgba(0,0,0,1)'); mk.addColorStop(0.75, 'rgba(0,0,0,0.9)'); mk.addColorStop(1, 'rgba(0,0,0,0)');
+  x.fillStyle = mk; x.save(); x.translate(128, 128); x.scale(0.82, 1); x.translate(-128, -128); x.fillRect(0, 0, 256, 256); x.restore();
+  x.globalCompositeOperation = 'source-over';
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
 
@@ -52,11 +58,11 @@ function curvedPlane(w, h, curve = 0.5) {
 
 export function buildMonster(skinKey = 'pale') {
   const S = SKINS[skinKey] || SKINS.pale;
-  const st = tex('skin', 3);
-  const skin = new THREE.MeshStandardMaterial({ map: st.map, normalMap: st.normalMap, normalScale: new THREE.Vector2(1.4, 1.4), color: S.skin, roughness: S.rough, metalness: 0.05, emissive: S.emissive, emissiveIntensity: 1 });
+  const st = tex('skin', 2);
+  const skin = new THREE.MeshStandardMaterial({ map: st.map, normalMap: st.normalMap, normalScale: new THREE.Vector2(0.65, 0.65), color: S.skin, roughness: S.rough, metalness: 0.05, emissive: S.emissive, emissiveIntensity: 1 });
   const bt = tex('bone', 2);
   const bone = new THREE.MeshStandardMaterial({ map: bt.map, normalMap: bt.normalMap, color: S.bone, roughness: 0.45 });
-  const face = new THREE.MeshStandardMaterial({ map: faceTex(), roughness: 0.4, color: skinKey === 'hollow' ? 0x202020 : skinKey === 'charred' ? 0x605048 : 0xffffff, side: THREE.DoubleSide });
+  const face = new THREE.MeshStandardMaterial({ map: faceTex(), transparent: true, alphaTest: 0.04, roughness: 0.4, color: skinKey === 'hollow' ? 0x202020 : skinKey === 'charred' ? 0x605048 : 0xffffff, side: THREE.DoubleSide });
   const mouth = new THREE.MeshStandardMaterial({ color: 0x120404, roughness: 0.3 });
   const eye = new THREE.MeshBasicMaterial({ color: S.eye, toneMapped: false });
   const mats = { skin, bone, face, mouth, eye };
@@ -107,18 +113,18 @@ export function buildMonster(skinKey = 'pale') {
 
   // head
   const head = mk('head', neck2, 0, 0.2, 0.02);
-  add(head, blob(0.15, 0.16, 0.27, { noise: 0.12, seed: 7 }), skin, 0, 0.1, -0.06, 0.2, 0, 0); // elongated cranium
-  add(head, blob(0.12, 0.08, 0.2, { noise: 0.1, seed: 8 }), skin, 0, 0.21, -0.18, 0.5, 0, 0);
+  add(head, blob(0.15, 0.16, 0.25, { noise: 0.12, seed: 7 }), skin, 0, 0.14, -0.18, 0.2, 0, 0); // elongated cranium
+  add(head, blob(0.12, 0.08, 0.2, { noise: 0.1, seed: 8 }), skin, 0, 0.24, -0.26, 0.5, 0, 0);
   // horns sweeping back
   for (const s of [-1, 1]) {
     add(head, hornGeo(0.62, 0.05, 0.7, 8, 10), bone, s * 0.1, 0.2, -0.05, -1.35, 0, s * -0.3);
     add(head, hornGeo(0.22, 0.03, -0.5), bone, s * 0.13, 0.12, 0.02, -1.6, 0, s * -0.7);
   }
   // pale face mask
-  const faceMesh = add(head, curvedPlane(0.24, 0.28, 0.6), face, 0, 0.05, 0.17, -0.08, 0, 0);
+  const faceMesh = add(head, curvedPlane(0.27, 0.33, 0.45), face, 0, 0.05, 0.128, -0.05, 0, 0);
   // eye pinpoints in the sockets
   const eyes = [];
-  for (const s of [-1, 1]) { const e = add(head, new THREE.SphereGeometry(0.009, 6, 4), eye, s * 0.04, 0.095, 0.14); e.castShadow = false; eyes.push(e); }
+  for (const s of [-1, 1]) { const e = add(head, new THREE.SphereGeometry(0.011, 8, 6), eye, s * 0.043, 0.088, 0.15); e.castShadow = false; eyes.push(e); }
   // mouth cavity + upper teeth
   add(head, blob(0.09, 0.03, 0.09), mouth, 0, -0.05, 0.08);
   const teethU = new THREE.Group(); head.add(teethU); teethU.position.set(0, -0.05, 0.08);

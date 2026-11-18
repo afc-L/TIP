@@ -93,7 +93,7 @@ class Game {
     const pose = { hips: [0.15, 0, 0], spine1: [0.25, 0, 0], spine2: [0.25, 0, 0], chest: [0.2, 0, 0], neck1: [0.45, 0, 0], neck2: [0.1, 0, 0] };
     for (const k in pose) B[k].rotation.set(...pose[k]);
     for (const sd of ['L', 'R']) { B['upperArm' + sd].rotation.set(-0.85, 0, sd === 'L' ? 0.12 : -0.12); B['foreArm' + sd].rotation.x = -0.35; }
-    B.head.rotation.x = -1.2;
+    B.head.rotation.x = -1.75; B.neck2.rotation.x = -0.1;
     for (const sd of ['L', 'R']) { B['thigh' + sd].rotation.x = -0.6; B['shin' + sd].rotation.x = 1.15; B['meta' + sd].rotation.x = -0.79; B['foot' + sd].rotation.x = 0.24; }
     s.add(new THREE.HemisphereLight(0x303848, 0x050505, 0.4));
     const spot = new THREE.SpotLight(0xffd0a0, 90, 20, 0.5, 0.6, 1.5); spot.position.set(3.5, 7, 2.5); spot.target = mm.root; spot.castShadow = this.graphics.q.shadows; s.add(spot);
@@ -108,7 +108,7 @@ class Game {
     const B = M.monster.B;
     const br = Math.sin(M.t * 1.2);
     B.chest.scale.set(1 + br * 0.02, 1, 1 + br * 0.025);
-    B.head.rotation.y = Math.sin(M.t * 0.3) * 0.3 + (Math.sin(M.t * 3.1) > 0.995 ? 0.3 : 0);
+    B.head.rotation.y = Math.sin(M.t * 0.3) * 0.25 - 0.25 + (Math.sin(M.t * 3.1) > 0.995 ? 0.3 : 0); B.head.rotation.z = Math.sin(M.t * 0.21) * 0.15;
     B.jaw.rotation.x = 0.06 + Math.max(0, br) * 0.05;
     M.spot.intensity = (Math.random() < 0.02 ? 5 : 90) * (0.9 + Math.sin(M.t * 13) * 0.05);
     const fx = this.graphics.fx; fx.uTime.value = M.t; fx.uVignette.value = 1; fx.uGrain.value = 0.018; fx.uDesat.value = 0.35; fx.uTint.value.set(1, 0.97, 0.95); fx.uLift.value.set(0, 0, 0);
