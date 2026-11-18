@@ -87,7 +87,7 @@ export class NPC {
     this.heat = 0;
   }
 
-  get alive() { return !['downed', 'fed', 'dissolve', 'crawl'].includes(this.state) && !this.removed; }
+  get alive() { return !['downed', 'fed', 'dissolve', 'crawl', 'corpse'].includes(this.state) && !this.removed; }
   get vulnerable() { return ['downed', 'crawl'].includes(this.state); }
   eye(out = new THREE.Vector3()) { return out.set(this.pos.x, this.pos.y + 1.6 * this.H, this.pos.z); }
   center(out = new THREE.Vector3()) { return out.set(this.pos.x, this.pos.y + 1.0 * this.H, this.pos.z); }
@@ -202,10 +202,11 @@ export class NPC {
     if (!this.recognized) {
       for (const o of g.npcs.list) {
         if (o === this || !o.alive) continue;
-        if (!['flee', 'scream', 'confront'].includes(o.state) && !o.vulnerable) continue;
-        const dd = o.pos.distanceTo(this.pos); if (dd > 20) continue;
+        if (!['flee', 'scream', 'confront', 'corpse', 'fed'].includes(o.state) && !o.vulnerable) continue;
+        const dd = o.pos.distanceTo(this.pos); if (dd > (o.state === 'corpse' ? 15 : 20)) continue;
         if (!g.world.lineOfSight(eye, o.eye(_v3))) continue;
-        this.fear += dt * (o.vulnerable ? 1.5 : 0.9) * (1 + this.nervousBonus);
+        this.fear += dt * (o.vulnerable || o.state === 'corpse' || o.state === 'fed' ? 1.8 : 0.9) * (1 + this.nervousBonus);
+        if (o.state === 'corpse' && !this.sawCorpse) { this.sawCorpse = true; this.game.audio.play(Math.random() < 0.6 ? 'scream' : 'gasp', this.eye(), { pitch: this.body.female ? 1.2 : 0.85 }); this.say('recognize', true); }
         this.lastKnown.copy(o.recognized ? o.lastKnown : o.pos);
         if (this.fear > this.P.panicAt) { this.recognize(true); break; }
         else this.becomeUneasy(o.pos);
@@ -383,8 +384,10 @@ export class NPC {
         break;
       }
       case 'confront': this.updateConfront(dt); speed = this.curSpeed || 0; face = this.confrontFace; break;
+      case 'corpse': break;
       case 'downed': {
         this.downedT += dt;
+        if (this.bleeding) { if (Math.random() < dt * 6) g.fx.bloodDrip(this.center(), 1); if (Math.random() < dt * 0.8) g.map.addBlood(this.pos, 0.7); if (this.downedT > this.downedDur) { this.becomeCorpse(); g.npcs.onRemoved(this, 'killed'); break; } }
         this.voiceT -= dt; if (this.voiceT <= 0) { this.voiceT = rand(4, 9); if (chance(0.5)) this.say('downed'); else g.audio.play('cry', this.eye(), { vol: 0.25 }); }
         if (this.downedT > this.downedDur) { this.setState('crawl'); this.crawlDir = Math.atan2(this.pos.x - m.pos.x, this.pos.z - m.pos.z); }
         break;
@@ -429,6 +432,14 @@ export class NPC {
     if (!this.passedDoor) return;
     const d = this.passedDoor;
     if (d.open && d.pos.distanceTo(this.pos) > 1.6 && d.pos.distanceTo(this.pos) < 4 && this.game.monster.pos.distanceTo(d.pos) > 1.5) { d.toggle(this.pos, this.game); this.passedDoor = null; }
+  }
+
+  becomeCorpse() {
+    this.held = false; this.bleeding = false; this.flashOn = false;
+    if (this.hideNode) { this.hideNode.claimed = false; this.hideNode = null; }
+    this.setState('corpse'); this.body.setExpression('fear');
+    this.corpseT = this.game.time;
+    if (this.beam) this.beam.visible = false;
   }
 
   calmDown() {
@@ -560,6 +571,8 @@ export class NPC {
   // ------------------------------------------------------------------ animation
   animate(dt, lod) {
     if (lod > 2 && (this.t * 60 | 0) % 3) return; // far: update pose every third frame
+    if (this.state === 'corpse' && this.corpseSettled) return;
+    if (this.state === 'corpse' && this.game.time - this.corpseT > 2) this.corpseSettled = true;
     const B = this.B, H = this.H, t = this.t;
     const sp = this.curSpeed || 0;
     const runW = clamp((sp - 1.8) / 2.5, 0, 1), walkW = clamp(sp / 1.3, 0, 1);
@@ -629,13 +642,22 @@ export class NPC {
     if (this.flinchT > 0 && this.alive) { const k = this.flinchT / 1.2; set('upperArmL', -2.4 * k, 0, 0.6 * k); set('upperArmR', -2.4 * k, 0, -0.6 * k); set('foreArmL', -1.8 * k, 0, 0); set('foreArmR', -1.8 * k, 0, 0); headX = 0.5 * k; }
     if (this.hitT > 0 && this.alive) { set('spine', -0.4, 0, 0.2); set('chest', -0.3, 0, 0); headX = -0.4; }
     // lying states
-    if (['downed', 'fed', 'dissolve'].includes(this.state)) {
-      const tw = this.state === 'fed' ? Math.sin(t * 9) * 0.03 : Math.sin(t * 1.5) * 0.05;
+    if (this.state === 'fed' && this.held) {
+      // dangling in the monster's grip, struggling less as it loses limbs
+      const k = this.struggle || 0; const fl = Math.sin(t * 13) * k, fl2 = Math.sin(t * 11 + 1) * k;
+      hipY = this.body.hipY; hipsRot = [0.25 + fl * 0.1, 0, fl2 * 0.08];
+      set('spine', -0.2 + fl * 0.2, 0, 0); set('chest', -0.2, 0, fl2 * 0.1);
+      set('thighL', 0.1 - fl * 0.7, 0, 0.12); set('thighR', 0.1 + fl * 0.7, 0, -0.12); set('shinL', 0.3 + Math.max(0, fl) * 0.8, 0, 0); set('shinR', 0.3 + Math.max(0, -fl) * 0.8, 0, 0);
+      set('footL', 0.5, 0, 0); set('footR', 0.5, 0, 0);
+      set('upperArmL', -1.6 + fl2 * 1.2, 0, 0.5); set('upperArmR', -1.6 - fl2 * 1.2, 0, -0.5); set('foreArmL', -1.2, 0, 0); set('foreArmR', -1.2, 0, 0);
+      headX = k > 0.2 ? -0.5 + fl * 0.3 : 0.9; headY = Math.sin(t * 7) * 0.4 * k;
+    } else if (['downed', 'fed', 'dissolve', 'corpse'].includes(this.state)) {
+      const tw = this.state === 'corpse' ? 0 : this.state === 'fed' ? Math.sin(t * 9) * 0.03 : Math.sin(t * 1.5) * 0.05;
       hipY = 0.13 * H; hipsRot = [-Math.PI / 2 + 0.05, 0, 0.1];
       set('spine', 0.05, 0, tw); set('chest', 0.05, 0, 0); set('thighL', 0.1, 0, 0.15); set('thighR', -0.2, 0, -0.1); set('shinL', 0.3, 0, 0); set('shinR', 0.6, 0, 0);
       set('upperArmL', -0.2 + tw, 0, 0.6); set('upperArmR', -0.5, 0, -0.4 - tw); set('foreArmL', -0.4, 0, 0); set('foreArmR', -1.0, 0, 0);
       set('footL', 0.6, 0, 0); set('footR', 0.6, 0, 0);
-      headX = -0.2; headY = this.state === 'downed' ? Math.sin(t * 0.8) * 0.4 : 0.6;
+      headX = -0.2; headY = this.state === 'downed' ? Math.sin(t * 0.8) * 0.4 * (this.bleeding ? 0.3 : 1) : 0.6;
     }
     if (this.state === 'crawl') {
       const c = Math.sin(t * 4);
@@ -657,7 +679,7 @@ export class NPC {
     const rate = 10;
     B.hips.position.y = damp(B.hips.position.y, hipY, rate, dt);
     const ch = this.cur.hips || (this.cur.hips = [0, 0, 0]);
-    for (let i = 0; i < 3; i++) ch[i] = damp(ch[i], hipsRot[i], ['downed', 'fed', 'crawl'].includes(this.state) ? 5 : rate, dt);
+    for (let i = 0; i < 3; i++) ch[i] = damp(ch[i], hipsRot[i], ['downed', 'fed', 'crawl', 'corpse'].includes(this.state) && !this.held ? 5 : rate, dt);
     B.hips.rotation.set(ch[0], ch[1], ch[2]);
     for (const k in T) {
       const c = this.cur[k] || (this.cur[k] = [0, 0, 0]);
@@ -668,7 +690,7 @@ export class NPC {
 
   updateFlashlight() {
     if (!this.beam) return;
-    const on = this.flashOn && !['downed', 'fed', 'dissolve', 'crawl'].includes(this.state);
+    const on = this.flashOn && !['downed', 'fed', 'dissolve', 'crawl', 'corpse'].includes(this.state);
     this.beam.visible = on;
     if (on) { this.B.handR.getWorldDirection(_v1); this.beamDir.set(0, -1, 0).applyQuaternion(this.B.handR.getWorldQuaternion(_q)); }
   }

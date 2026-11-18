@@ -100,6 +100,25 @@ export class GameMap {
     if (this.stains.length > 30) { const s = this.stains.shift(); this.scene.remove(s); s.geometry.dispose(); }
   }
 
+  // Blood pools / splatters on whatever surface is below
+  addBlood(p, size = 1) {
+    if (!this.bloodMats) {
+      this.bloodMats = [0, 1, 2, 3].map((k) => {
+        const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d');
+        const R = () => Math.random();
+        for (let i = 0; i < 14 + k * 4; i++) { const r = 8 + R() * 28 * (i === 0 ? 1.8 : 1); const px = 64 + (R() - 0.5) * 70 * (i ? 1 : 0), py = 64 + (R() - 0.5) * 70 * (i ? 1 : 0); const gr = x.createRadialGradient(px, py, 0, px, py, r); gr.addColorStop(0, 'rgba(70,2,2,0.95)'); gr.addColorStop(0.7, 'rgba(55,0,0,0.9)'); gr.addColorStop(1, 'rgba(40,0,0,0)'); x.fillStyle = gr; x.beginPath(); x.arc(px, py, r, 0, Math.PI * 2); x.fill(); }
+        for (let i = 0; i < 20; i++) { x.fillStyle = 'rgba(60,0,0,0.9)'; x.beginPath(); x.arc(R() * 128, R() * 128, 1 + R() * 3, 0, Math.PI * 2); x.fill(); }
+        const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+        return new THREE.MeshStandardMaterial({ map: t, transparent: true, depthWrite: false, roughness: 0.15, metalness: 0.1, polygonOffset: true, polygonOffsetFactor: -4 - k });
+      });
+    }
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), this.bloodMats[Math.floor(Math.random() * 4)]);
+    m.rotation.set(-Math.PI / 2, 0, Math.random() * 6.28); m.scale.setScalar(size * (0.8 + Math.random() * 0.5));
+    m.position.set(p.x, this.world.groundAt(p.x, p.z, p.y + 0.6).y + 0.015 + Math.random() * 0.005, p.z);
+    m.receiveShadow = true; this.scene.add(m); this.stains.push(m);
+    if (this.stains.length > 90) { const s = this.stains.shift(); this.scene.remove(s); s.geometry.dispose(); }
+  }
+
   update(dt, t) {
     const g = this.game, mp = g.monster.pos;
     windUniforms.uTime.value = t; windUniforms.uWind.value = g.wind; riftUniforms.uTime.value = t;

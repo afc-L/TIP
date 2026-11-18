@@ -9,8 +9,8 @@ const ATTACKS = {
 };
 
 export class Combat {
-  constructor(game) { this.game = game; this.projectiles = []; this.breakables = []; this.tracers = []; }
-  reset() { for (const p of this.projectiles) p.mesh.parent && p.mesh.parent.remove(p.mesh); this.projectiles = []; this.breakables = []; this.tracers.forEach((t) => t.parent && t.parent.remove(t)); this.tracers = []; }
+  constructor(game) { this.game = game; this.projectiles = []; this.breakables = []; this.tracers = []; this.gibs = []; }
+  reset() { for (const b of this.gibs) b.mesh.parent && b.mesh.parent.remove(b.mesh); this.gibs = []; for (const p of this.projectiles) p.mesh.parent && p.mesh.parent.remove(p.mesh); this.projectiles = []; this.breakables = []; this.tracers.forEach((t) => t.parent && t.parent.remove(t)); this.tracers = []; }
 
   resolveAttack(type) {
     const g = this.game, m = g.monster, A = ATTACKS[type];
@@ -25,7 +25,11 @@ export class Combat {
       const dir = new THREE.Vector3(dx / (d || 1), 0, dz / (d || 1));
       const down = n.takeHit(A.dmg * dmgMul * rand(0.85, 1.15), dir, A.heavy);
       g.audio.play('impact', n.center(), { vol: 1, heavy: A.heavy ? 1.4 : 1 });
-      g.fx.impact(n.center(), dir);
+      if (this.gore) {
+        g.fx.bloodSpray(n.center(), dir.clone().setY(0.4), A.heavy ? 1.2 : 0.7); g.map.addBlood(n.pos.clone().addScaledVector(dir, 0.8), A.heavy ? 1.2 : 0.7);
+        if (n.pos.distanceTo(m.pos) < 2.2) g.ui.bloodSplat(0.4);
+        if (down && (A.heavy ? Math.random() < 0.5 : Math.random() < 0.15)) this.severOnHit(n, dir);
+      } else g.fx.impact(n.center(), dir);
       m.camShake = Math.max(m.camShake, A.heavy ? 0.35 : 0.18);
       g.hitStop(A.heavy ? 0.09 : 0.05);
       hits++;
@@ -86,34 +90,108 @@ export class Combat {
     for (const n of this.game.npcs.list) if (n.vulnerable && n.pos.distanceTo(m.pos) < 2.6) return n;
     return null;
   }
+  get gore() { return this.game.settings.gore !== 'reduced'; }
+
+  // Hold F: lift the victim, tear them apart limb by limb and eat. Releasing F drops them.
   startFeed(npc) {
     const g = this.game;
-    npc.setState('fed');
-    const f = { npc, t: 0, dur: 3.2 / (g.progress.upgradeLevel('feed') ? 1.35 : 1), soundT: 0, blend: 0 };
-    g.audio.play('feed', npc.center(), { vol: 0.85, dur: f.dur });
-    g.emitNoise(npc.pos, 14, 'feed');
+    npc.setState('fed'); npc.held = this.gore; npc.struggle = 1;
+    const speed = g.progress.upgradeLevel('feed') ? 1.35 : 1;
+    const f = { npc, t: 0, clock: 0, stage: 0, interval: 1.05 / speed, stages: ['armL', 'legR', 'armR', 'legL', 'head'].filter((k) => !npc.body.severed[k]), dur: 3.2 / speed, blend: 0 };
+    if (this.gore) {
+      g.audio.play('scream', npc.eye(), { pitch: npc.body.child ? 1.5 : npc.body.female ? 1.2 : 0.85, vol: 1, dur: 2 });
+      g.audio.play('growl', g.monster.headPos(), { vol: 0.8, dur: 1, pitch: 0.9 });
+      g.ui.hint('Keep holding F', 2);
+    } else g.audio.play('feed', npc.center(), { vol: 0.85, dur: f.dur });
+    g.emitNoise(npc.pos, 30, 'scream', npc);
     return f;
+  }
+  holdPoint(out = new THREE.Vector3()) {
+    const m = this.game.monster; const a = new THREE.Vector3(), b = new THREE.Vector3();
+    m.B.handL.getWorldPosition(a); m.B.handR.getWorldPosition(b);
+    return out.addVectors(a, b).multiplyScalar(0.5);
   }
   updateFeed(f, dt) {
     const g = this.game, m = g.monster, n = f.npc;
-    if (n.removed || m.pos.distanceTo(n.pos) > 3.2) { this.cancelFeed(f); return false; }
+    if (n.removed) { this.cancelFeed(f); return false; }
     f.t += dt;
-    const mouth = m.headPos(); mouth.y -= 0.1;
-    g.fx.wisps(n.center(), mouth, 2);
-    g.post.feed = Math.min(1, g.post.feed + dt * 2);
-    if (f.t >= f.dur) { this.completeFeed(f); return true; }
+    if (!this.gore) { // reduced gore: the old, stylised drain
+      if (m.pos.distanceTo(n.pos) > 3.2) { this.cancelFeed(f); return false; }
+      const mouth = m.headPos(); mouth.y -= 0.1; g.fx.wisps(n.center(), mouth, 2);
+      g.post.feed = Math.min(1, g.post.feed + dt * 2);
+      if (f.t >= f.dur) { this.completeFeed(f); return true; }
+      return null;
+    }
+    // carry the victim in the monster's hands
+    const hp = this.holdPoint(); const fw = m.forward;
+    n.pos.set(hp.x + fw.x * 0.25, hp.y - 1.25 * n.H, hp.z + fw.z * 0.25);
+    n.yaw = m.yaw + Math.PI + Math.sin(f.t * 9) * 0.08 * n.struggle;
+    n.group.position.copy(n.pos); n.group.rotation.y = n.yaw;
+    g.post.feed = Math.min(1, g.post.feed + dt * 1.5);
+    // blood running from the stumps
+    if (f.stage > 0 && Math.random() < dt * 30) g.fx.bloodDrip(n.center(), 2);
+    if (f.stage > 0 && Math.random() < dt * 1.5) g.map.addBlood(n.pos.clone().addScaledVector(fw, 0.2), 0.6);
+    f.clock += dt;
+    if (f.clock >= f.interval) {
+      f.clock = 0;
+      this.rip(f, f.stages[f.stage]); f.stage++;
+      if (f.stage >= f.stages.length) { this.completeFeed(f); return true; }
+    } else if (f.stage > 0 && f.clock > f.interval * 0.45 && !f.chewed) { f.chewed = true; g.audio.play('chew', m.headPos(), { vol: 0.7, n: 3 }); }
     return null;
   }
+  rip(f, key) {
+    const g = this.game, m = g.monster, n = f.npc; f.chewed = false;
+    const limb = n.body.sever(key); if (!limb) return;
+    g.scene.add(limb);
+    const at = limb.position.clone();
+    const out = at.clone().sub(n.center()).setY(0.3).normalize();
+    g.fx.bloodSpray(at, out, key === 'head' ? 1.6 : 1.1);
+    g.audio.play('tear', at, { vol: 1.1 });
+    g.map.addBlood(at, 1.2);
+    g.ui.bloodSplat(key === 'head' ? 1.4 : 0.8);
+    m.ripT = 0.4; m.ripSide = key.endsWith('L') ? 1 : -1; m.camShake = Math.max(m.camShake, 0.25);
+    g.emitNoise(n.pos, 30, 'scream', n);
+    if (key !== 'head') {
+      n.struggle = Math.max(0, n.struggle - 0.3);
+      if (f.stage < 3) g.audio.play('scream', n.eye(), { pitch: n.body.female ? 1.3 : 0.95, vol: 1, dur: 1.2 });
+      else g.audio.play('gasp', n.eye(), { vol: 0.8 });
+    }
+    if (key === 'armL' || key === 'armR' || key === 'head') {
+      // eaten: carried to the mouth
+      this.gibs.push({ mesh: limb, mode: 'eat', t: 0, from: at.clone(), fromQ: limb.quaternion.clone() });
+    } else {
+      // thrown aside
+      const v = out.clone().multiplyScalar(4 + Math.random() * 3); v.y = 2.5 + Math.random() * 2;
+      this.gibs.push({ mesh: limb, mode: 'fly', vel: v, spin: new THREE.Vector3(Math.random() * 10 - 5, Math.random() * 10 - 5, Math.random() * 10 - 5), life: 90, bleed: 2.5 });
+    }
+  }
   cancelFeed(f) {
-    if (f.npc && f.npc.state === 'fed') { f.npc.setState('downed'); f.npc.downedT = Math.max(0, f.npc.downedT - 3); }
-    this.game.audio.play('growl', this.game.monster.headPos(), { vol: 0.4, dur: 0.6 });
+    const g = this.game, n = f.npc;
+    if (n && n.state === 'fed') {
+      n.held = false;
+      const torn = Object.keys(n.body.severed).length;
+      n.pos.y = g.world.groundAt(n.pos.x, n.pos.z, n.pos.y + 1).y;
+      if (torn > 0) { n.setState('downed'); n.bleeding = true; n.downedT = 0; n.downedDur = 3.5; g.audio.play('thud', n.pos, { vol: 0.8 }); g.map.addBlood(n.pos, 1.4); }
+      else { n.setState('downed'); n.downedT = Math.max(0, n.downedT - 3); }
+    }
+    g.audio.play('growl', g.monster.headPos(), { vol: 0.4, dur: 0.6 });
   }
   completeFeed(f) {
     const g = this.game, n = f.npc, m = g.monster;
-    n.setState('dissolve');
-    g.audio.play('dissolve', n.center(), { vol: 0.8 });
-    g.fx.ash(n.pos, 1.7 * n.H);
-    g.fx.sparks(n.center(), [0.6, 0.1, 0.1]);
+    if (this.gore) {
+      n.held = false; n.pos.copy(m.pos).addScaledVector(m.forward, 1.3); n.pos.y = g.world.groundAt(n.pos.x, n.pos.z, m.pos.y + 1).y;
+      n.becomeCorpse();
+      g.audio.play('splat', n.pos, { vol: 1 }); g.audio.play('chew', m.headPos(), { vol: 0.8, n: 5 });
+      for (let i = 0; i < 3; i++) g.map.addBlood(n.pos.clone().add(new THREE.Vector3(Math.random() - 0.5, 0, Math.random() - 0.5)), 1.6);
+      g.fx.bloodSpray(n.center(), new THREE.Vector3(0, 1, 0), 0.8);
+      m.bloody = Math.min(1, (m.bloody || 0) + 0.25);
+    } else {
+      n.setState('dissolve');
+      g.audio.play('dissolve', n.center(), { vol: 0.8 });
+      g.fx.ash(n.pos, 1.7 * n.H);
+      g.fx.sparks(n.center(), [0.6, 0.1, 0.1]);
+      g.map.addStain && g.map.addStain(n.pos);
+    }
     m.hunger = Math.min(100, m.hunger + 45); m.health = Math.min(100, m.health + 25);
     const reward = (n.role === 'searcher' || n.role === 'guard' ? 30 : 20) + (n.seesMonster ? 0 : 5) + (n.recognized ? 0 : 10);
     g.progress.addEssence(reward);
@@ -122,8 +200,50 @@ export class Combat {
     g.npcs.onRemoved(n, 'fed');
     g.story && g.story.event('fed', n);
     g.hallucinations.onFeed();
-    // leave a dark mark where it happened
-    g.map.addStain && g.map.addStain(n.pos);
+  }
+  // severed parts: eaten (pulled to the mouth) or flying, landing and lying in the world
+  updateGibs(dt) {
+    const g = this.game, m = g.monster;
+    for (let i = this.gibs.length - 1; i >= 0; i--) {
+      const b = this.gibs[i]; const mesh = b.mesh;
+      if (b.mode === 'eat') {
+        b.t += dt; const mouth = m.headPos(); mouth.y -= 0.12;
+        const u = Math.min(1, b.t / 0.45);
+        mesh.position.lerpVectors(b.from, mouth, u * u);
+        if (b.t > 0.45) { const k = Math.max(0, 1 - (b.t - 0.45) / 0.5); mesh.scale.setScalar(Math.max(0.001, k)); if (Math.random() < dt * 25) g.fx.bloodDrip(mouth, 2); if (!b.bit) { b.bit = true; g.audio.play('crunch', mouth, { vol: 1 }); g.audio.play('chew', mouth, { vol: 0.8, n: 4 }); } }
+        if (b.t > 0.95) { g.scene.remove(mesh); this.gibs.splice(i, 1); }
+        continue;
+      }
+      b.life -= dt;
+      if (b.vel) {
+        b.vel.y -= 9.8 * dt; mesh.position.addScaledVector(b.vel, dt);
+        mesh.rotation.x += b.spin.x * dt; mesh.rotation.y += b.spin.y * dt; mesh.rotation.z += b.spin.z * dt;
+        if (b.bleed > 0 && Math.random() < dt * 30) g.fx.bloodDrip(mesh.position, 1);
+        const gy = g.world.groundAt(mesh.position.x, mesh.position.z, mesh.position.y + 0.3, 0.05, 0.3).y + 0.06;
+        if (mesh.position.y < gy) {
+          mesh.position.y = gy;
+          if (Math.abs(b.vel.y) > 1.5) { g.audio.play('splat', mesh.position, { vol: 0.7 }); g.map.addBlood(mesh.position, 0.8); b.vel.y = -b.vel.y * 0.25; b.vel.x *= 0.5; b.vel.z *= 0.5; b.spin.multiplyScalar(0.4); }
+          else { b.vel = null; mesh.rotation.x = Math.PI / 2 * (Math.random() < 0.5 ? 1 : -1); mesh.rotation.z = Math.random() * 6; g.map.addBlood(mesh.position, 0.7); }
+        }
+      }
+      b.bleed -= dt;
+      if (b.life <= 0) { g.scene.remove(mesh); this.gibs.splice(i, 1); }
+    }
+    while (this.gibs.length > 40) { const b = this.gibs.shift(); g.scene.remove(b.mesh); }
+  }
+  // a brutal hit can take a limb clean off
+  severOnHit(n, dir) {
+    if (!this.gore) return;
+    const opts = ['armL', 'armR', 'legL', 'legR', 'head'].filter((k) => !n.body.severed[k]);
+    if (!opts.length) return;
+    const key = opts[Math.floor(Math.random() * (opts.length - (Math.random() < 0.8 ? 1 : 0)))];
+    const limb = n.body.sever(key); if (!limb) return;
+    this.game.scene.add(limb);
+    const v = dir.clone().multiplyScalar(5 + Math.random() * 4); v.y = 3 + Math.random() * 2;
+    this.gibs.push({ mesh: limb, mode: 'fly', vel: v, spin: new THREE.Vector3(Math.random() * 14 - 7, Math.random() * 14 - 7, Math.random() * 14 - 7), life: 90, bleed: 2 });
+    this.game.fx.bloodSpray(limb.position, dir, 1.3); this.game.audio.play('tear', limb.position, { vol: 1 });
+    if (key === 'head') { n.becomeCorpse(); this.game.npcs.onRemoved(n, 'killed'); }
+    else n.bleeding = true;
   }
 
   // ---------------- NPCs fighting back ----------------
@@ -178,6 +298,7 @@ export class Combat {
       }
       if (p.life <= 0) { g.scene.remove(p.mesh); p.mesh.geometry.dispose(); this.projectiles.splice(i, 1); }
     }
+    this.updateGibs(dt);
     for (let i = this.tracers.length - 1; i >= 0; i--) { const t = this.tracers[i]; t.userData.life -= dt; if (t.userData.life <= 0) { g.scene.remove(t); t.geometry.dispose(); this.tracers.splice(i, 1); } }
   }
 }

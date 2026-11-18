@@ -21,6 +21,9 @@ export const OUTFITS = {
 
 const BONES = ['hips', 'spine', 'chest', 'neck', 'head', 'shoulderL', 'upperArmL', 'foreArmL', 'handL', 'shoulderR', 'upperArmR', 'foreArmR', 'handR', 'thighL', 'shinL', 'footL', 'thighR', 'shinR', 'footR'];
 const BI = Object.fromEntries(BONES.map((b, i) => [b, i]));
+export const LIMBS = { armL: ['upperArmL', 'foreArmL', 'handL'], armR: ['upperArmR', 'foreArmR', 'handR'], legL: ['thighL', 'shinL', 'footL'], legR: ['thighR', 'shinR', 'footR'], head: ['head'] };
+let _goreMat = null;
+export function GORE_MAT() { return _goreMat || (_goreMat = new THREE.MeshStandardMaterial({ color: 0x5a0606, roughness: 0.25, metalness: 0.1, emissive: 0x120000 })); }
 
 export function buildHumanoid(seed, outfitKey = 'casual', opts = {}) {
   const r = mulberry32(seed * 7919 + 13);
@@ -119,6 +122,8 @@ export function buildHumanoid(seed, outfitKey = 'casual', opts = {}) {
   }
 
   // ---- merge into one skinned geometry ----
+  const byBone = {};
+  const restWorld = {}; for (const k in bones) restWorld[k] = restPos(k);
   const geos = parts.map(({ geo, bone, color }) => {
     let g = geo.index ? geo.toNonIndexed() : geo;
     for (const k of Object.keys(g.attributes)) if (!['position', 'normal', 'uv'].includes(k)) g.deleteAttribute(k);
@@ -129,6 +134,10 @@ export function buildHumanoid(seed, outfitKey = 'casual', opts = {}) {
     g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(si, 4));
     g.setAttribute('skinWeight', new THREE.Float32BufferAttribute(sw, 4));
     g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    // keep a static copy per bone so limbs can be torn off as separate meshes later
+    const sc = new THREE.BufferGeometry();
+    for (const k of ['position', 'normal', 'uv', 'color']) sc.setAttribute(k, g.attributes[k].clone());
+    (byBone[bone] || (byBone[bone] = [])).push(sc);
     return g;
   });
   const merged = mergeGeometries(geos, false);
@@ -159,6 +168,31 @@ export function buildHumanoid(seed, outfitKey = 'casual', opts = {}) {
   return {
     group, mesh, bones, faceMesh, faceMat, faces, H, female, child, material,
     setExpression(e) { if (faces[e] && faceMat.map !== faces[e]) { faceMat.map = faces[e]; faceMat.needsUpdate = true; } },
-    hipY,
+    hipY, severed: {},
+    // Tear a limb off: collapse it on the skinned body, cap the wound, return a loose mesh
+    // placed exactly where the limb was.
+    sever(key) {
+      const chain = LIMBS[key]; if (!chain || this.severed[key]) return null;
+      this.severed[key] = true;
+      const rootBone = bones[chain[0]];
+      rootBone.updateWorldMatrix(true, false);
+      const wp = new THREE.Vector3(), wq = new THREE.Quaternion(), ws = new THREE.Vector3();
+      rootBone.matrixWorld.decompose(wp, wq, ws);
+      // geometry in the root bone's rest frame (rest pose has identity rotations)
+      const list = chain.flatMap((b) => byBone[b] || []);
+      const merged = mergeGeometries(list.map((g) => g.clone()), false);
+      merged.translate(-restWorld[chain[0]].x, -restWorld[chain[0]].y, -restWorld[chain[0]].z);
+      // apply the current pose of child bones roughly by keeping them in rest pose (fine for a torn limb)
+      const limb = new THREE.Group();
+      const lm = new THREE.Mesh(merged, material.clone()); lm.material.emissive.setRGB(0, 0, 0); lm.castShadow = true; limb.add(lm);
+      const cap = new THREE.Mesh(new THREE.SphereGeometry(0.055 * H, 8, 6), GORE_MAT()); cap.scale.set(1, 0.5, 1); limb.add(cap);
+      if (key === 'head') { const f = faceMesh.clone(); f.material = faceMat.clone(); f.material.map = faces.fear; f.position.set(0, 0.1 * H, 0.104 * H); limb.add(f); }
+      limb.position.copy(wp); limb.quaternion.copy(wq);
+      rootBone.scale.setScalar(0.0001);
+      // stump on the parent
+      const stump = new THREE.Mesh(new THREE.SphereGeometry(0.06 * H, 8, 6), GORE_MAT()); stump.scale.set(1, 0.6, 1);
+      stump.position.copy(rootBone.position); rootBone.parent.add(stump);
+      return limb;
+    },
   };
 }

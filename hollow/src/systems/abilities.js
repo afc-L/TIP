@@ -128,7 +128,7 @@ export class Abilities {
     for (const n of g.npcs.list) {
       const sp = n.senseSprite;
       const d = n.pos.distanceTo(g.monster.pos);
-      sp.visible = showSenses && d < R && !n.removed;
+      sp.visible = showSenses && d < R && !n.removed && n.state !== 'corpse';
       if (sp.visible) {
         const c = n.vulnerable ? [0.9, 0.1, 0.1] : ['flee', 'cower', 'hide', 'call'].includes(n.state) ? [1, 0.35, 0.2] : n.role === 'searcher' || n.role === 'guard' ? [1, 0.9, 0.2] : n.suspicion > 0.3 ? [1, 0.7, 0.3] : [0.75, 0.85, 1];
         sp.material.color.setRGB(c[0], c[1], c[2]);

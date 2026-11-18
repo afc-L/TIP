@@ -10,6 +10,7 @@
 <body>
   <canvas id="game"></canvas>
 
+  <div id="bloodScreen"></div>
   <div id="hud" class="hidden">
     <div id="objective"><div class="obj-label">OBJECTIVE</div><div id="objText"></div></div>
     <div id="compass"><div id="compassArrow">▲</div><div id="compassDist"></div></div>
@@ -91,6 +92,7 @@
         <label>Invert mouse Y</label><input type="checkbox" id="setInvert" />
         <label>Field of view</label><input type="range" id="setFov" min="55" max="95" step="1" />
         <label>Subtitles</label><input type="checkbox" id="setSubs" />
+        <label>Gore</label><select id="setGore"><option value="full">Full</option><option value="reduced">Reduced (no dismemberment)</option></select>
         <label>Hallucinations</label><select id="setHallu"><option value="full">Full</option><option value="off">Off (accessibility)</option></select>
         <label>Your name <small>(it may be whispered)</small></label><input type="text" id="setName" maxlength="24" placeholder="leave empty to stay anonymous" />
         <label>Synthetic voice for whispers</label><input type="checkbox" id="setVoices" />

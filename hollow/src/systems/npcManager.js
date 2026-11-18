@@ -83,6 +83,9 @@ export class NPCManager {
       n.update(dt, lod);
       if (n.removed) { this.list.splice(i, 1); }
     }
+    // keep the number of bodies lying around bounded
+    const corpses = this.list.filter((n) => n.state === 'corpse');
+    if (corpses.length > 12) corpses.sort((a, b) => a.corpseT - b.corpseT)[0].remove();
     // respawn replacements away from the player
     for (let i = this.respawnQ.length - 1; i >= 0; i--) {
       const r = this.respawnQ[i]; r.t -= dt;

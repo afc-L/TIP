@@ -30,7 +30,7 @@ sound is positional (HRTF). Click the game to take control; Esc pauses.
 | Space | Jump · hold while moving into a wall to climb it (uses stamina) |
 | Left mouse | Strike (combo: right, left, two-handed rake) |
 | Right mouse | Heavy strike (breaks locked doors) · while sprinting: pounce |
-| F (hold) | Feed on someone who is down |
+| F (hold) | Feed on someone who is down: lift them and tear them apart limb by limb. Let go of F to drop them |
 | E | Interact: doors, notes, tapes, symbols, switches, rifts |
 | 1 2 3 4 R 5 6 | Enhanced Senses · Predator Vision · Terrifying Presence · Night Vision · Roar · Mimic · Stalk |
 | V | First / third person · Mouse wheel: camera distance |
@@ -78,6 +78,12 @@ hallway, a house that should not be there).
 **Modes** — Story (5 chapters with objectives, notes, tapes and an ending), Free Hunt, Survival
 (waves of searchers, faster hunger, records per map), Nightmare (darker, more hallucinations,
 feed to open a rift to somewhere else, endless).
+
+**Gore** — feeding is a hold-to-feed sequence: the monster lifts the victim, rips the limbs off one at a
+time (arms and head are eaten, legs are thrown), then drops what is left. Blood sprays, drips, pools on
+the ground and splatters the screen; severed limbs and corpses stay in the world and frighten anyone
+who sees them. Brutal hits can sever limbs. Settings → Gore → *Reduced* swaps all of this for the
+original stylised "drain into ash" presentation.
 
 **Progression** — essence from feeding, notes, symbols, objectives and challenges; spend it in
 Evolution on new abilities, ability upgrades, movement/attack upgrades and appearances.

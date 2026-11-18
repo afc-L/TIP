@@ -188,6 +188,8 @@ export class Monster {
     this.attackCooldown -= dt;
     if (this.roarT > 0) this.roarT -= dt;
     if (this.interactT > 0) this.interactT -= dt;
+    if (this.ripT > 0) this.ripT -= dt;
+    if (this.bloody > 0) { this.bloody = Math.max(0, this.bloody - dt * 0.008); if (Math.random() < dt * this.bloody * 4) { const mp = this.headPos(); mp.y -= 0.15; mp.addScaledVector(this.forward, 0.15); this.game.fx.bloodDrip(mp, 1); } }
     this.landSquash = Math.max(0, this.landSquash - dt * 2.5);
     this.hurtT = Math.max(0, this.hurtT - dt);
 
@@ -359,11 +361,24 @@ export class Monster {
     }
     if (this.feeding) {
       const f = this.feeding.blend = Math.min(1, (this.feeding.blend || 0) + dt * 3);
-      const pulse = Math.sin(t * 7);
-      for (const [arm, s] of [[armL, 1], [armR, -1]]) { arm.x = lerp(arm.x, -1.0 + pulse * 0.05, f); arm.fore = lerp(arm.fore, -0.7, f); arm.z = lerp(arm.z, s * 0.35, f); arm.curl = lerp(arm.curl, 0.9, f); }
-      addT('chest', 0.35 * f + pulse * 0.06 * f, 0, 0); addT('neck1', 0.25 * f, 0, 0);
-      headWorld += 0.55 * f;
-      jaw = Math.max(jaw, f * (0.45 + Math.max(0, Math.sin(t * 5)) * 0.45));
+      if (this.game.settings.gore !== 'reduced') {
+        // holding someone up in both hands at chest height; yanks on each rip; bites
+        const rip = this.ripT > 0 ? Math.sin((1 - this.ripT / 0.4) * Math.PI) : 0; const side = this.ripSide || 1;
+        for (const [arm, s] of [[armL, 1], [armR, -1]]) {
+          const yank = rip * (s === side ? 1 : 0.25);
+          arm.x = lerp(arm.x, -1.25 + yank * 0.5, f); arm.z = lerp(arm.z, s * (-0.15 + yank * 1.3), f);
+          arm.fore = lerp(arm.fore, -0.9 + yank * 0.6, f); arm.curl = lerp(arm.curl, 0.95, f);
+        }
+        addT('chest', (-0.15 + rip * 0.15) * f, rip * side * 0.4 * f, 0); addT('spine2', -0.15 * f, 0, 0);
+        headWorld += (0.35 + Math.max(0, Math.sin(t * 6)) * 0.25) * f;
+        jaw = Math.max(jaw, f * (0.5 + Math.max(0, Math.sin(t * 6)) * 0.55));
+      } else {
+        const pulse = Math.sin(t * 7);
+        for (const [arm, s] of [[armL, 1], [armR, -1]]) { arm.x = lerp(arm.x, -1.0 + pulse * 0.05, f); arm.fore = lerp(arm.fore, -0.7, f); arm.z = lerp(arm.z, s * 0.35, f); arm.curl = lerp(arm.curl, 0.9, f); }
+        addT('chest', 0.35 * f + pulse * 0.06 * f, 0, 0); addT('neck1', 0.25 * f, 0, 0);
+        headWorld += 0.55 * f;
+        jaw = Math.max(jaw, f * (0.45 + Math.max(0, Math.sin(t * 5)) * 0.45));
+      }
     }
     if (this.roarT > 0) {
       const u = 1 - this.roarT / 2.6; const r = kf(u, [[0, 0], [0.12, 1], [0.8, 1], [1, 0]]);

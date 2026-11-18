@@ -130,6 +130,7 @@ export class UI {
     on('setInvert', 'change', (e) => g.setSetting('invert', e.target.checked));
     on('setFov', 'input', (e) => g.setSetting('fov', +e.target.value));
     on('setSubs', 'change', (e) => g.setSetting('subtitles', e.target.checked));
+    on('setGore', 'change', (e) => g.setSetting('gore', e.target.value));
     on('setHallu', 'change', (e) => g.setSetting('hallucinations', e.target.value === 'full'));
     on('setName', 'input', (e) => g.setSetting('playerName', e.target.value));
     on('setVoices', 'change', (e) => g.setSetting('voices', e.target.checked));
@@ -139,7 +140,7 @@ export class UI {
   loadSettings() {
     const s = this.game.settings;
     $('setQuality').value = s.quality; $('setMaster').value = s.master; $('setSfx').value = s.sfx; $('setAmb').value = s.amb; $('setVoice').value = s.voice; $('setMusic').value = s.music;
-    $('setSens').value = s.sens; $('setInvert').checked = s.invert; $('setFov').value = s.fov; $('setSubs').checked = s.subtitles; $('setHallu').value = s.hallucinations ? 'full' : 'off';
+    $('setSens').value = s.sens; $('setInvert').checked = s.invert; $('setFov').value = s.fov; $('setSubs').checked = s.subtitles; $('setHallu').value = s.hallucinations ? 'full' : 'off'; $('setGore').value = s.gore || 'full';
     $('setName').value = s.playerName || ''; $('setVoices').checked = s.voices; $('setFps').checked = s.fps; $('setUnlockAll').checked = this.game.progress.d.unlockAll;
   }
 
@@ -205,11 +206,31 @@ export class UI {
     const el = document.createElement('div'); el.className = 'toast ' + cls; el.textContent = text; $('toasts').appendChild(el);
     setTimeout(() => { el.style.transition = 'opacity .6s'; el.style.opacity = 0; setTimeout(() => el.remove(), 700); }, t * 1000);
   }
+  bloodSplat(amount = 1) {
+    if (this.game.settings.gore === 'reduced') return;
+    const host = $('bloodScreen');
+    if (!this.splatImgs) this.splatImgs = [0, 1, 2, 3, 4].map(() => {
+      const c = document.createElement('canvas'); c.width = c.height = 256; const x = c.getContext('2d'); const R = Math.random;
+      for (let i = 0; i < 26; i++) { const r = i === 0 ? 50 + R() * 30 : 4 + R() * 22; const a = R() * 6.28, d = i === 0 ? 0 : 20 + R() * 95; const px = 128 + Math.cos(a) * d, py = 128 + Math.sin(a) * d; x.fillStyle = `rgba(${90 + R() * 40 | 0},0,0,${0.75 + R() * 0.2})`; x.beginPath(); x.arc(px, py, r, 0, 6.28); x.fill(); if (i && R() < 0.5) { x.lineWidth = 2 + R() * 4; x.strokeStyle = x.fillStyle; x.beginPath(); x.moveTo(128, 128); x.lineTo(px, py); x.stroke(); } }
+      for (let i = 0; i < 6; i++) { const px = 90 + R() * 76; x.fillRect(px, 128, 3 + R() * 4, 40 + R() * 90); } // runs
+      return c.toDataURL();
+    });
+    for (let i = 0; i < Math.ceil(3 * amount); i++) {
+      const el = document.createElement('div'); el.className = 'splat'; el.style.backgroundImage = `url(${this.splatImgs[Math.floor(Math.random() * this.splatImgs.length)]})`; el.style.transform = `rotate(${Math.random() * 360}deg)`;
+      const sz = 80 + Math.random() * 260 * amount; const edge = Math.random() < 0.5;
+      el.style.width = el.style.height = sz + 'px';
+      el.style.left = (edge ? (Math.random() < 0.5 ? -sz * 0.3 : innerWidth - sz * 0.7) : Math.random() * innerWidth - sz / 2) + 'px';
+      el.style.top = (Math.random() * innerHeight - sz / 2) + 'px';
+      host.appendChild(el);
+      setTimeout(() => { el.style.opacity = 0; }, 600 + Math.random() * 800);
+      setTimeout(() => el.remove(), 3600);
+    }
+  }
   hint(text, t = 4) { $('hint').textContent = text; $('hint').style.opacity = 1; this.hintT = t; }
   showNote(title, text, tape = false) { $('note').classList.remove('hidden'); $('note').classList.toggle('tape', tape); $('noteTitle').textContent = title; $('noteText').textContent = text; this.noteOpen = true; }
   closeNote() { $('note').classList.add('hidden'); this.noteOpen = false; }
   chapterTitle(title, intro) { const el = $('chapterTitle'); el.classList.remove('hidden'); $('ctTitle').textContent = title; $('ctIntro').textContent = intro; el.style.animation = 'none'; void el.offsetWidth; el.style.animation = ''; clearTimeout(this.ctT); this.ctT = setTimeout(() => el.classList.add('hidden'), 7000); }
   clickToPlay(v) { $('clickToPlay').classList.toggle('hidden', !v); }
-  clearHUD() { $('subtitles').innerHTML = ''; this.subs = []; $('toasts').innerHTML = ''; this.closeNote(); $('chapterTitle').classList.add('hidden'); $('hint').style.opacity = 0; }
+  clearHUD() { $('bloodScreen').innerHTML = ''; $('subtitles').innerHTML = ''; this.subs = []; $('toasts').innerHTML = ''; this.closeNote(); $('chapterTitle').classList.add('hidden'); $('hint').style.opacity = 0; }
 }
 export function fmtTime(s) { s = Math.floor(s); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; }

@@ -18,7 +18,7 @@ import { MAPS, createMap } from './maps/index.js';
 import './maps/registerAll.js';
 import { rand, pick, clamp, damp, lerp } from './core/util.js';
 
-const DEFAULT_SETTINGS = { quality: (navigator.hardwareConcurrency || 4) <= 4 ? 'low' : 'medium', master: 0.85, sfx: 1, amb: 0.8, voice: 1, music: 0.7, sens: 1, invert: false, fov: 70, subtitles: true, hallucinations: true, playerName: '', voices: true, fps: false };
+const DEFAULT_SETTINGS = { quality: (navigator.hardwareConcurrency || 4) <= 4 ? 'low' : 'medium', master: 0.85, sfx: 1, amb: 0.8, voice: 1, music: 0.7, sens: 1, invert: false, fov: 70, subtitles: true, gore: 'full', hallucinations: true, playerName: '', voices: true, fps: false };
 
 class Game {
   constructor() {

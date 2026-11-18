@@ -247,6 +247,41 @@ export class AudioEngine {
     return dur;
   }
 
+  // ---------- gore ----------
+  s_tear(pos, { vol = 1 } = {}) { // wet tearing: noise through a sweeping, fluttering band
+    const ctx = this.ctx, t = ctx.currentTime, dur = rand(0.45, 0.7); const o = this.out(pos, 'sfx', { vol, ref: 3, reverb: 0.25 });
+    const n = this.noiseSrc(); const f = this.filt('bandpass', 400, 2.5); const g = ctx.createGain();
+    f.frequency.setValueAtTime(rand(250, 400), t); f.frequency.exponentialRampToValueAtTime(rand(1400, 2200), t + dur * 0.7);
+    const am = this.osc('square', rand(35, 70)); const ag = ctx.createGain(); ag.gain.value = 0.5; am.connect(ag).connect(g.gain);
+    n.connect(f).connect(g).connect(o); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(1.0, t + 0.05); g.gain.linearRampToValueAtTime(0.0001, t + dur);
+    n.start(t, rand(0, 2)); am.start(t); n.stop(t + dur); am.stop(t + dur);
+    const w = this.noiseSrc('brown'); const wf = this.filt('lowpass', 500, 3); const wg = ctx.createGain(); w.connect(wf).connect(wg).connect(o); this.env(wg, t, 0.02, 1.2, dur); w.start(t, rand(0, 2)); w.stop(t + dur + 0.1);
+    this.s_crunch(pos, { vol: vol * 0.9, when: dur * 0.6 });
+    return dur;
+  }
+  s_crunch(pos, { vol = 0.9, when = 0 } = {}) { // bone breaking: a cluster of sharp cracks over a low thud
+    const ctx = this.ctx, t = ctx.currentTime + when; const o = this.out(pos, 'sfx', { vol, ref: 3, reverb: 0.2 });
+    const k = 3 + Math.floor(rand(0, 4));
+    for (let i = 0; i < k; i++) { const tt = t + rand(0, 0.12); const n = this.noiseSrc(); const f = this.filt('bandpass', rand(1800, 4500), 4); const g = ctx.createGain(); n.connect(f).connect(g).connect(o); this.env(g, tt, 0.001, rand(0.6, 1.2), rand(0.02, 0.05)); n.start(tt, rand(0, 2)); n.stop(tt + 0.1); }
+    const s = this.osc('sine', 110); const g = ctx.createGain(); s.frequency.exponentialRampToValueAtTime(40, t + 0.15); s.connect(g).connect(o); this.env(g, t, 0.003, 0.9, 0.2); s.start(t); s.stop(t + 0.3);
+    return 0.3;
+  }
+  s_chew(pos, { vol = 0.7, n = 4 } = {}) { // wet chewing
+    const ctx = this.ctx; const o = this.out(pos, 'sfx', { vol, ref: 2, reverb: 0.15 });
+    for (let i = 0; i < n; i++) {
+      const t = ctx.currentTime + i * rand(0.22, 0.34);
+      const w = this.noiseSrc(); const f = this.filt('lowpass', rand(500, 900), 6); const g = ctx.createGain(); w.connect(f).connect(g).connect(o); this.env(g, t, 0.01, rand(0.6, 1), rand(0.08, 0.16)); w.start(t, rand(0, 2)); w.stop(t + 0.25);
+      if (Math.random() < 0.5) this.s_crunch(pos, { vol: vol * 0.4, when: i * 0.28 });
+    }
+    return n * 0.3;
+  }
+  s_splat(pos, { vol = 0.8 } = {}) {
+    const ctx = this.ctx, t = ctx.currentTime; const o = this.out(pos, 'sfx', { vol, ref: 3, reverb: 0.2 });
+    const n = this.noiseSrc(); const f = this.filt('lowpass', 900, 2); const g = ctx.createGain(); n.connect(f).connect(g).connect(o); this.env(g, t, 0.003, 1.1, 0.18); n.start(t, rand(0, 2)); n.stop(t + 0.3);
+    const s = this.osc('sine', 70); const sg = ctx.createGain(); s.frequency.exponentialRampToValueAtTime(35, t + 0.2); s.connect(sg).connect(o); this.env(sg, t, 0.003, 0.7, 0.2); s.start(t); s.stop(t + 0.3);
+    return 0.3;
+  }
+
   // ---------- formant voice synthesis ----------
   // Builds a voiced source + 3 formant filters; returns controllers.
   voiceRig(o, f0, breath = 0.1) {

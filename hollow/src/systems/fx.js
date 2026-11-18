@@ -79,9 +79,10 @@ export class FX {
     this.q = quality; this.scene = scene;
     this.smoke = new Pool(scene, 1600, smokeTexture(), THREE.NormalBlending);
     this.glow = new Pool(scene, 1200, radialTexture(), THREE.AdditiveBlending);
+    this.blood = new Pool(scene, 2500, radialTexture('rgba(255,255,255,1)', 'rgba(255,255,255,0)', 64), THREE.NormalBlending);
     this.rain = null; this.fogBanks = null; this.motes = null;
   }
-  setScale(h) { const s = h * 0.5 / Math.tan((this.game.camera.fov * Math.PI / 180) / 2); this.smoke.mat.uniforms.uScale.value = s; this.glow.mat.uniforms.uScale.value = s; }
+  setScale(h) { const s = h * 0.5 / Math.tan((this.game.camera.fov * Math.PI / 180) / 2); this.smoke.mat.uniforms.uScale.value = s; this.glow.mat.uniforms.uScale.value = s; if (this.blood) this.blood.mat.uniforms.uScale.value = s; }
 
   // ---- emitters ----
   footDust(p, surf, heavy) {
@@ -156,7 +157,7 @@ export class FX {
     for (const k of ['rain', 'fogBanks', 'motes']) if (this[k]) { this.scene.remove(this[k]); this[k].geometry.dispose(); this[k] = null; }
   }
   update(dt, camPos, wind = 1, indoor = false) {
-    this.smoke.update(dt); this.glow.update(dt);
+    this.smoke.update(dt); this.glow.update(dt); this.blood && this.blood.update(dt);
     const t = performance.now() / 1000;
     if (this.rain) {
       this.rain.visible = !indoor;
@@ -196,5 +197,15 @@ export class FX {
       this.motes.material.uniforms.uScale.value = this.smoke.mat.uniforms.uScale.value;
     }
   }
-  clearAll() { this.smoke && this.smoke.clear(); this.glow && this.glow.clear(); }
+  clearAll() { this.smoke && this.smoke.clear(); this.glow && this.glow.clear(); this.blood && this.blood.clear(); }
+  // ---- gore ----
+  bloodSpray(p, dir, amount = 1) {
+    const n = Math.floor(80 * amount * (0.5 + this.q.particles * 0.5));
+    for (let i = 0; i < n; i++) {
+      const s = rand(1.2, 5.5) * (0.6 + amount * 0.4);
+      this.blood.emit(p.x, p.y, p.z, dir.x * s + rand(-1.4, 1.4), dir.y * s + rand(0, 2.5), dir.z * s + rand(-1.4, 1.4), rand(0.015, 0.05), rand(0.16, 0.26), 0.0, 0.0, 0.95, rand(0.5, 1.1), { grav: 9.8, drag: 0.5 });
+      if (i % 16 === 0) this.blood.emit(p.x, p.y, p.z, dir.x * 1.2 + rand(-0.5, 0.5), rand(0, 0.6), dir.z * 1.2 + rand(-0.5, 0.5), rand(0.12, 0.25), 0.14, 0.0, 0.0, 0.3, rand(0.3, 0.6), { grow: 0.5, drag: 4, grav: 2 });
+    }
+  }
+  bloodDrip(p, n = 2) { for (let i = 0; i < n; i++) this.blood.emit(p.x + rand(-0.05, 0.05), p.y, p.z + rand(-0.05, 0.05), rand(-0.2, 0.2), rand(-0.5, 0), rand(-0.2, 0.2), rand(0.012, 0.03), 0.2, 0.0, 0.0, 0.95, rand(0.5, 1.0), { grav: 9.8, drag: 0.2 }); }
 }
