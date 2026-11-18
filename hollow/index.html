@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>THE HOLLOW</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23050505'/%3E%3Cellipse cx='32' cy='32' rx='18' ry='8' fill='none' stroke='%238a1010' stroke-width='4'/%3E%3Ccircle cx='32' cy='32' r='4' fill='%238a1010'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="./src/ui/style.css" />
+</head>
+<body>
+  <canvas id="game"></canvas>
+
+  <div id="hud" class="hidden">
+    <div id="objective"><div class="obj-label">OBJECTIVE</div><div id="objText"></div></div>
+    <div id="compass"><div id="compassArrow">▲</div><div id="compassDist"></div></div>
+    <div id="crosshair"></div>
+    <div id="prompt"></div>
+    <div id="vitals">
+      <div class="bar"><div class="bar-label">VITALITY</div><div class="bar-track"><div id="hpBar" class="bar-fill hp"></div></div></div>
+      <div class="bar"><div class="bar-label">HUNGER</div><div class="bar-track"><div id="hungerBar" class="bar-fill hunger"></div></div></div>
+      <div class="bar"><div class="bar-label">STAMINA</div><div class="bar-track"><div id="stBar" class="bar-fill st"></div></div></div>
+    </div>
+    <div id="abilities"></div>
+    <div id="subtitles"></div>
+    <div id="toasts"></div>
+    <div id="hint"></div>
+    <div id="survivalInfo" class="hidden"></div>
+    <div id="fps" class="hidden"></div>
+    <div id="note" class="hidden"><div id="noteTitle"></div><div id="noteText"></div><div class="note-foot">E / Esc to close · you can keep moving</div></div>
+    <div id="chapterTitle" class="hidden"><div id="ctTitle"></div><div id="ctIntro"></div></div>
+    <div id="clickToPlay" class="hidden">Click to take control</div>
+  </div>
+
+  <div id="menu" class="screen">
+    <div class="menu-inner">
+      <h1 class="title" data-text="THE HOLLOW">THE HOLLOW</h1>
+      <div class="tagline">You control what it does. Not what it sees.</div>
+      <div class="menu-buttons">
+        <button data-act="story">Story</button>
+        <button data-act="free">Free Hunt</button>
+        <button data-act="survival" id="btnSurvival">Survival</button>
+        <button data-act="nightmare" id="btnNightmare">Nightmare</button>
+        <button data-act="evo">Evolution</button>
+        <button data-act="settings">Settings</button>
+        <button data-act="help">How to Play</button>
+      </div>
+      <div class="menu-foot"><span id="essenceMenu"></span> · Headphones recommended · Best with keyboard &amp; mouse</div>
+    </div>
+  </div>
+
+  <div id="storyScreen" class="screen hidden">
+    <div class="panel">
+      <h2>Story</h2>
+      <div id="chapterList" class="cards"></div>
+      <div class="row"><button data-act="newgame" class="danger">New game (reset story)</button><button data-act="back">Back</button></div>
+    </div>
+  </div>
+
+  <div id="mapScreen" class="screen hidden">
+    <div class="panel">
+      <h2 id="mapScreenTitle">Choose a place</h2>
+      <div id="mapScreenDesc" class="muted"></div>
+      <div id="mapList" class="cards"></div>
+      <div class="row"><button data-act="back">Back</button></div>
+    </div>
+  </div>
+
+  <div id="evoScreen" class="screen hidden">
+    <div class="panel wide">
+      <h2>Evolution</h2>
+      <div class="muted">Essence is drawn from the people you feed on, from what you find, and from what you finish. <b id="essenceEvo"></b></div>
+      <div class="evo-cols">
+        <div><h3>Abilities &amp; upgrades</h3><div id="shopList"></div></div>
+        <div><h3>Appearance</h3><div id="skinList"></div><h3>Challenges</h3><div id="challengeList"></div><h3>Found</h3><div id="foundList" class="muted"></div></div>
+      </div>
+      <div class="row"><button data-act="back">Back</button></div>
+    </div>
+  </div>
+
+  <div id="settingsScreen" class="screen hidden">
+    <div class="panel">
+      <h2>Settings</h2>
+      <div class="settings-grid">
+        <label>Graphics</label><select id="setQuality"><option value="low">Low (school laptop)</option><option value="medium">Medium</option><option value="high">High</option></select>
+        <label>Master volume</label><input type="range" id="setMaster" min="0" max="1" step="0.05" />
+        <label>Effects</label><input type="range" id="setSfx" min="0" max="1" step="0.05" />
+        <label>Ambience</label><input type="range" id="setAmb" min="0" max="1" step="0.05" />
+        <label>Voices</label><input type="range" id="setVoice" min="0" max="1" step="0.05" />
+        <label>Music &amp; dread</label><input type="range" id="setMusic" min="0" max="1" step="0.05" />
+        <label>Mouse sensitivity</label><input type="range" id="setSens" min="0.2" max="3" step="0.05" />
+        <label>Invert mouse Y</label><input type="checkbox" id="setInvert" />
+        <label>Field of view</label><input type="range" id="setFov" min="55" max="95" step="1" />
+        <label>Subtitles</label><input type="checkbox" id="setSubs" />
+        <label>Hallucinations</label><select id="setHallu"><option value="full">Full</option><option value="off">Off (accessibility)</option></select>
+        <label>Your name <small>(it may be whispered)</small></label><input type="text" id="setName" maxlength="24" placeholder="leave empty to stay anonymous" />
+        <label>Synthetic voice for whispers</label><input type="checkbox" id="setVoices" />
+        <label>Show FPS</label><input type="checkbox" id="setFps" />
+        <label>Unlock all content</label><input type="checkbox" id="setUnlockAll" />
+      </div>
+      <div class="row"><button data-act="resetSave" class="danger">Erase save</button><button data-act="back">Back</button></div>
+    </div>
+  </div>
+
+  <div id="helpScreen" class="screen hidden">
+    <div class="panel">
+      <h2>How to play</h2>
+      <div class="help">
+        <p><b>You are the monster.</b> Everything it physically does comes from you. The game will never move it, turn it, or make it attack. But it will lie to your eyes and ears.</p>
+        <table>
+          <tr><td>W A S D</td><td>Move</td></tr><tr><td>Mouse</td><td>Look</td></tr>
+          <tr><td>Shift</td><td>Sprint (gallop) — loud</td></tr><tr><td>C / hold Ctrl</td><td>Crouch / creep — quiet</td></tr>
+          <tr><td>Space</td><td>Jump · hold against a wall while moving into it to climb</td></tr>
+          <tr><td>Left mouse</td><td>Strike (combo: right, left, rake)</td></tr><tr><td>Right mouse</td><td>Heavy strike (breaks locked doors) · while sprinting: pounce</td></tr>
+          <tr><td>F (hold)</td><td>Feed on someone who is down</td></tr><tr><td>E</td><td>Interact: doors, notes, tapes, symbols, rifts</td></tr>
+          <tr><td>1 2 3 4 R 5 6</td><td>Senses · Predator Vision · Terrifying Presence · Night Vision · Roar · Mimic · Stalk</td></tr>
+          <tr><td>V</td><td>First / third person</td></tr><tr><td>Mouse wheel</td><td>Camera distance</td></tr><tr><td>Esc</td><td>Pause</td></tr>
+        </table>
+        <p>People notice movement, light and noise. Darkness and crouching hide you. Panic spreads: a scream brings everyone's attention. Some people hide. Some call for help — and help comes with lights. Some fight back.</p>
+        <p>People cannot hear or see the things that are only in your head. Watching how they react is the only way to be sure. Mostly.</p>
+      </div>
+      <div class="row"><button data-act="back">Back</button></div>
+    </div>
+  </div>
+
+  <div id="pauseScreen" class="screen hidden">
+    <div class="panel small">
+      <h2>Paused</h2>
+      <div class="menu-buttons">
+        <button data-act="resume">Resume</button>
+        <button data-act="evo">Evolution</button>
+        <button data-act="settings">Settings</button>
+        <button data-act="help">How to Play</button>
+        <button data-act="quit">Quit to menu</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="loading" class="screen hidden">
+    <div class="loading-inner"><div id="loadTitle">...</div><div id="loadTip" class="muted"></div><div class="spinner"></div></div>
+  </div>
+
+  <div id="endScreen" class="screen hidden">
+    <div class="panel small">
+      <h2 id="endTitle"></h2>
+      <div id="endText" class="end-text"></div>
+      <div class="menu-buttons"><button data-act="retry" id="btnRetry">Try again</button><button data-act="quit">Main menu</button></div>
+    </div>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
