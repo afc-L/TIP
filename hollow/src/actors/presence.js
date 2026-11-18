@@ -4,9 +4,9 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { limbGeo, blob, torsoGeo } from './anatomy.js';
 
-function rimMaterial(color = 0x040405, rim = 0x6a7080, power = 2.2, strength = 0.9) {
+function rimMaterial(color = 0x040405, rim = 0x7a8090, power = 2.2, strength = 1.1) {
   // Near-black body with a faint fresnel rim so it reads in the dark — fog still applies.
-  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.95, metalness: 0, transparent: true, opacity: 1 });
+  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.95, metalness: 0, transparent: false, opacity: 1 });
   m.onBeforeCompile = (sh) => {
     sh.uniforms.uRim = { value: new THREE.Color(rim) };
     sh.fragmentShader = 'uniform vec3 uRim;\n' + sh.fragmentShader.replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
@@ -64,5 +64,5 @@ export function buildPresence(pose = 'stand') {
 export function setPresenceAlpha(group, a) {
   const [bm, fm] = group.userData.mats;
   bm.opacity = a; fm.opacity = a;
-  bm.depthWrite = a > 0.95;
+  bm.depthWrite = a > 0.95; if (bm.transparent !== a < 0.99) { bm.transparent = a < 0.99; bm.needsUpdate = true; }
 }

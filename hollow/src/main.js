@@ -368,7 +368,7 @@ class Game {
 
   updatePost(dt) {
     const p = this.post, s = this.postS, fx = this.graphics.fx, env = this.map.env, m = this.monster;
-    p.feed = Math.max(0, p.feed - dt * 0.8); p.damage = Math.max(0, p.damage - dt * 1.5); p.glitch = Math.max(0, p.glitch - dt * 2); p.presence = Math.max(0, p.presence - dt * 0.4);
+    p.feed = Math.max(0, p.feed - dt * 0.8); p.stretch = Math.max(0, p.stretch - dt * 0.6); p.damage = Math.max(0, p.damage - dt * 1.5); p.glitch = Math.max(0, p.glitch - dt * 2); p.presence = Math.max(0, p.presence - dt * 0.4);
     for (const k of ['night', 'predator', 'senses', 'presence', 'feed', 'damage', 'stretch', 'desatExtra']) s[k] = damp(s[k], p[k], 6, dt);
     fx.uTime.value = this.time;
     fx.uNight.value = s.night; fx.uPredator.value = s.predator; fx.uSenses.value = s.senses; fx.uFeed.value = s.feed;

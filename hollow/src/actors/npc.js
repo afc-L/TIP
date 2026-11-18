@@ -283,7 +283,7 @@ export class NPC {
 
     let speed = 0; let face = null;
     const S = this.state;
-    const run = (5.4 + (this.P.speed - 1) * 4) * (this.stamina > 0 ? 1 : 0.72) * (this.body.child ? 0.85 : 1);
+    const run = (5.0 + (this.P.speed - 1) * 4) * (this.stamina > 0 ? 1 : 0.68) * (this.body.child ? 0.85 : 1);
     switch (S) {
       case 'idle': {
         if (this.static) { if (this.def.faceYaw !== undefined) face = this.def.faceYaw; }

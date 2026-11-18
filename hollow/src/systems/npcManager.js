@@ -9,7 +9,7 @@ export class NPCManager {
     this.game = game; this.list = []; this.grid = new Map(); this.respawnQ = [];
     this.searchersCalled = 0; this.helpCooldown = 0;
   }
-  clear() { for (const n of this.list) n.remove(); this.list = []; this.respawnQ = []; this.searchersCalled = 0; }
+  clear() { for (const n of this.list) n.remove(); this.list = []; this.respawnQ = []; this.searchersCalled = 0; this.pendingCalls = []; this.helpCooldown = 0; }
 
   spawn(def) {
     const n = new NPC(this.game, def);
@@ -51,12 +51,8 @@ export class NPCManager {
     const m = this.game.map;
     if (!m.searcherOutfit || this.helpCooldown > 0) return;
     this.helpCooldown = 60;
-    const delay = rand(25, 45);
-    setTimeout(() => {
-      if (!this.game.running || this.game.map !== m) return;
-      this.spawnSearchers(pos, this.game.mode === 'survival' ? 3 : 2);
-      this.game.ui.toast('Lights are moving between the trees. Someone answered the call.', 4);
-    }, delay * 1000);
+    this.pendingCalls = this.pendingCalls || [];
+    this.pendingCalls.push({ t: rand(25, 45), pos: pos.clone() });
   }
   spawnSearchers(pos, count) {
     const nav = this.game.nav; const mp = this.game.monster.pos;
@@ -74,6 +70,10 @@ export class NPCManager {
   update(dt) {
     const g = this.game, cam = g.camera.position, q = g.graphics.q;
     this.helpCooldown -= dt;
+    if (this.pendingCalls) for (let i = this.pendingCalls.length - 1; i >= 0; i--) {
+      const c = this.pendingCalls[i]; c.t -= dt;
+      if (c.t <= 0) { this.pendingCalls.splice(i, 1); this.spawnSearchers(c.pos, g.mode === 'survival' ? 3 : 2); g.ui.toast('Lights are moving in the distance. Someone answered the call.', 4); }
+    }
     for (let i = this.list.length - 1; i >= 0; i--) {
       const n = this.list[i];
       if (n.removed) { this.list.splice(i, 1); continue; }

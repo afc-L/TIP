@@ -66,7 +66,8 @@ export function buildOther(game, b) {
     b.wall(s * 2.5, HZ1, s * 2.5, HZ0, 0, 3.6, 0.2, 'hospitalWall', ops);
     for (let z = HZ0 - 5; z > HZ1; z -= 10) { const d = b.door(s * 2.5, 0, z, 1.4, 2.4, 'z', 'doorWhite', { locked: true }); }
   }
-  for (let z = HZ0 - 5; z > HZ1; z -= 10) { b.box(0, 3.4, z, 1.4, 0.08, 0.35, 'lampCold', { collide: false, cast: false }); b.light(0, 3.2, z, 0xd8e8ff, 6, 10, { flicker: 0.2, broken: 0.2, glowSize: 0.5 }); }
+  const hallLights = [];
+  for (let z = HZ0 - 5; z > HZ1; z -= 10) { b.box(0, 3.4, z, 1.4, 0.08, 0.35, 'lampCold', { collide: false, cast: false }); hallLights.push(b.light(0, 3.2, z, 0xd8e8ff, 6, 10, { flicker: 0.2, broken: 0.2, glowSize: 0.5 })); }
   const hall = []; for (let z = HZ0; z >= HZ1; z -= 10) hall.push(b.node(0, z, 0, [])); b.chain(hall); b.link(pA, hall[0]);
   b.anchors.hallEnd.push({ pos: new THREE.Vector3(0, 0, HZ1 + 2) });
   plat(0, 0, -124, 20, 20, 'dirtyTile', 'tile');
@@ -116,7 +117,7 @@ export function buildOther(game, b) {
   for (const n of [pB, pB2, pC, pD, pE, hall[4]]) initial.push({ pos: n.pos.clone(), outfit: 'lost', role: 'lost', lost: true, home: n.pos.clone(), roam: 30, personality: 'calm', walkSpeed: 0.8 });
 
   b.anomalies = [{ pos: new THREE.Vector3(0, 1, 60), apply: () => { coat.visible = false; }, revert: () => { coat.visible = true; } }];
-  let loops = 0; const _v = new THREE.Vector3();
+  let loopsWarned = false; const _v = new THREE.Vector3();
   return {
     kind: 'other', name: 'The Other Side', chapter: 5,
     env: {
@@ -140,12 +141,13 @@ export function buildOther(game, b) {
       for (const f of floaters) { f.g.rotation.x += f.spin.x * dt; f.g.rotation.y += f.spin.y * dt; f.g.rotation.z += f.spin.z * dt; f.g.position.y += Math.sin(t * 0.3 + f.bob) * 0.01; }
       floatCar.rotation.y += dt * 0.05; floatCar.position.y = 6 + Math.sin(t * 0.4) * 0.5;
       if (Math.random() < dt * 3) game.fx.voidMotes(m.pos, 1);
-      // the hallway does not want you to reach the end. Three times.
-      if (Math.abs(m.pos.x) < 2.5 && m.pos.z < -80 && m.pos.z > -90 && m.vel.z < 0 && loops < 3) {
-        m.pos.z += 40; m.camPos.z += 40; game.camera.position.z += 40; loops++;
-        if (loops === 1) game.audio.play('whisper', m.headPos().add(_v.set(0, 0, 1)), { vol: 0.4, dur: 1.5 });
-        if (loops === 3) game.audio.play('stinger', null, { vol: 0.5, dur: 2 });
-      }
+      // the hallway looks far longer than it is: the image stretches the deeper you go and the
+      // lights ahead die one by one. (Only what you see changes — your body is never moved.)
+      const inHall = Math.abs(m.pos.x) < 2.6 && m.pos.z < HZ0 && m.pos.z > HZ1;
+      const depth = inHall ? (HZ0 - m.pos.z) / (HZ0 - HZ1) : 0;
+      game.post.stretch = Math.max(game.post.stretch, Math.sin(Math.min(1, depth * 1.2) * Math.PI) * 0.9);
+      for (const L of hallLights) L.hallOff = inHall && L.pos.z < m.pos.z - 12 - Math.sin(t * 0.7) * 6;
+      if (inHall && !loopsWarned && depth > 0.35) { loopsWarned = true; game.audio.play('whisper', m.headPos().add(_v.set(0, 0, 1)), { vol: 0.4, dur: 1.5 }); }
       // the Presence: it does not vanish here. It waits.
       const c = game.camera.position; presence.rotation.y = Math.atan2(c.x - presence.position.x, c.z - presence.position.z);
       const d = m.pos.distanceTo(presence.position);

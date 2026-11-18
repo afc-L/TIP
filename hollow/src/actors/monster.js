@@ -117,7 +117,7 @@ export class Monster {
     this.vel.z = damp(this.vel.z, desired.z, accel, dt);
 
     // stamina
-    if (wantSprint) this.stamina -= 14 * dt; else if (!this.climbing) this.stamina = Math.min(100, this.stamina + (moving ? 10 : 18) * dt);
+    if (wantSprint) this.stamina -= 8.5 * dt; else if (!this.climbing) this.stamina = Math.min(100, this.stamina + (moving ? 13 : 20) * dt);
     this.exertion = clamp(this.exertion + (wantSprint ? dt * 0.25 : -dt * 0.08), 0, 1);
 
     // jumping / climbing
