@@ -12,7 +12,7 @@ function facadeMaterial(kind, seed) {
   const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d');
   const rc = document.createElement('canvas'); rc.width = rc.height = 64; const rx = rc.getContext('2d');
   const R = mulberry32(seed);
-  const wall = kind === 'brick' ? '#5a3428' : kind === 'stone' ? '#7a7264' : kind === 'glass' ? '#1a2028' : '#5c5a56';
+  const wall = kind === 'brick' ? '#7a4634' : kind === 'stone' ? '#9a9080' : kind === 'glass' ? '#2a3240' : '#7c7a74';
   x.fillStyle = wall; x.fillRect(0, 0, 128, 128);
   for (let i = 0; i < 500; i++) { x.fillStyle = `rgba(${R() < 0.5 ? 0 : 255},${R() < 0.5 ? 0 : 255},${R() < 0.5 ? 0 : 255},${R() * 0.05})`; x.fillRect(R() * 128, R() * 128, 3, 3); }
   if (kind === 'brick') for (let y = 0; y < 128; y += 8) { x.fillStyle = 'rgba(0,0,0,0.25)'; x.fillRect(0, y, 128, 1); for (let xx = (y / 8) % 2 * 8; xx < 128; xx += 16) x.fillRect(xx, y, 1, 8); }
@@ -224,8 +224,7 @@ export function buildCity(game, b) {
   const traffic = [];
   const loops = [[[-135 + 3, -135 + 3], [105 - 3, -135 + 3], [105 - 3, 105 - 3], [-135 + 3, 105 - 3]], [[-75 - 3, -75 + 3], [45 - 3, -75 + 3], [45 - 3, 45 + 3], [-75 - 3, 45 + 3]].reverse()];
   for (let i = 0; i < (b.quality.drawDist > 200 ? 8 : 5); i++) {
-    const loop = loops[i % 2]; const g = car(b, 0, 0, 0, pick(['carPaint', 'carPaintRed', 'carPaintWhite', 'carPaintBlack']), { lightsOn: true });
-    b.world.boxes.pop(); // moving cars handle their own collision
+    const loop = loops[i % 2]; const g = car(b, 0, 0, 0, pick(['carPaint', 'carPaintRed', 'carPaintWhite', 'carPaintBlack']), { lightsOn: true, noCollide: true }); // moving cars handle their own collision
     const light = b.light(0, 1, 0, 0xdde8ff, 14, 16, { bulb: false, abandon: false });
     traffic.push({ g, loop, seg: Math.floor(R() * 4), t: R(), speed: rr(8, 12), cur: 0, light, honkT: 0 });
   }
@@ -251,7 +250,7 @@ export function buildCity(game, b) {
     kind: 'city', name: 'Harrow City', chapter: 3,
     env: {
       sky: { top: '#06070c', horizon: '#2a2228', stars: 0.05, moon: false, tint: 'rgba(60,40,45,0.5)' }, fogColor: 0x14121a, fogDensity: 0.016,
-      ambient: { sky: 0x606478, ground: 0x2a2220, intensity: 1.5 }, moon: { color: 0x8890b0, intensity: 0.7, dir: [0.3, 1, -0.4] },
+      ambient: { sky: 0x707488, ground: 0x3a3028, intensity: 2.3 }, moon: { color: 0x8890b0, intensity: 0.9, dir: [0.3, 1, -0.4] },
       exposure: 1.1, grade: { tint: [1.02, 0.98, 1.04], lift: [0.008, 0.006, 0.01], desat: 0.2 }, wind: 1.1, rain: 1, reverb: [2.2, 3], reverbMix: 0.3, visibility: 0.35, envIntensity: 0.6,
     },
     loops: [['rain', 0.5], ['cityHum', 0.4], ['crowd', 0.08], ['drone', 0.05]],

@@ -7,9 +7,9 @@ import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 
 export const QUALITY = {
-  low: { pixelRatio: 0.7, shadows: false, shadowSize: 0, bloom: false, lights: 4, npcScale: 0.6, drawDist: 140, mirrors: false, particles: 0.4, grass: 0, fogBoost: 1.25, antialias: false },
-  medium: { pixelRatio: 1, shadows: true, shadowSize: 1024, bloom: true, lights: 6, npcScale: 0.85, drawDist: 220, mirrors: true, particles: 0.75, grass: 0.5, fogBoost: 1, antialias: false },
-  high: { pixelRatio: Math.min(window.devicePixelRatio, 1.5), shadows: true, shadowSize: 2048, bloom: true, lights: 9, npcScale: 1, drawDist: 320, mirrors: true, particles: 1, grass: 1, fogBoost: 0.9, antialias: true },
+  low: { pixelRatio: 0.7, shadows: false, shadowSize: 0, bloom: false, lights: 4, spots: 1, npcScale: 0.6, drawDist: 140, mirrors: false, particles: 0.4, grass: 0, fogBoost: 1.25, antialias: false },
+  medium: { pixelRatio: 1, shadows: true, shadowSize: 1024, bloom: true, lights: 6, spots: 2, npcScale: 0.85, drawDist: 220, mirrors: true, particles: 0.75, grass: 0.5, fogBoost: 1, antialias: false },
+  high: { pixelRatio: Math.min(window.devicePixelRatio, 1.5), shadows: true, shadowSize: 2048, bloom: true, lights: 9, spots: 3, npcScale: 1, drawDist: 320, mirrors: true, particles: 1, grass: 1, fogBoost: 0.9, antialias: true },
 };
 
 const FinalShader = {
@@ -133,7 +133,24 @@ export class Graphics {
       const L = new THREE.PointLight(0xffffff, 0, 10, 2);
       L.castShadow = false; scene.add(L); this.lightPool.push(L);
     }
+    // flashlight pool: a few spot lights handed to the nearest NPC flashlights
+    this.spotPool = [];
+    for (let i = 0; i < (this.q.spots || 1); i++) {
+      const S = new THREE.SpotLight(0xfff0d8, 0, 28, 0.38, 0.55, 1.6); S.castShadow = false;
+      scene.add(S); scene.add(S.target); this.spotPool.push(S);
+    }
     this.setupComposer();
+  }
+  updateSpots(npcs, focus) {
+    const list = [];
+    for (const n of npcs) if (n.beam && n.beam.visible && n.group.visible) { const d = n.pos.distanceTo(focus); if (d < 45) list.push([d, n]); }
+    list.sort((a, b) => a[0] - b[0]);
+    this.spotPool.forEach((S, i) => {
+      const e = list[i]; if (!e) { S.intensity = 0; return; }
+      const n = e[1]; n.B.handR.getWorldPosition(S.position);
+      S.target.position.copy(S.position).addScaledVector(n.beamDir, 10);
+      S.intensity = 45;
+    });
   }
 
   setupComposer() {

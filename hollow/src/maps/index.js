@@ -54,6 +54,11 @@ export class GameMap {
       this.moon.shadow.bias = -0.0006; this.moon.shadow.normalBias = 0.04;
     }
     scene.add(this.moon); scene.add(this.moon.target);
+    // mirrors: things that exist only in reflections are shown during the mirror's own render
+    for (const mr of this.mirrors) {
+      const orig = mr.onBeforeRender;
+      mr.onBeforeRender = function (...args) { const ro = game.hallucinations.reflectOnly; ro.visible = true; orig.apply(this, args); ro.visible = false; };
+    }
     // stain decals
     this.stainMat = new THREE.MeshBasicMaterial({ map: radialTexture('rgba(10,4,6,0.85)', 'rgba(0,0,0,0)'), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4 });
   }
@@ -101,6 +106,8 @@ export class GameMap {
     // moon shadow follows the player
     this.moon.position.copy(mp).addScaledVector(this.moonDir, 60); this.moon.target.position.copy(mp);
     // light flicker / failures
+    const gp = this.b.glowPoints; const glowA = gp ? gp.geometry.attributes.aColor.array : null;
+    if (gp) gp.material.uniforms.uScale.value = g.renderH * 0.5 / Math.tan((g.camera.fov * Math.PI / 180) / 2);
     for (const L of this.lights) {
       let c = 1;
       if (L.flicker) { const n = noise2(t * 8 + L.phase, L.phase); c *= n < L.flicker * 0.5 ? 0.15 + n : 1; }
@@ -109,8 +116,11 @@ export class GameMap {
       if (L.hallOff) c = 0;
       if (!L.on) c = 0;
       L.cur = c;
-      if (L.glow) { L.glow.material.opacity = 0.8 * c * L.factor * (L.intensity > 0 ? 1 : 0); L.glow.visible = L.glow.material.opacity > 0.01; }
+      if (L.glowIndex !== undefined) glowA[L.glowIndex * 4 + 3] = 0.8 * c * L.factor * (L.intensity > 0 ? 1 : 0);
     }
+    if (gp) gp.geometry.attributes.aColor.needsUpdate = true;
+    // mirrors are expensive: only render them when the player is near
+    for (const mr of this.mirrors) mr.visible = mr.position.distanceTo(mp) < 14;
     // doors animate
     for (const d of this.doors) d.update(dt);
     // positional ambient emitters (real sounds in the world)
@@ -119,10 +129,25 @@ export class GameMap {
       if (this.emitT[i] <= 0) { this.emitT[i] = rand(e.interval[0], e.interval[1]); if ((!e.cond || e.cond()) && e.pos.distanceTo(mp) < 80) g.audio.play(e.sound, e.pos, { vol: e.vol || 0.5, ...(e.opts || {}) }); }
     });
     (this.cfg.ambientEvents || []).forEach((e, i) => { this.ambientT[i] -= dt; if (this.ambientT[i] <= 0) { this.ambientT[i] = rand(e.every[0], e.every[1]); e.fn(g); } });
+    // time of day: some places start at dusk and sink into night
+    const env = this.env;
+    if (env.dusk) {
+      const u = Math.min(1, t / env.dusk.duration); const k = 1 - u * u * (3 - 2 * u);
+      this.duskK = k;
+      this.scene.backgroundIntensity = 1 + k * (env.dusk.sky || 2.5);
+      this.scene.fog.color.copy(this.fogColor0 || (this.fogColor0 = this.scene.fog.color.clone())).lerp(this.duskFog || (this.duskFog = new THREE.Color(env.dusk.fogColor)), k);
+      this.moon.color.copy(this.moonColor0 || (this.moonColor0 = this.moon.color.clone())).lerp(this.duskSun || (this.duskSun = new THREE.Color(env.dusk.sunColor)), k);
+    }
+    // weather that changes while you are here
+    if (env.rainLater && !this.raining && t > env.rainLater) {
+      this.raining = true; g.fx.setupWeather({ ...env, rain: 0.6 }); g.audio.loop('rain', 0.35);
+      g.ui.toast('It has started to rain.', 3);
+    }
+    this.fogMul = 1 + Math.sin(t * 0.021) * 0.18 + Math.sin(t * 0.0537) * 0.1;
     // abandoned/fog modulation
     const f = this.abandonF;
     this.scene.fog.density = this.fogBase * (1 + f * 1.5) * (g.mode === 'nightmare' ? 1.35 : 1) * (this.fogMul || 1);
-    this.hemi.intensity = this.hemiBase * (1 - f * 0.6) * (g.mode === 'nightmare' ? 0.6 : 1);
+    this.hemi.intensity = this.hemiBase * (1 - f * 0.6) * (g.mode === 'nightmare' ? 0.6 : 1) * (1 + (this.duskK || 0) * (env.dusk ? env.dusk.light : 0));
     if (this.cfg.update) this.cfg.update(dt, t);
   }
   isInside(p) { return this.cfg.isInside ? this.cfg.isInside(p) : false; }

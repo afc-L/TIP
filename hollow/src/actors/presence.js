@@ -4,14 +4,17 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { limbGeo, blob, torsoGeo } from './anatomy.js';
 
-function rimMaterial(color = 0x050506, rim = 0x6a7080, power = 2.2, strength = 0.9) {
-  return new THREE.ShaderMaterial({
-    uniforms: { uColor: { value: new THREE.Color(color) }, uRim: { value: new THREE.Color(rim) }, uPow: { value: power }, uStr: { value: strength }, uAlpha: { value: 1 } },
-    vertexShader: `varying vec3 vN; varying vec3 vV; void main(){ vec4 mv = modelViewMatrix * vec4(position,1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }`,
-    fragmentShader: `uniform vec3 uColor; uniform vec3 uRim; uniform float uPow; uniform float uStr; uniform float uAlpha; varying vec3 vN; varying vec3 vV;
-      void main(){ float f = pow(1.0 - max(dot(normalize(vN), normalize(vV)), 0.0), uPow); gl_FragColor = vec4(uColor + uRim * f * uStr, uAlpha); }`,
-    transparent: true,
-  });
+function rimMaterial(color = 0x040405, rim = 0x6a7080, power = 2.2, strength = 0.9) {
+  // Near-black body with a faint fresnel rim so it reads in the dark — fog still applies.
+  const m = new THREE.MeshStandardMaterial({ color, roughness: 0.95, metalness: 0, transparent: true, opacity: 1 });
+  m.onBeforeCompile = (sh) => {
+    sh.uniforms.uRim = { value: new THREE.Color(rim) };
+    sh.fragmentShader = 'uniform vec3 uRim;\n' + sh.fragmentShader.replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+      float fres = pow(1.0 - abs(dot(normalize(vNormal), normalize(vViewPosition))), ${power.toFixed(2)});
+      totalEmissiveRadiance += uRim * fres * ${strength.toFixed(2)};`);
+  };
+  m.customProgramCacheKey = () => 'presenceRim';
+  return m;
 }
 
 export function buildPresence(pose = 'stand') {
@@ -60,6 +63,6 @@ export function buildPresence(pose = 'stand') {
 
 export function setPresenceAlpha(group, a) {
   const [bm, fm] = group.userData.mats;
-  bm.uniforms.uAlpha.value = a; fm.opacity = a;
+  bm.opacity = a; fm.opacity = a;
   bm.depthWrite = a > 0.95;
 }

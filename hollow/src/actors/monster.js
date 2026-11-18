@@ -46,7 +46,7 @@ export class Monster {
   }
 
   setSkin(key) {
-    const old = this.root; const parent = old.parent;
+    const old = this.root; const parent = old.parent; this.fpApplied = undefined;
     this.model = buildMonster(key); this.root = this.model.root; this.B = this.model.B;
     for (const k in this.B) this.cur[k] = [0, 0, 0];
     if (parent) { parent.remove(old); parent.add(this.root); }
@@ -462,6 +462,20 @@ export class Monster {
     }
   }
 
+  // In first person only the arms and hands stay visible (so strikes and feeding read),
+  // everything else would fill the screen. Shadows are still cast by the full body.
+  applyFirstPersonVisibility() {
+    this.fpApplied = this.firstPerson;
+    const keep = new Set();
+    for (const k of ['foreArmL', 'foreArmR']) this.B[k].traverse((o) => keep.add(o));
+    this.root.traverse((o) => {
+      if (!o.isMesh) return;
+      if (!o.userData.origMat) o.userData.origMat = o.material;
+      if (this.firstPerson && !keep.has(o)) o.material = o.userData.fpMat || (o.userData.fpMat = Object.assign(o.userData.origMat.clone(), { colorWrite: false, depthWrite: false }));
+      else o.material = o.userData.origMat;
+    });
+  }
+
   // ---------------------------------------------------------------- camera
   updateCamera(dt) {
     const cam = this.game.camera, w = this.game.world;
@@ -471,10 +485,9 @@ export class Monster {
     const cp = Math.cos(this.camPitch), spt = Math.sin(this.camPitch);
     const fwd = new THREE.Vector3(Math.sin(this.camYaw) * cp, -spt, Math.cos(this.camYaw) * cp);
     let camPos;
-    this.model.B.head.visible = true;
+    if (this.fpApplied !== this.firstPerson) this.applyFirstPersonVisibility();
     if (this.firstPerson) {
-      const hp = this.headPos(); camPos = hp.addScaledVector(fwd, 0.2); camPos.y += 0.08;
-      this.model.B.head.visible = false;
+      const hp = this.headPos(); camPos = hp.addScaledVector(fwd, 0.25); camPos.y += 0.1;
       this.camPos.copy(camPos);
     } else {
       const right = new THREE.Vector3(-Math.cos(this.camYaw), 0, Math.sin(this.camYaw));

@@ -54,7 +54,7 @@ export function buildOther(game, b) {
   { const fr = new THREE.Group(); const door = new THREE.Mesh(new THREE.BoxGeometry(1.1, 2.2, 0.08), b.m('darkWood')); door.position.y = 1.1; fr.add(door); const num = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 0.15), new THREE.MeshBasicMaterial({ map: textTexture('4C', { w: 128, h: 64, bg: '#222', fg: '#c8b080', font: 'bold 44px Georgia' }) })); num.position.set(0, 1.8, 0.05); fr.add(num); fr.position.set(-62, 0, 12); b.root.add(fr); b.world.box(-62, 1.1, 12, 1.2, 2.2, 0.2, { surface: 'wood' }); }
   b.item('note', 'oth_echo3', -62, 1.4, 12.2, 0, {});
   streetLight(b, -70, 4, 1, { cold: true, flicker: 0.3 });
-  const floatCar = car(b, -60, 0, 0.4, 'carPaintBlack', { y: 6 }); b.world.boxes.pop();
+  const floatCar = car(b, -60, 0, 0.4, 'carPaintBlack', { y: 6, dynamic: true, noCollide: true });
   const pD = b.node(-62, 0, 6, ['activity']); b.link(wB[wB.length - 1], pD);
 
   // ---------------- the endless hallway (south) ----------------

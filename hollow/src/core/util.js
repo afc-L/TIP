@@ -71,3 +71,35 @@ export function shuffle(arr) {
   for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; }
   return arr;
 }
+
+// Merge the direct mesh children of every node that share a material into one mesh
+// (keeps the hierarchy/animation intact, cuts draw calls for teeth, claws, car parts...).
+import { mergeGeometries as _merge } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+export function mergeChildMeshes(root) {
+  const nodes = [];
+  root.traverse((o) => nodes.push(o));
+  for (const node of nodes) {
+    const groups = new Map();
+    for (const c of node.children) {
+      if (!c.isMesh || c.isSkinnedMesh || c.children.length || c.userData.keep) continue;
+      if (!groups.has(c.material)) groups.set(c.material, []);
+      groups.get(c.material).push(c);
+    }
+    for (const [material, list] of groups) {
+      if (list.length < 2) continue;
+      const geos = list.map((m) => {
+        m.updateMatrix();
+        let g = m.geometry.clone().applyMatrix4(m.matrix);
+        if (g.index) g = g.toNonIndexed();
+        for (const k of Object.keys(g.attributes)) if (!['position', 'normal', 'uv'].includes(k)) g.deleteAttribute(k);
+        if (!g.attributes.uv) g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(g.attributes.position.count * 2), 2));
+        return g;
+      });
+      const merged = _merge(geos, false); if (!merged) continue;
+      const mesh = new THREE.Mesh(merged, material); mesh.castShadow = list[0].castShadow; mesh.receiveShadow = list[0].receiveShadow;
+      for (const m of list) node.remove(m);
+      node.add(mesh);
+    }
+  }
+  return root;
+}

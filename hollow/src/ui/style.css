@@ -10,20 +10,20 @@ button { font: inherit; }
 .screen { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 20; }
 #menu { background: radial-gradient(ellipse at 30% 50%, rgba(0,0,0,0) 0%, rgba(0,0,0,0.55) 60%, rgba(0,0,0,0.9) 100%); justify-content: flex-start; }
 .menu-inner { margin-left: 8vw; max-width: 520px; }
-.title { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 700; font-size: clamp(56px, 9vw, 120px); letter-spacing: 0.12em; margin: 0; color: #e8e0d4; position: relative; text-shadow: 0 0 30px rgba(150, 20, 20, 0.35); animation: breathe 6s ease-in-out infinite; }
+.title { white-space: nowrap; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 700; font-size: clamp(40px, min(9vw, 15vh), 120px); letter-spacing: 0.12em; margin: 0; color: #e8e0d4; position: relative; text-shadow: 0 0 30px rgba(150, 20, 20, 0.35); animation: breathe 6s ease-in-out infinite; }
 .title::before, .title::after { content: attr(data-text); position: absolute; inset: 0; opacity: 0; }
 .title::before { color: #9a1414; animation: glitch1 7s infinite; }
 .title::after { color: #4a6a9a; animation: glitch2 9s infinite; }
 @keyframes breathe { 0%,100% { opacity: 0.92; } 50% { opacity: 1; letter-spacing: 0.13em; } }
 @keyframes glitch1 { 0%, 92%, 100% { opacity: 0; transform: none; } 93% { opacity: 0.7; transform: translate(-4px, 1px); } 94% { opacity: 0; } 96% { opacity: 0.5; transform: translate(3px, -2px); } 97% { opacity: 0; } }
 @keyframes glitch2 { 0%, 88%, 100% { opacity: 0; transform: none; } 89% { opacity: 0.5; transform: translate(4px, 0); } 90% { opacity: 0; } }
-.tagline { color: var(--muted); font-style: italic; margin: 6px 0 36px; font-family: 'Cormorant Garamond', serif; font-size: 22px; }
+.tagline { color: var(--muted); font-style: italic; margin: 6px 0 min(36px, 4vh); font-family: 'Cormorant Garamond', serif; font-size: 22px; }
 .menu-buttons { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
-.menu-buttons button, .row button, .cards .card button { background: none; border: none; color: var(--fg); font-size: 20px; padding: 6px 0; cursor: pointer; letter-spacing: 0.08em; text-transform: uppercase; font-family: 'Cormorant Garamond', serif; font-weight: 700; transition: color .15s, transform .15s; }
+.menu-buttons button, .row button, .cards .card button { background: none; border: none; color: var(--fg); font-size: clamp(15px, 2.6vh, 20px); padding: min(6px, 0.7vh) 0; cursor: pointer; letter-spacing: 0.08em; text-transform: uppercase; font-family: 'Cormorant Garamond', serif; font-weight: 700; transition: color .15s, transform .15s; }
 .menu-buttons button:hover:not(:disabled), .row button:hover { color: #fff; transform: translateX(6px); text-shadow: 0 0 12px rgba(200,40,40,0.6); }
 .menu-buttons button:disabled { color: #4a4642; cursor: not-allowed; }
 .menu-buttons button:disabled::after { content: ' — locked'; font-size: 13px; font-family: Inter; text-transform: none; letter-spacing: 0; }
-.menu-foot { margin-top: 40px; color: var(--muted); font-size: 13px; }
+.menu-foot { margin-top: min(40px, 4vh); color: var(--muted); font-size: 13px; }
 .panel { background: var(--bg); border: 1px solid var(--line); padding: 32px 40px; max-width: 760px; width: calc(100% - 32px); max-height: 88vh; overflow: auto; backdrop-filter: blur(6px); }
 .panel.wide { max-width: 1040px; } .panel.small { max-width: 420px; }
 .panel h2 { font-family: 'Cormorant Garamond', serif; font-size: 40px; margin: 0 0 8px; letter-spacing: 0.06em; }
@@ -92,7 +92,7 @@ button { font: inherit; }
 #toasts { position: absolute; top: 22px; right: 26px; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
 .toast { background: rgba(0,0,0,0.6); padding: 6px 12px; border-left: 2px solid var(--accent); animation: fadein .3s; color: #e0d8cc; max-width: 380px; }
 .toast.essence { border-left-color: #c08040; color: #e8c8a0; }
-#hint { position: absolute; bottom: 150px; left: 50%; transform: translateX(-50%); color: #a8a098; font-size: 13px; text-align: center; transition: opacity .4s; text-shadow: 0 1px 3px #000; }
+#hint { position: absolute; bottom: 178px; left: 50%; transform: translateX(-50%); color: #a8a098; font-size: 13px; text-align: center; transition: opacity .4s; text-shadow: 0 1px 3px #000; }
 #note { position: absolute; right: 30px; top: 50%; transform: translateY(-50%); width: min(420px, 40vw); background: rgba(216, 208, 190, 0.94); color: #1a1612; padding: 24px 26px; font-family: 'Cormorant Garamond', Georgia, serif; box-shadow: 0 10px 50px rgba(0,0,0,0.7); max-height: 70vh; overflow: auto; animation: fadein .3s; }
 #note.tape { background: rgba(14, 14, 16, 0.94); color: #c8c0b4; font-family: 'Courier New', monospace; font-size: 14px; border: 1px solid #333; }
 #noteTitle { font-size: 24px; font-weight: 700; margin-bottom: 10px; }

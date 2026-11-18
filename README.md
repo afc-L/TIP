@@ -1,3 +1,5 @@
+> **Also in this repo: [THE HOLLOW](hollow/README.md)** — a 3D psychological monster horror game. Run `npm install && npm run hollow`.
+
 # Steel & Blood
 
 A browser-based, physics-driven medieval sword fighting game inspired by *Half Sword*.

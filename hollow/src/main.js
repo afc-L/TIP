@@ -28,6 +28,7 @@ class Game {
     setTextureQuality(this.settings.quality);
     this.graphics = new Graphics(this.canvas);
     this.graphics.setQuality(this.settings.quality);
+    this.graphics.renderer.info.autoReset = false;
     this.camera = this.graphics.camera;
     this.audio = new AudioEngine();
     this.input = new Input(this.canvas);
@@ -43,6 +44,8 @@ class Game {
     this.running = false; this.paused = false; this.time = 0; this.wind = 1; this.fps = 60; this.hitStopT = 0;
     this.stats = this.newStats();
     this.flashes = [];
+    this.renderH = window.innerHeight;
+    addEventListener('resize', () => { this.renderH = window.innerHeight * this.graphics.q.pixelRatio; if (this.fx.smoke) this.fx.setScale(this.renderH); });
     this.applySettings();
     this.input.onLockChange = (locked) => {
       if (!this.running) return;
@@ -85,7 +88,7 @@ class Game {
     s.background = new THREE.Color(0x030304); s.fog = new THREE.FogExp2(0x050507, 0.09);
     const ground = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.95 }));
     ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; s.add(ground);
-    const mm = buildMonster(this.progress.d.skin); mm.root.position.set(1.6, 0, 0); mm.root.rotation.y = -0.5; s.add(mm.root);
+    const mm = buildMonster(this.progress.d.skin); mm.root.position.set(2.6, 0, 0.6); mm.root.rotation.y = -0.35; s.add(mm.root);
     const B = mm.B;
     const pose = { hips: [0.15, 0, 0], spine1: [0.25, 0, 0], spine2: [0.25, 0, 0], chest: [0.2, 0, 0], neck1: [0.45, 0, 0], neck2: [0.1, 0, 0] };
     for (const k in pose) B[k].rotation.set(...pose[k]);
@@ -93,7 +96,7 @@ class Game {
     B.head.rotation.x = -1.2;
     for (const sd of ['L', 'R']) { B['thigh' + sd].rotation.x = -0.6; B['shin' + sd].rotation.x = 1.15; B['meta' + sd].rotation.x = -0.79; B['foot' + sd].rotation.x = 0.24; }
     s.add(new THREE.HemisphereLight(0x303848, 0x050505, 0.4));
-    const spot = new THREE.SpotLight(0xffd0a0, 60, 20, 0.5, 0.6, 1.5); spot.position.set(2.5, 7, 1.5); spot.target = mm.root; spot.castShadow = this.graphics.q.shadows; s.add(spot);
+    const spot = new THREE.SpotLight(0xffd0a0, 90, 20, 0.5, 0.6, 1.5); spot.position.set(3.5, 7, 2.5); spot.target = mm.root; spot.castShadow = this.graphics.q.shadows; s.add(spot);
     const rim = new THREE.PointLight(0x8a1010, 10, 8); rim.position.set(0, 2.5, -2.5); s.add(rim);
     this.menu = { scene: s, monster: mm, spot, t: 0 };
     if (!this.running) this.graphics.setScene(s);
@@ -101,13 +104,13 @@ class Game {
   updateMenu(dt) {
     const M = this.menu; M.t += dt;
     const cam = this.camera; const a = Math.sin(M.t * 0.08) * 0.25;
-    cam.position.set(Math.sin(a) * 6.2 - 0.5, 2.2, Math.cos(a) * 6.2); cam.lookAt(0.8, 1.9, 0); cam.fov = 50; cam.updateProjectionMatrix();
+    cam.position.set(Math.sin(a) * 6.2 - 0.5, 2.0, Math.cos(a) * 6.2 + 0.5); cam.lookAt(0.6, 2.0, 0); cam.fov = 50; cam.updateProjectionMatrix();
     const B = M.monster.B;
     const br = Math.sin(M.t * 1.2);
     B.chest.scale.set(1 + br * 0.02, 1, 1 + br * 0.025);
     B.head.rotation.y = Math.sin(M.t * 0.3) * 0.3 + (Math.sin(M.t * 3.1) > 0.995 ? 0.3 : 0);
     B.jaw.rotation.x = 0.06 + Math.max(0, br) * 0.05;
-    M.spot.intensity = (Math.random() < 0.02 ? 5 : 60) * (0.9 + Math.sin(M.t * 13) * 0.05);
+    M.spot.intensity = (Math.random() < 0.02 ? 5 : 90) * (0.9 + Math.sin(M.t * 13) * 0.05);
     const fx = this.graphics.fx; fx.uTime.value = M.t; fx.uVignette.value = 1; fx.uGrain.value = 0.018; fx.uDesat.value = 0.35; fx.uTint.value.set(1, 0.97, 0.95); fx.uLift.value.set(0, 0, 0);
     fx.uNight.value = 0; fx.uPredator.value = 0; fx.uFeed.value = 0; fx.uPresence.value = 0; fx.uStretch.value = 0; fx.uDistort.value = 0; fx.uGlitch.value = Math.random() < 0.004 ? 1 : 0; fx.uDamage.value = 0; fx.uFlash.value = 0; fx.uDark.value = 0; fx.uExposure.value = 1; fx.uSenses.value = 0; fx.uAberration.value = 0.0015;
   }
@@ -115,7 +118,7 @@ class Game {
   // ---------------- starting a map ----------------
   start(mode, mapKey, opts = {}) {
     this.audio.init();
-    this.mode = mode; this.mapKey = mapKey; this.startOpts = opts;
+    this.mode = mode; this.mapKey = mapKey; this.startOpts = opts; this.running = false; this.input.unlock();
     const chap = mode === 'story' ? (opts.chapter || 1) : null;
     this.ui.loading(chap ? CHAPTERS[chap].title : MAPS[mapKey].title);
     this.ui.clearHUD();
@@ -135,6 +138,7 @@ class Game {
     this.graphics.setScene(this.scene);
     this.fx.attach(this.scene, this.graphics.q);
     this.fx.setScale(window.innerHeight * this.graphics.q.pixelRatio);
+    this.renderH = window.innerHeight * this.graphics.q.pixelRatio;
     // monster
     this.monster = new Monster(this, this.progress.skinOwned(this.progress.d.skin) ? this.progress.d.skin : 'pale');
     this.scene.add(this.monster.root);
@@ -299,8 +303,8 @@ class Game {
   // ---------------- main loop ----------------
   loop(now) {
     requestAnimationFrame((t) => this.loop(t));
-    let dt = Math.min(0.05, (now - this.last) / 1000); this.last = now;
-    this.fps = damp(this.fps, 1 / Math.max(dt, 1e-3), 3, dt);
+    let dt = Math.max(0, Math.min(0.05, (now - this.last) / 1000)); this.last = now;
+    if (dt > 0) this.fps = damp(this.fps, 1 / Math.max(dt, 1e-3), 3, dt);
     if (!this.running) {
       if (this.menu && !this.map) { this.updateMenu(dt); this.graphics.render(); }
       this.input.endFrame();
@@ -310,6 +314,7 @@ class Game {
     if (this.hitStopT > 0) { this.hitStopT -= dt; dt *= 0.15; }
     this.time += dt;
     this.update(dt);
+    this.graphics.renderer.info.reset();
     this.graphics.render();
     this.input.endFrame();
   }
@@ -333,6 +338,7 @@ class Game {
     this.fx.update(dt, this.camera.position, this.wind, this.map.isInside(m.pos) || this.map.kind === 'hospital');
     if (this.flashT > 0) { this.flashT -= dt; if (this.flashT <= 0) this.flashLight.intensity = 0; }
     this.graphics.updateLights(this.map.lights, m.pos, this.time);
+    this.graphics.updateSpots(this.npcs.list, m.pos);
     // modes
     if (this.mode === 'survival') this.updateSurvival(dt);
     if (this.nightmare && !this.nightmare.rift && this.stats.fedInMap >= this.nightmare.need) this.openNightmareRift();

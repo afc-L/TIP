@@ -24,7 +24,7 @@ export function buildHospital(game, b) {
   for (let x = -80; x <= 80; x += 6) b.box(x, 0.01, -70, 0.15, 0.01, 5, 'paint', { collide: false, cast: false });
   car(b, -30, -64, 0.1, 'carPaintWhite'); car(b, 24, -72, 3.0, 'rust'); car(b, -60, -80, 1.6, 'carPaintBlack');
   // ambulance under the canopy
-  { const g = car(b, 9, -40, Math.PI / 2, 'carPaintWhite'); g.scale.set(1.15, 1.35, 1.25); const stripe = new THREE.Mesh(new THREE.BoxGeometry(4.8, 0.2, 2.0), b.m('neonRed')); stripe.position.set(0, 1.1, 0); stripe.rotation.y = 0; g.add(stripe); }
+  { const g = car(b, 9, -40, Math.PI / 2, 'carPaintWhite', { dynamic: true }); g.scale.set(1.15, 1.35, 1.25); const stripe = new THREE.Mesh(new THREE.BoxGeometry(4.8, 0.2, 2.0), b.m('neonRed')); stripe.position.set(0, 1.1, 0); stripe.rotation.y = 0; g.add(stripe); }
   b.box(0, 4.6, -36, 18, 0.4, 8, 'darkConcrete', { surface: 'concrete' });
   for (const x of [-8, 8]) b.box(x, 2.3, -39.5, 0.4, 4.6, 0.4, 'concrete');
   const sign = new THREE.Mesh(new THREE.PlaneGeometry(14, 1.6), new THREE.MeshStandardMaterial({ map: textTexture("ST. ALDRIC'S HOSPITAL", { w: 1024, h: 120, bg: '#1a1a18', fg: '#b0a890', font: 'bold 72px Georgia' }), roughness: 0.8 }));

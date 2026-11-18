@@ -304,6 +304,7 @@ export function buildSuburb(game, b) {
       sky: { top: '#04060a', horizon: '#1a1f2a', stars: 0.5 }, fogColor: 0x10141c, fogDensity: 0.022, ambient: { sky: 0x5a6a8a, ground: 0x1a1612, intensity: 1.6 },
       moon: { color: 0xa8b8e0, intensity: 1.3, dir: [0.5, 1, 0.3] }, exposure: 1.15, grade: { tint: [0.95, 1.0, 1.08], lift: [0.005, 0.006, 0.012], desat: 0.3 },
       wind: 1, fogBanks: 1, fogColor2: 0x6a7080, reverb: [1.6, 3], visibility: 0.25,
+      dusk: { duration: 420, sky: 3.5, fogColor: 0x3a3238, sunColor: 0xff9a60, light: 0.8 }, rainLater: 600,
     },
     loops: [['wind', 0.35], ['crickets', 0.25], ['drone', 0.08]],
     emitters: b.emitters,

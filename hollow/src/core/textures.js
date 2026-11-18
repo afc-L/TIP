@@ -63,7 +63,7 @@ function tfbm(u, v, scale, oct = 4) {
 const defs = {
   asphalt: (u, v) => {
     const n = tfbm(u, v, 24, 3), g = tfbm(u, v, 90, 2);
-    const crack = Math.abs(tfbm(u, v, 5, 3) - 0.5) < 0.008 ? -30 : 0;
+    const crack = Math.abs(tfbm(u, v, 5, 3) - 0.5) < 0.005 ? -10 : 0;
     const c = 38 + n * 30 + g * 20 + crack;
     return [c, c, c + 3, n * 0.6 + g * 0.4 + crack / 60];
   },
@@ -216,12 +216,18 @@ const defs = {
   },
 };
 
+const texCache = new Map();
 export function tex(name, repeat = 1, opts = {}) {
+  // Shared per (name, repeat) so identical surfaces reuse one GPU texture.
+  const ck = name + '|' + repeat + '|' + (opts.repeatY || repeat) + '|' + (opts.size || SIZE) + (opts.unique ? Math.random() : '');
+  if (texCache.has(ck)) return texCache.get(ck);
   const base = generate(name, opts.size || SIZE, defs[name], opts);
   // Clone so each material can have its own repeat while sharing image data.
   const map = base.map.clone(); map.needsUpdate = true; map.repeat.set(repeat, opts.repeatY || repeat);
   const normalMap = base.normalMap.clone(); normalMap.needsUpdate = true; normalMap.repeat.copy(map.repeat);
-  return { map, normalMap };
+  const out = { map, normalMap };
+  texCache.set(ck, out);
+  return out;
 }
 
 // Helper to build a standard PBR material from a procedural texture.

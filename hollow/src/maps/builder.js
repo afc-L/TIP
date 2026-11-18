@@ -90,7 +90,7 @@ export class MapBuilder {
     this.world = new CollisionWorld();
     this.geos = new Map();
     this.mats = new Map();
-    this.chunk = 48;
+    this.chunk = 72;
     this.lights = [];
     this.windows = [];
     this.nodes = [];
@@ -190,13 +190,7 @@ export class MapBuilder {
   light(x, y, z, color = 0xffd8a0, intensity = 8, distance = 14, opts = {}) {
     const L = { pos: new THREE.Vector3(x, y, z), color: new THREE.Color(color), intensity, distance, base: intensity,
       flicker: opts.flicker || 0, broken: opts.broken || 0, on: opts.on !== false, phase: Math.random() * 100, group: opts.group || null, glow: null, abandon: opts.abandon !== false, factor: 1 };
-    if (opts.bulb !== false) {
-      const spr = new THREE.Sprite(this.m('glowSprite').clone());
-      spr.material.color = L.color.clone();
-      spr.position.set(x, y, z); spr.scale.setScalar(opts.glowSize || 1.2);
-      spr.renderOrder = 2;
-      this.root.add(spr); L.glow = spr;
-    }
+    L.glowSize = opts.bulb !== false ? (opts.glowSize || 1.2) : 0; // drawn by one Points cloud (see finish)
     this.lights.push(L);
     return L;
   }
@@ -295,6 +289,18 @@ export class MapBuilder {
       g.list.forEach((x) => x.dispose());
     }
     this.geos.clear();
+    // all light glows in one draw call; per-light alpha is updated by the map each frame
+    const glowing = this.lights.filter((L) => L.glowSize > 0);
+    if (glowing.length) {
+      const n = glowing.length; const g = new THREE.BufferGeometry();
+      const pos = new Float32Array(n * 3), col = new Float32Array(n * 4), size = new Float32Array(n);
+      glowing.forEach((L, i) => { pos.set([L.pos.x, L.pos.y, L.pos.z], i * 3); size[i] = L.glowSize * 1.6; col.set([L.color.r, L.color.g, L.color.b, 0.8], i * 4); L.glowIndex = i; });
+      g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('aColor', new THREE.BufferAttribute(col, 4)); g.setAttribute('aSize', new THREE.BufferAttribute(size, 1));
+      const m = new THREE.ShaderMaterial({ uniforms: { uTex: { value: glowTex }, uScale: { value: 600 } }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+        vertexShader: 'attribute float aSize; attribute vec4 aColor; varying vec4 vColor; uniform float uScale; void main(){ vColor = aColor; vec4 mv = modelViewMatrix * vec4(position,1.0); vColor.a *= clamp(1.0 - (-mv.z) / 110.0, 0.0, 1.0); gl_PointSize = aSize * uScale / max(-mv.z, 0.1); gl_Position = projectionMatrix * mv; }',
+        fragmentShader: 'uniform sampler2D uTex; varying vec4 vColor; void main(){ vec4 t = texture2D(uTex, gl_PointCoord); gl_FragColor = vec4(vColor.rgb * t.rgb, vColor.a * t.a); }' });
+      this.glowPoints = new THREE.Points(g, m); this.glowPoints.frustumCulled = false; this.glowPoints.renderOrder = 2; this.root.add(this.glowPoints);
+    }
     // windows as one instanced mesh with per-instance colour
     if (this.windows.length) {
       const geo = new THREE.PlaneGeometry(1, 1);

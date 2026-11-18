@@ -75,7 +75,9 @@ export class NPC {
     // flashlight beam (fake volumetric cone)
     if (this.flashlight) {
       const cone = new THREE.ConeGeometry(1.6, 9, 16, 1, true); cone.translate(0, -4.5, 0);
-      const bm = new THREE.MeshBasicMaterial({ color: 0xfff2d0, transparent: true, opacity: 0.05, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+      const bm = new THREE.ShaderMaterial({ transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false,
+        vertexShader: 'varying vec2 vUv; varying vec3 vN; varying vec3 vV; void main(){ vUv = uv; vec4 mv = modelViewMatrix * vec4(position,1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
+        fragmentShader: 'varying vec2 vUv; varying vec3 vN; varying vec3 vV; void main(){ float along = pow(vUv.y, 2.2); float edge = pow(abs(dot(normalize(vN), normalize(vV))), 1.5); gl_FragColor = vec4(vec3(1.0, 0.95, 0.82) * along * edge * 0.07, 1.0); }' });
       this.beam = new THREE.Mesh(cone, bm); this.beam.position.set(0, -0.1 * this.H, 0.05);
       this.B.handR.add(this.beam);
       const torch = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.025, 0.18, 8), new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.6, roughness: 0.4, emissive: 0x000000 }));

@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { limbGeo, blob, hornGeo, torsoGeo } from './anatomy.js';
 import { tex } from '../core/textures.js';
+import { mergeChildMeshes } from '../core/util.js';
 
 export const SKINS = {
   pale: { name: 'Pallid', skin: 0xf0e8e0, bone: 0xe8dcc0, eye: 0xffe8c0, emissive: 0x0c0a09, rough: 0.55, desc: 'The shape it woke up in.' },
@@ -142,10 +143,10 @@ export function buildMonster(skinKey = 'pale') {
     const sh = mk('shoulder' + side, chest, s * 0.33, 0.44, 0.02);
     add(sh, blob(0.14, 0.13, 0.14, { noise: 0.2, seed: 10 + s }), skin);
     const ua = mk('upperArm' + side, sh, s * 0.04, -0.02, 0);
-    add(ua, limbGeo(0.86, 0.11, 0.07, { bulge: 0.3, bulgeAt: 0.3, noise: 0.025, seed: 11 + s, seg: 12 }), skin);
+    add(ua, limbGeo(0.86, 0.11, 0.07, { bulge: 0.3, bulgeAt: 0.3, noise: 0.05, seed: 11 + s, seg: 12 }), skin);
     add(ua, hornGeo(0.12, 0.025, -0.4), bone, 0, -0.84, -0.04, Math.PI * 0.9, 0, 0); // elbow spur
     const fa = mk('foreArm' + side, ua, 0, -0.86, 0);
-    add(fa, limbGeo(0.84, 0.078, 0.05, { bulge: 0.35, bulgeAt: 0.25, noise: 0.02, seed: 13 + s, seg: 10 }), skin);
+    add(fa, limbGeo(0.84, 0.078, 0.05, { bulge: 0.35, bulgeAt: 0.25, noise: 0.045, seed: 13 + s, seg: 10 }), skin);
     const hd = mk('hand' + side, fa, 0, -0.84, 0);
     add(hd, blob(0.08, 0.12, 0.04, { noise: 0.2, seed: 15 }), skin, 0, -0.08, 0);
     // four long fingers + thumb, three segments each, claw tips
@@ -175,9 +176,9 @@ export function buildMonster(skinKey = 'pale') {
   // legs (digitigrade)
   for (const [side, s] of [['L', 1], ['R', -1]]) {
     const th = mk('thigh' + side, hips, s * 0.17, -0.04, 0);
-    add(th, limbGeo(0.75, 0.155, 0.095, { bulge: 0.3, bulgeAt: 0.25, noise: 0.03, seed: 20 + s, seg: 12 }), skin);
+    add(th, limbGeo(0.75, 0.155, 0.095, { bulge: 0.3, bulgeAt: 0.25, noise: 0.06, seed: 20 + s, seg: 12 }), skin);
     const sn = mk('shin' + side, th, 0, -0.75, 0);
-    add(sn, limbGeo(0.7, 0.095, 0.055, { bulge: 0.4, bulgeAt: 0.2, noise: 0.02, seed: 22 + s }), skin);
+    add(sn, limbGeo(0.7, 0.095, 0.055, { bulge: 0.4, bulgeAt: 0.2, noise: 0.045, seed: 22 + s }), skin);
     add(sn, hornGeo(0.14, 0.03, 0.5), bone, 0, -0.02, 0.05, -0.3, 0, 0); // knee spike
     const mt = mk('meta' + side, sn, 0, -0.7, 0);
     add(mt, limbGeo(0.42, 0.058, 0.042, { bulge: 0.1, seed: 24 + s, seg: 8 }), skin);
@@ -190,5 +191,7 @@ export function buildMonster(skinKey = 'pale') {
     }
   }
 
+  faceMesh.userData.keep = true; eyes.forEach((e) => { e.userData.keep = true; });
+  mergeChildMeshes(root);
   return { root, B, mats, faceMesh, eyes, skinKey };
 }

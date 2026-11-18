@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import { Reflector } from 'three/examples/jsm/objects/Reflector.js';
 import { worldBox, addWind } from './builder.js';
-import { rand, pick, chance, mulberry32 } from '../core/util.js';
+import { rand, pick, chance, mulberry32, mergeChildMeshes } from '../core/util.js';
 import { leafTexture, needleTexture, tex, textTexture } from '../core/textures.js';
 
 // Local coordinate frame (origin + rotation in quarter turns) over a MapBuilder.
@@ -220,7 +220,14 @@ export function house(b, ox, oz, rot, opts = {}) {
 // ---------------------------------------------------------------- vehicles & street
 export function car(b, x, z, yaw, paint = pick(['carPaint', 'carPaintRed', 'carPaintWhite', 'carPaintBlack', 'carPaintGreen']), opts = {}) {
   const g = new THREE.Group();
-  const P = (geo, m, px, py, pz) => { const mesh = new THREE.Mesh(geo, b.m(m)); mesh.position.set(px, py, pz); mesh.castShadow = true; mesh.receiveShadow = true; g.add(mesh); };
+  // Parked cars are merged into the static world geometry (one draw call per material per chunk);
+  // moving / special cars stay as a Group.
+  const dynamic = !!(opts.dynamic || opts.lightsOn);
+  const M = new THREE.Matrix4().compose(new THREE.Vector3(x, opts.y || 0, z), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), yaw), new THREE.Vector3(1, 1, 1));
+  const P = (geo, m, px, py, pz) => {
+    if (dynamic) { const mesh = new THREE.Mesh(geo, b.m(m)); mesh.position.set(px, py, pz); mesh.castShadow = true; mesh.receiveShadow = true; g.add(mesh); return; }
+    geo.translate(px, py, pz); geo.applyMatrix4(M); b.geo(geo, m);
+  };
   // body: lower slab with rounded-ish profile via extrude
   const sh = new THREE.Shape();
   sh.moveTo(-2.2, 0.35); sh.lineTo(2.15, 0.35); sh.quadraticCurveTo(2.3, 0.4, 2.3, 0.75); sh.lineTo(2.2, 0.9); sh.lineTo(1.0, 0.98); sh.lineTo(0.5, 1.45); sh.lineTo(-1.2, 1.48); sh.lineTo(-1.8, 1.0); sh.lineTo(-2.2, 0.95); sh.lineTo(-2.25, 0.5); sh.closePath();
@@ -235,11 +242,11 @@ export function car(b, x, z, yaw, paint = pick(['carPaint', 'carPaintRed', 'carP
   // lights
   for (const s of [-1, 1]) { P(new THREE.BoxGeometry(0.3, 0.12, 0.05), opts.lightsOn ? 'lampCold' : 'chrome', s * 0.6, 0.78, 2.32); P(new THREE.BoxGeometry(0.3, 0.1, 0.05), 'neonRed', s * 0.6, 0.85, -2.27); }
   g.position.set(x, opts.y || 0, z); g.rotation.y = yaw;
-  b.root.add(g);
+  if (dynamic) { mergeChildMeshes(g); b.root.add(g); }
   // collider (approx — axis aligned on the larger extent)
   const along = Math.abs(Math.cos(yaw)) > 0.7;
   const sx = along ? 1.9 : 4.6, sz = along ? 4.6 : 1.9;
-  b.world.box(x, (opts.y || 0) + 0.7, z, sx, 1.4, sz, { surface: 'metal' });
+  if (!opts.noCollide) b.world.box(x, (opts.y || 0) + 0.7, z, sx, 1.4, sz, { surface: 'metal' });
   return g;
 }
 
@@ -250,7 +257,7 @@ export function streetLight(b, x, z, yaw, opts = {}) {
   const hx = x + Math.sin(yaw) * 1.4, hz = z + Math.cos(yaw) * 1.4;
   const head = new THREE.BoxGeometry(0.35, 0.12, 0.6); head.rotateY(yaw); head.translate(hx, y0 + 6.0, hz); b.geo(head, 'blackMetal');
   const bulb = new THREE.BoxGeometry(0.28, 0.03, 0.5); bulb.rotateY(yaw); bulb.translate(hx, y0 + 5.93, hz); b.geo(bulb, opts.cold ? 'lampCold' : 'lampOn', { cast: false });
-  return b.light(hx, y0 + 5.8, hz, opts.color || (opts.cold ? 0xc8dcff : 0xffb870), opts.intensity || 60, opts.dist || 22, { flicker: opts.flicker || 0, broken: opts.broken || 0, glowSize: 2.2 });
+  return b.light(hx, y0 + 5.8, hz, opts.color || (opts.cold ? 0xc8dcff : 0xffb870), opts.intensity || 60, opts.dist || 22, { flicker: opts.flicker || 0, broken: opts.broken || 0, glowSize: 1.3 });
 }
 
 export function fence(b, x0, z0, x1, z1, h = 1.2, mat = 'wood', opts = {}) {

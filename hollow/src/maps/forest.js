@@ -90,7 +90,7 @@ export function buildForest(game, b) {
     const mesh = new THREE.Mesh(g, m); mesh.receiveShadow = true; b.root.add(mesh);
   }
   // water
-  const waterT = tex('water', 1);
+  const waterT = tex('water', 1, { unique: true });
   waterT.normalMap.repeat.set(40, 40);
   const waterMat = new THREE.MeshStandardMaterial({ color: 0x0b1418, roughness: 0.08, metalness: 0.3, normalMap: waterT.normalMap, normalScale: new THREE.Vector2(0.4, 0.4), envMapIntensity: 1.6, transparent: true, opacity: 0.92 });
   { const g = new THREE.CircleGeometry(LAKE.r * 1.7, 64); g.rotateX(-Math.PI / 2); g.translate(LAKE.x, WATER_Y, LAKE.z); const w = new THREE.Mesh(g, waterMat); b.root.add(w); }
@@ -278,9 +278,10 @@ export function buildForest(game, b) {
   return {
     kind: 'forest', name: 'Blackpine', chapter: 2,
     env: {
-      sky: { top: '#020405', horizon: '#0e1612', stars: 0.35, tint: 'rgba(20,30,25,0.4)' }, fogColor: 0x0a100e, fogDensity: 0.03,
-      ambient: { sky: 0x4a5a58, ground: 0x10120c, intensity: 1.4 }, moon: { color: 0x9ab0c0, intensity: 1.1, dir: [-0.4, 1, 0.5] },
-      exposure: 1.1, grade: { tint: [0.92, 1.02, 0.98], lift: [0.004, 0.008, 0.006], desat: 0.35 }, wind: 1.4, fogBanks: 1.6, fogColor2: 0x5a6a64, fogBankAlpha: 1.2, motes: true, moteColor: 0x9a9a80, reverb: [3.2, 2.5], reverbMix: 0.4, visibility: 0.2,
+      sky: { top: '#020405', horizon: '#0e1612', stars: 0.35, tint: 'rgba(20,30,25,0.4)' }, fogColor: 0x10161a, fogDensity: 0.022,
+      ambient: { sky: 0x6a7a80, ground: 0x1a1c14, intensity: 2.2 }, moon: { color: 0xa8bcd0, intensity: 1.6, dir: [-0.4, 1, 0.5] },
+      exposure: 1.2, grade: { tint: [0.92, 1.02, 0.98], lift: [0.006, 0.01, 0.009], desat: 0.32 }, wind: 1.4, fogBanks: 1.6, fogColor2: 0x5a6a64, fogBankAlpha: 1.2, motes: true, moteColor: 0x9a9a80, reverb: [3.2, 2.5], reverbMix: 0.4, visibility: 0.2,
+      dusk: { duration: 360, sky: 2.5, fogColor: 0x2a2a2a, sunColor: 0xd08050, light: 0.6 }, rainLater: 420,
     },
     loops: [['wind', 0.45], ['crickets', 0.12], ['drone', 0.1]],
     emitters: b.emitters, terrain,

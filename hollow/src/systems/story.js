@@ -205,7 +205,7 @@ export class Story {
       this.playing = { lines: N.lines, t: 0, i: 0 };
       if (g.progress.addNote(it.id)) { g.progress.addEssence(25); g.ui.toast('Recording found  +25 essence', 2.5, 'essence'); }
       this.takenSet.add(it.id); it.taken = true;
-      g.ui.showNote(N.title, N.lines.map((l) => l[1]).join('\n\n'), true);
+      g.ui.toast(`▶ ${N.title}`, 4);
       return true;
     }
     g.audio.play('paper', null, { vol: 0.6 });
